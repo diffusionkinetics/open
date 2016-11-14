@@ -22,4 +22,11 @@ Library
                  , Numeric.Dataset.Iris
 
    Build-depends:
-       base                    >= 4.6 && < 5
+                 base                    >= 4.6
+               , cassava
+               , HTTP
+               , hashable
+               , filepath
+               , bytestring
+               , directory
+               , vector
