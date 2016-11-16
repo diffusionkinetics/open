@@ -21,6 +21,7 @@ Library
                    Numeric.Dataset.UCI
                  , Numeric.Dataset.Iris
                  , Numeric.Dataset.Anscombe
+                 , Numeric.Dataset.OldFaithful
 
    Build-depends:
                  base                    >= 4.6

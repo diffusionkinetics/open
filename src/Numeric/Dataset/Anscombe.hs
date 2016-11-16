@@ -2,7 +2,11 @@
 
 {-|
 
-Anscombe's quartet: four datasets with nearly identical statistical properties
+Anscombe's quartet
+
+Four datasets with nearly identical statistical properties
+
+Wikipedia article: <https://en.wikipedia.org/wiki/Anscombe%27s_quartet>
 
 -}
 
