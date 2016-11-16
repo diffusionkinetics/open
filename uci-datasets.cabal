@@ -22,6 +22,7 @@ Library
                  , Numeric.Dataset.Iris
                  , Numeric.Dataset.Anscombe
                  , Numeric.Dataset.OldFaithful
+                 , Numeric.Dataset.Adult
 
    Build-depends:
                  base                    >= 4.6
@@ -32,3 +33,4 @@ Library
                , bytestring
                , directory
                , vector
+               , text
