@@ -20,6 +20,7 @@ Library
    Exposed-modules:
                    Numeric.Dataset.UCI
                  , Numeric.Dataset.Iris
+                 , Numeric.Dataset.Anscombe
 
    Build-depends:
                  base                    >= 4.6
