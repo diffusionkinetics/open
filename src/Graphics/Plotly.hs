@@ -66,6 +66,12 @@ instance ToJSON Orientation where
   toJSON Horizontal = "h"
   toJSON Vertical = "v"
 
+data Fill = ToZeroY | ToNextY deriving Show
+
+instance ToJSON Fill where
+  toJSON = toJSON . map toLower . show
+
+
 data Line = Line
   { linewidth :: Maybe Double
   , linecolor :: Maybe Color
@@ -93,10 +99,11 @@ data Trace = Trace
   , tracetype :: TraceType
   , marker :: Maybe Marker
   , line :: Maybe Line
+  , fill :: Maybe Fill
   } deriving Generic
 
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing
+scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing
 
 instance ToJSON Trace where
   toJSON = genericToJSON defaultOptions {omitNothingFields = True,
