@@ -12,7 +12,7 @@ main = T.putStrLn $ renderText $ doctypehtml_ $ do
              script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
 --  head_ $ script_ "hello"
   body_ $ do div_ [id_ "myDiv", style_ "width: 480px; height: 400px;"] ""
-             newPlot "myDiv" myTrace Nothing
+             newPlot "myDiv" [myTrace] layout { title = Just "my plot" }
              p_ "hello world"
 
-myTrace = Trace [1,2,3,4] [5,3,7,2] [Markers] Scatter
+myTrace = scatter { x = [1,2,3,4], y = [5,3,7,2] }
