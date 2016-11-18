@@ -13,7 +13,7 @@ build-type:          Simple
 Cabal-Version: 	     >= 1.8
 
 Library
-   ghc-options:       -O2 -Wall
+   ghc-options:       -Wall -Werror
    ghc-prof-options:  -auto-all
    hs-source-dirs:    src
 
@@ -23,3 +23,14 @@ Library
    Build-depends:
                  base                    >= 4.6
                , aeson
+               , lucid
+               , text
+               , bytestring
+
+executable test-plotly
+  main-is: TestPlotly.hs
+  build-depends:       base >=4.6 && <5
+                     , plotlyhs
+                     , lucid
+                     , aeson
+                     , text
