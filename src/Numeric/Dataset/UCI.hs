@@ -60,6 +60,12 @@ parseDashToCamelField s =
     Just wc -> pure wc
     Nothing -> fail "unknown"
 
+parseReadField :: Read a => Field -> Parser a
+parseReadField s =
+  case readMaybe (unpack s) of
+    Just wc -> pure wc
+    Nothing -> fail "unknown"
+
 dropLines :: Int -> BL.ByteString -> BL.ByteString
 dropLines 0 s = s
 dropLines n s = dropLines (n-1) $ BL.tail $ BL8.dropWhile (/='\n') s
