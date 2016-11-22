@@ -22,7 +22,9 @@ type URL = String
 
 -- |Retrieve a dataset
 getDataset :: Dataset a -> IO [a]
-getDataset ds = ds "/tmp/haskds"
+getDataset ds = do
+  dir <- getTemporaryDirectory
+  ds $ dir </> "haskds"
 
 csvDatasetDropLines :: FromRecord a => Int -> URL -> Dataset a
 csvDatasetDropLines dlns url cacheDir = do
