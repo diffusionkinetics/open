@@ -44,3 +44,29 @@ instance FromRecord BreastCancerEntry where
 breastCancerDatabase :: Dataset BreastCancerEntry
 breastCancerDatabase = csvDataset
    "http://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data"
+
+data DiagnosticBreastCancer = DiagnosticBreastCancer
+  { diagnosticID :: Int
+  , diagnosis :: Diagnosis
+  , radius :: Double
+  , perimeter :: Double
+  , area :: Double
+  , smoothness :: Double
+  , compactness :: Double
+  , concavity :: Double
+  , concavePoints :: Double
+  , symmetry :: Double
+  , fractalDimension :: Double
+  } deriving (Show, Read, Generic)
+
+charToDiagnosis :: String -> Diagnosis
+charToDiagnosis "M" = Malignant
+charToDiagnosis "B" = Benign
+charToDiagnosis _ = error "unknown diagnosis"
+
+instance FromRecord DiagnosticBreastCancer where
+  parseRecord v = DiagnosticBreastCancer <$> v .! 0 <*> (charToDiagnosis <$> v .! 1) <*> v .! 2 <*> v .! 3 <*> v .! 4 <*> v .! 5 <*> v .! 6  <*> v .! 7  <*> v .! 8  <*> v .! 9  <*> v .! 10
+
+diagnosticBreastCancer :: Dataset DiagnosticBreastCancer
+diagnosticBreastCancer = csvDataset
+   "http://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
