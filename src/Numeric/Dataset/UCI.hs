@@ -15,6 +15,7 @@ import Data.Char (toUpper)
 import Text.Read (readMaybe)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 as BL8
+import Data.ByteString.Lazy.Search (replace)
 
 type Dataset a = FilePath -- ^ Directory for caching downloaded datasets
                  -> IO [a]
@@ -26,12 +27,12 @@ getDataset ds = do
   dir <- getTemporaryDirectory
   ds $ dir </> "haskds"
 
-csvDatasetDropLines :: FromRecord a => Int -> URL -> Dataset a
-csvDatasetDropLines dlns url cacheDir = do
+csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> URL -> Dataset a
+csvDatasetPreprocess preF url cacheDir = do
   createDirectoryIfMissing True cacheDir
   let fnm = cacheDir </> "ds" <> show (hash url)
       parseFile contents = do
-        case decode NoHeader (dropLines dlns contents) of
+        case decode NoHeader (preF contents) of
           Right theData -> return $ V.toList theData
           Left err -> fail err
       castRequest :: Request String -> Request BL.ByteString
@@ -47,7 +48,7 @@ csvDatasetDropLines dlns url cacheDir = do
        parseFile bs
 
 csvDataset :: FromRecord a =>  URL -> Dataset a
-csvDataset  = csvDatasetDropLines 0
+csvDataset  = csvDatasetPreprocess id
 
 dashToCamelCase :: String -> String
 dashToCamelCase ('-':c:cs) = toUpper c : dashToCamelCase cs
@@ -69,3 +70,6 @@ parseReadField s =
 dropLines :: Int -> BL.ByteString -> BL.ByteString
 dropLines 0 s = s
 dropLines n s = dropLines (n-1) $ BL.tail $ BL8.dropWhile (/='\n') s
+
+fixAmericanDecimals :: BL.ByteString -> BL.ByteString
+fixAmericanDecimals = replace ",." (",0."::BL.ByteString)

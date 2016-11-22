@@ -24,6 +24,7 @@ Library
                  , Numeric.Dataset.UCI.Abalone
                  , Numeric.Dataset.UCI.Adult
                  , Numeric.Dataset.UCI.Iris
+                 , Numeric.Dataset.UCI.Wine
 
    Build-depends:
                  base                    >= 4.6
@@ -35,3 +36,4 @@ Library
                , directory
                , vector
                , text
+               , stringsearch

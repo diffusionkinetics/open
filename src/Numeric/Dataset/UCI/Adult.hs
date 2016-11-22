@@ -99,4 +99,4 @@ adult :: Dataset Adult
 adult = csvDataset "http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"
 
 adultTestSet :: Dataset Adult
-adultTestSet = csvDatasetDropLines 1 "http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test"
+adultTestSet = csvDatasetPreprocess (dropLines 1) "http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test"
