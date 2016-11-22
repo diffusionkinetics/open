@@ -18,11 +18,11 @@ Library
    hs-source-dirs:    src
 
    Exposed-modules:
-                   Numeric.Dataset.UCI
-                 , Numeric.Dataset.Iris
-                 , Numeric.Dataset.Anscombe
+                   Numeric.Dataset.Anscombe
                  , Numeric.Dataset.OldFaithful
-                 , Numeric.Dataset.Adult
+                 , Numeric.Dataset.UCI
+                 , Numeric.Dataset.UCI.Iris
+                 , Numeric.Dataset.UCI.Adult
 
    Build-depends:
                  base                    >= 4.6

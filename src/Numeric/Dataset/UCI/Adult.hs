@@ -8,7 +8,7 @@ UCI ML Repository link <http://archive.ics.uci.edu/ml/datasets/Adult>
 
 -}
 
-module Numeric.Dataset.Adult where
+module Numeric.Dataset.UCI.Adult where
 
 import Numeric.Dataset.UCI
 

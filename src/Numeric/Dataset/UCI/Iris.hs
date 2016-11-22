@@ -8,7 +8,7 @@ UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
 
 -}
 
-module Numeric.Dataset.Iris where
+module Numeric.Dataset.UCI.Iris where
 
 import Numeric.Dataset.UCI
 
