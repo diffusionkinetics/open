@@ -23,6 +23,7 @@ Library
                  , Numeric.Dataset.UCI
                  , Numeric.Dataset.UCI.Abalone
                  , Numeric.Dataset.UCI.Adult
+                 , Numeric.Dataset.UCI.BreastCancerWisconsin
                  , Numeric.Dataset.UCI.Car
                  , Numeric.Dataset.UCI.Iris
                  , Numeric.Dataset.UCI.Wine
