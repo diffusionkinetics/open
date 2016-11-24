@@ -35,7 +35,7 @@ type Dataset a = FilePath -- ^ Directory for caching downloaded datasets
 data Source = URL String | CabalDataFile FilePath
 
 
--- |Define a dataset from a pre-processing function and a URL for a CSV file
+-- |Define a dataset from a pre-processing function and a source for a CSV file
 csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> Source -> Dataset a
 csvDatasetPreprocess preF src cacheDir = do
 
@@ -46,7 +46,7 @@ csvDatasetPreprocess preF src cacheDir = do
 
   getFileFromSource cacheDir src >>= parseFile
 
--- |Define a dataset from URL for a CSV file
+-- |Define a dataset from a source for a CSV file
 csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset  = csvDatasetPreprocess id
 
