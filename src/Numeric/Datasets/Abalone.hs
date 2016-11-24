@@ -2,9 +2,9 @@
 
 {-|
 
-The classical Iris dataset, due to R.A. Fisher.
+Abalone data set
 
-UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
+UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/abalone>
 
 -}
 
@@ -36,4 +36,4 @@ data Abalone = Abalone
 instance FromRecord Abalone
 
 abalone :: Dataset Abalone
-abalone = csvDataset "http://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data"
+abalone = csvDataset $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data"

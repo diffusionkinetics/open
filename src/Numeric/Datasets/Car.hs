@@ -2,9 +2,9 @@
 
 {-|
 
-The classical Iris dataset, due to R.A. Fisher.
+Car dataset
 
-UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
+UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/car>
 
 -}
 
@@ -65,4 +65,4 @@ instance FromRecord Car
 
 car :: Dataset Car
 car = csvDataset
-            "http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data"
+          $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data"

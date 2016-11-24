@@ -14,6 +14,9 @@ Cabal-Version: 	     >= 1.8
 homepage:            https://github.com/glutamate/uci-datasets
 category:            Statistics, Machine Learning, Data Mining, Data
 
+Data-files:
+        datafiles/iris.data
+
 source-repository head
   type:     git
   location: https://github.com/glutamate/uci-datasets

@@ -35,4 +35,4 @@ data Iris = Iris
 instance FromRecord Iris
 
 iris :: Dataset Iris
-iris = csvDataset "http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+iris = csvDataset $ CabalDataFile "datafiles/iris.data"

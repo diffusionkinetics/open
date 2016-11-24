@@ -37,4 +37,4 @@ instance FromRecord Wine
 wine :: Dataset Wine
 wine = csvDatasetPreprocess
             fixAmericanDecimals
-            "http://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+            $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"

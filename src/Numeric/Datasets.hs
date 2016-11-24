@@ -17,6 +17,7 @@ import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import Data.ByteString.Lazy.Search (replace)
 
+import Paths_datasets (getDataFileName)
 -- * Using datasets
 
 -- |Load a dataset, using the system temporary directory as a cache
@@ -31,32 +32,43 @@ type Dataset a = FilePath -- ^ Directory for caching downloaded datasets
 
 -- * Defining datasets
 
-type URL = String
+data Source = URL String | CabalDataFile FilePath
+
 
 -- |Define a dataset from a pre-processing function and a URL for a CSV file
-csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> URL -> Dataset a
-csvDatasetPreprocess preF url cacheDir = do
-  createDirectoryIfMissing True cacheDir
-  let fnm = cacheDir </> "ds" <> show (hash url)
-      parseFile contents = do
+csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> Source -> Dataset a
+csvDatasetPreprocess preF src cacheDir = do
+
+  let parseFile contents = do
         case decode NoHeader (preF contents) of
           Right theData -> return $ V.toList theData
           Left err -> fail err
+
+  getFileFromSource cacheDir src >>= parseFile
+
+-- |Define a dataset from URL for a CSV file
+csvDataset :: FromRecord a =>  Source -> Dataset a
+csvDataset  = csvDatasetPreprocess id
+
+getFileFromSource :: FilePath -> Source -> IO (BL.ByteString)
+getFileFromSource _ (CabalDataFile fnm) = do
+  fullpath <- getDataFileName fnm
+  BL.readFile fullpath
+getFileFromSource cacheDir (URL url) = do
+  createDirectoryIfMissing True cacheDir
+  let fnm = cacheDir </> "ds" <> show (hash url)
       castRequest :: Request String -> Request BL.ByteString
       castRequest r = Request (rqURI r) (rqMethod r) (rqHeaders r) ""
 
   ex <- doesFileExist fnm
   if ex
-     then BL.readFile fnm >>= parseFile
+     then BL.readFile fnm
      else do
        rsp <- simpleHTTP (castRequest $ getRequest url)
        bs <- getResponseBody rsp
        BL.writeFile fnm bs
-       parseFile bs
+       return bs
 
--- |Define a dataset from URL for a CSV file
-csvDataset :: FromRecord a =>  URL -> Dataset a
-csvDataset  = csvDatasetPreprocess id
 
 -- * Helper functions for parsing
 
