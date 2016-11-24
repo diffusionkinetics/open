@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Numeric.Dataset.UCI where
+module Numeric.Datasets where
 
 import Network.HTTP
 import Data.Csv

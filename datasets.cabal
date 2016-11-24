@@ -1,0 +1,42 @@
+Name:                datasets
+Version:             0.1.0
+Synopsis:            Classical data sets for statistics and machine learning
+Description:
+            Classical machine learning and statistics datasets from
+            the UCI Machine Learning Repository
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen <tanielsen@gmail.com>
+Maintainer:          Tom Nielsen <tanielsen@gmail.com>
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+homepage:            https://github.com/glutamate/uci-datasets
+category:            Statistics, Machine Learning, Data Mining, Data
+
+Library
+   ghc-options:       -Wall -Werror
+   hs-source-dirs:    src
+
+   Exposed-modules:
+                   Numeric.Datasets
+                 , Numeric.Datasets.Anscombe
+                 , Numeric.Datasets.OldFaithful
+                 , Numeric.Datasets.Abalone
+                 , Numeric.Datasets.Adult
+                 , Numeric.Datasets.BreastCancerWisconsin
+                 , Numeric.Datasets.Car
+                 , Numeric.Datasets.Iris
+                 , Numeric.Datasets.Wine
+
+   Build-depends:
+                 base                    >= 4.6
+               , cassava
+               , HTTP
+               , hashable
+               , filepath
+               , bytestring
+               , directory
+               , vector
+               , text
+               , stringsearch

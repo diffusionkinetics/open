@@ -8,9 +8,9 @@ UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
 
 -}
 
-module Numeric.Dataset.UCI.BreastCancerWisconsin where
+module Numeric.Datasets.BreastCancerWisconsin where
 
-import Numeric.Dataset.UCI
+import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics

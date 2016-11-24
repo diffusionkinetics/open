@@ -8,9 +8,9 @@ UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
 
 -}
 
-module Numeric.Dataset.UCI.Wine where
+module Numeric.Datasets.Wine where
 
-import Numeric.Dataset.UCI
+import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics

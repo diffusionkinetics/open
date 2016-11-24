@@ -10,7 +10,7 @@ Wikipedia article: <https://en.wikipedia.org/wiki/Anscombe%27s_quartet>
 
 -}
 
-module Numeric.Dataset.Anscombe where
+module Numeric.Datasets.Anscombe where
 
 anscombe :: [[(Double,Double)]]
 anscombe = [anscombe1, anscombe2, anscombe3, anscombe4]

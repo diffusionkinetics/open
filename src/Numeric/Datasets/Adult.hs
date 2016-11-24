@@ -8,9 +8,9 @@ UCI ML Repository link <http://archive.ics.uci.edu/ml/datasets/Adult>
 
 -}
 
-module Numeric.Dataset.UCI.Adult where
+module Numeric.Datasets.Adult where
 
-import Numeric.Dataset.UCI
+import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics

@@ -12,7 +12,7 @@ For more data, see <http://www.geyserstudy.org/geyser.aspx?pGeyserNo=OLDFAITHFUL
 
 -}
 
-module Numeric.Dataset.OldFaithful where
+module Numeric.Datasets.OldFaithful where
 
 data OldFaithful = OF
   { recordingDay :: Int -- ^ Recording day. 1-8: 1978, 16-23: 1979
