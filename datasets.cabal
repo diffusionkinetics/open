@@ -26,7 +26,7 @@ Data-files:
 
 source-repository head
   type:     git
-  location: https://github.com/glutamate/uci-datasets
+  location: https://github.com/glutamate/datasets
 
 
 Library
