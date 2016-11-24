@@ -30,7 +30,7 @@ source-repository head
 
 
 Library
-   ghc-options:       -Wall -Werror
+   ghc-options:       -Wall
    hs-source-dirs:    src
 
    Exposed-modules:
@@ -45,7 +45,7 @@ Library
                  , Numeric.Datasets.Wine
 
    Build-depends:
-                 base                    >= 4.6
+                 base                    >= 4.6 && < 5
                , cassava
                , HTTP
                , hashable
