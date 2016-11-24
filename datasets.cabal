@@ -1,9 +1,16 @@
 Name:                datasets
 Version:             0.1.0
 Synopsis:            Classical data sets for statistics and machine learning
-Description:
-            Classical machine learning and statistics datasets from
-            the UCI Machine Learning Repository
+Description:         Classical machine learning and statistics datasets from
+                     the UCI Machine Learning Repository and other sources.
+                     .
+                     > import Numeric.Datasets (getDataset)
+                     > import Numeric.Datasets.Iris (iris)
+                     >
+                     > main = do
+                     >   irises <- getDataset iris
+                     >   print (length irises)
+                     >   print (head irises)
 
 License:             MIT
 License-file:        LICENSE
@@ -11,7 +18,7 @@ Author:              Tom Nielsen <tanielsen@gmail.com>
 Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
 Cabal-Version: 	     >= 1.8
-homepage:            https://github.com/glutamate/uci-datasets
+homepage:            https://github.com/glutamate/datasets
 category:            Statistics, Machine Learning, Data Mining, Data
 
 Data-files:

@@ -2,9 +2,9 @@
 
 {-|
 
-The classical Iris dataset, due to R.A. Fisher.
+Wine Data set
 
-UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
+UCI ML Repository link <http://mlr.cs.umass.edu/ml/datasets/Wine>
 
 -}
 

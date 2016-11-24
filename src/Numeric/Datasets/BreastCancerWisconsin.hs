@@ -2,9 +2,9 @@
 
 {-|
 
-The classical Iris dataset, due to R.A. Fisher.
+Breast Cancer Wisconsin (Diagnostic) Data Set
 
-UCI ML Repository link <https://archive.ics.uci.edu/ml/datasets/Iris>
+Repository link: <http://mlr.cs.umass.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29>
 
 -}
 
