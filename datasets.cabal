@@ -1,5 +1,5 @@
 Name:                datasets
-Version:             0.1.0
+Version:             0.1.0.1
 Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
@@ -19,6 +19,7 @@ Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
 Cabal-Version: 	     >= 1.8
 homepage:            https://github.com/glutamate/datasets
+bug-reports:         https://github.com/glutamate/datasets/issues
 category:            Statistics, Machine Learning, Data Mining, Data
 
 Data-files:
@@ -43,6 +44,7 @@ Library
                  , Numeric.Datasets.Car
                  , Numeric.Datasets.Iris
                  , Numeric.Datasets.Wine
+   other-modules: Paths_datasets
 
    Build-depends:
                  base                    >= 4.6 && < 5
