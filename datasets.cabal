@@ -22,9 +22,6 @@ homepage:            https://github.com/glutamate/datasets
 bug-reports:         https://github.com/glutamate/datasets/issues
 category:            Statistics, Machine Learning, Data Mining, Data
 
-Data-files:
-        datafiles/iris.data
-
 source-repository head
   type:     git
   location: https://github.com/glutamate/datasets
@@ -44,8 +41,6 @@ Library
                  , Numeric.Datasets.Car
                  , Numeric.Datasets.Iris
                  , Numeric.Datasets.Wine
-   other-modules: Paths_datasets
-
    Build-depends:
                  base                    >= 4.6 && < 5
                , cassava
@@ -57,3 +52,4 @@ Library
                , vector
                , text
                , stringsearch
+               , file-embed

@@ -9,6 +9,7 @@ import System.Directory
 import Data.Hashable
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as BS
 import qualified Data.Vector as V
 
 import Data.Char (toUpper)
@@ -38,13 +39,7 @@ data Source = URL String | CabalDataFile FilePath
 -- |Define a dataset from a pre-processing function and a source for a CSV file
 csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> Source -> Dataset a
 csvDatasetPreprocess preF src cacheDir = do
-
-  let parseFile contents = do
-        case decode NoHeader (preF contents) of
-          Right theData -> return $ V.toList theData
-          Left err -> fail err
-
-  getFileFromSource cacheDir src >>= parseFile
+  parseCSV preF <$> getFileFromSource cacheDir src
 
 -- |Define a dataset from a source for a CSV file
 csvDataset :: FromRecord a =>  Source -> Dataset a
@@ -69,6 +64,11 @@ getFileFromSource cacheDir (URL url) = do
        BL.writeFile fnm bs
        return bs
 
+parseCSV :: FromRecord a => (BL.ByteString -> BL.ByteString) -> BL.ByteString -> [a]
+parseCSV preF contents =
+        case decode NoHeader (preF contents) of
+          Right theData -> V.toList theData
+          Left err -> error err
 
 -- * Helper functions for parsing
 

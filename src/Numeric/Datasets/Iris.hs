@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, TemplateHaskell #-}
 
 {-|
 
@@ -14,6 +14,9 @@ import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics
+import Data.FileEmbed
+import Data.ByteString.Lazy (fromStrict)
+
 
 data IrisClass = Setosa | Versicolor | Virginica
   deriving (Show, Read, Eq, Generic)
@@ -34,5 +37,5 @@ data Iris = Iris
 
 instance FromRecord Iris
 
-iris :: Dataset Iris
-iris = csvDataset $ CabalDataFile "datafiles/iris.data"
+iris :: [Iris]
+iris = parseCSV id $ fromStrict $(embedFile "datafiles/iris.data")
