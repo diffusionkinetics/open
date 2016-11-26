@@ -1,3 +1,21 @@
+{- |
+
+The datasets package defines two different kinds of datasets:
+
+* small data sets which are directly (or indirectly with `file-embed`)
+  embedded in the package and which do not require network to download
+  the data set.
+
+* other data sets which need to be fetched over the network with
+  `getDataset` and are cached in a local temporary directory
+
+This module defines the `getDataset` function for fetching datasets
+and utilies for defining new data sets. It is only necessary to import
+this module when using fetched data sets. Embedded data sets can be
+imported directly.
+
+-}
+
 {-# LANGUAGE OverloadedStrings #-}
 
 module Numeric.Datasets where
@@ -9,7 +27,6 @@ import System.Directory
 import Data.Hashable
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString as BS
 import qualified Data.Vector as V
 
 import Data.Char (toUpper)

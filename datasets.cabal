@@ -4,13 +4,27 @@ Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
                      .
+                     The datasets package defines two different kinds of datasets:
+                     .
+                     * small data sets which are directly (or indirectly with `file-embed`)
+                       embedded in the package and which do not require network to download
+                       the data set.
+                     .
+                     * other data sets which need to be fetched over the network with
+                       `Numeric.Datasets.getDataset` and are cached in a local temporary directory
+                     .
                      > import Numeric.Datasets (getDataset)
                      > import Numeric.Datasets.Iris (iris)
+                     > import Numeric.Datasets.Abalone (abalone)
                      >
                      > main = do
-                     >   irises <- getDataset iris
-                     >   print (length irises)
-                     >   print (head irises)
+                     >   -- The Iris data set is embedded
+                     >   print (length iris)
+                     >   print (head iris)
+                     >   -- The Abalone dataset is fetched
+                     >   abas <- getDataset abalone
+                     >   print (length abas)
+                     >   print (head abas)
 
 License:             MIT
 License-file:        LICENSE
