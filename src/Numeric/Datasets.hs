@@ -18,7 +18,6 @@ import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import Data.ByteString.Lazy.Search (replace)
 
-import Paths_datasets (getDataFileName)
 -- * Using datasets
 
 -- |Load a dataset, using the system temporary directory as a cache
@@ -33,7 +32,7 @@ type Dataset a = FilePath -- ^ Directory for caching downloaded datasets
 
 -- * Defining datasets
 
-data Source = URL String | CabalDataFile FilePath
+data Source = URL String
 
 
 -- |Define a dataset from a pre-processing function and a source for a CSV file
@@ -46,9 +45,6 @@ csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset  = csvDatasetPreprocess id
 
 getFileFromSource :: FilePath -> Source -> IO (BL.ByteString)
-getFileFromSource _ (CabalDataFile fnm) = do
-  fullpath <- getDataFileName fnm
-  BL.readFile fullpath
 getFileFromSource cacheDir (URL url) = do
   createDirectoryIfMissing True cacheDir
   let fnm = cacheDir </> "ds" <> show (hash url)
