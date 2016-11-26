@@ -8,10 +8,10 @@ Description:         Classical machine learning and statistics datasets from
                      .
                      * small data sets which are directly (or indirectly with `file-embed`)
                        embedded in the package and which do not require network to download
-                       the data set.
+                       the data set. This includes Iris, Anscombe and OldFaithful.
                      .
                      * other data sets which need to be fetched over the network with
-                       `Numeric.Datasets.getDataset` and are cached in a local temporary directory
+                       `Numeric.Datasets.getDataset` and are cached in a local temporary directory.
                      .
                      > import Numeric.Datasets (getDataset)
                      > import Numeric.Datasets.Iris (iris)
