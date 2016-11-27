@@ -45,7 +45,7 @@ instance FromRecord BreastCancerEntry where
 
 breastCancerDatabase :: Dataset BreastCancerEntry
 breastCancerDatabase = csvDataset
-   $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data"
+   $ URL "http://mlr.cs.umass.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data"
 
 data DiagnosticBreastCancer = DiagnosticBreastCancer
   { diagnosticID :: Int

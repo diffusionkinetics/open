@@ -65,4 +65,4 @@ instance FromRecord Car
 
 car :: Dataset Car
 car = csvDataset
-          $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data"
+          $ URL "http://mlr.cs.umass.edu/ml/machine-learning-databases/car/car.data"

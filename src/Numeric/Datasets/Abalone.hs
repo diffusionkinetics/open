@@ -36,4 +36,4 @@ data Abalone = Abalone
 instance FromRecord Abalone
 
 abalone :: Dataset Abalone
-abalone = csvDataset $ URL "http://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data"
+abalone = csvDataset $ URL "http://mlr.cs.umass.edu/ml/machine-learning-databases/abalone/abalone.data"
