@@ -113,3 +113,15 @@ dropLines n s = dropLines (n-1) $ BL.tail $ BL8.dropWhile (/='\n') s
 -- | Turn US-style decimals  starting with a period (e.g. .2) into something Haskell can parse (e.g. 0.2)
 fixAmericanDecimals :: BL.ByteString -> BL.ByteString
 fixAmericanDecimals = replace ",." (",0."::BL.ByteString)
+
+-- | Convert a Fixed-width format to a CSV
+fixedWidthToCSV :: BL.ByteString -> BL.ByteString
+fixedWidthToCSV = BL8.pack . fnl . BL8.unpack where
+  f [] = []
+  f (' ':cs) = ',':f (chomp cs)
+  f ('\n':cs) = '\n':fnl cs
+  f (c:cs) = c:f cs
+  fnl cs = f (chomp cs) --newline
+  chomp (' ':cs) = chomp cs
+  chomp (c:cs) = c:cs
+  chomp [] = []
