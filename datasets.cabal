@@ -49,7 +49,7 @@ source-repository head
 Library
    ghc-options:       -Wall
    hs-source-dirs:    src
-
+   other-extensions: TemplateHaskell
    Exposed-modules:
                    Numeric.Datasets
                  , Numeric.Datasets.Anscombe

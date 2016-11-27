@@ -29,6 +29,7 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 import qualified Data.Aeson as JSON
+import Control.Applicative
 
 import Data.Char (toUpper)
 import Text.Read (readMaybe)
