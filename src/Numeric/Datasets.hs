@@ -3,8 +3,8 @@
 The datasets package defines two different kinds of datasets:
 
 * small data sets which are directly (or indirectly with `file-embed`)
-  embedded in the package and which do not require network to download
-  the data set.
+  embedded in the package as pure values and do not require
+  network or IO to download the data set.
 
 * other data sets which need to be fetched over the network with
   `getDataset` and are cached in a local temporary directory
@@ -28,6 +28,7 @@ import Data.Hashable
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
+import qualified Data.Aeson as JSON
 
 import Data.Char (toUpper)
 import Text.Read (readMaybe)
@@ -51,7 +52,6 @@ type Dataset a = FilePath -- ^ Directory for caching downloaded datasets
 
 data Source = URL String
 
-
 -- |Define a dataset from a pre-processing function and a source for a CSV file
 csvDatasetPreprocess :: FromRecord a => (BL.ByteString -> BL.ByteString) -> Source -> Dataset a
 csvDatasetPreprocess preF src cacheDir = do
@@ -61,6 +61,12 @@ csvDatasetPreprocess preF src cacheDir = do
 csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset  = csvDatasetPreprocess id
 
+jsonDataset :: JSON.FromJSON a => Source -> Dataset a
+jsonDataset src cacheDir = do
+  bs <- getFileFromSource cacheDir src
+  return $ parseJSON bs
+
+-- | Get a ByteString from the specified Source
 getFileFromSource :: FilePath -> Source -> IO (BL.ByteString)
 getFileFromSource cacheDir (URL url) = do
   createDirectoryIfMissing True cacheDir
@@ -82,6 +88,13 @@ parseCSV preF contents =
         case decode NoHeader (preF contents) of
           Right theData -> V.toList theData
           Left err -> error err
+
+parseJSON :: JSON.FromJSON a => BL.ByteString -> [a]
+parseJSON bs = case JSON.decode bs of
+  Just theData ->  theData
+  Nothing -> error "failed to parse json"
+
+
 
 -- * Helper functions for parsing
 

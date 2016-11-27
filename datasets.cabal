@@ -1,5 +1,5 @@
 Name:                datasets
-Version:             0.1.0.1
+Version:             0.2
 Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
@@ -7,7 +7,7 @@ Description:         Classical machine learning and statistics datasets from
                      The datasets package defines two different kinds of datasets:
                      .
                      * small data sets which are directly (or indirectly with `file-embed`)
-                       embedded in the package and which do not require network to download
+                       embedded in the package as pure values and do not require network or IO to download
                        the data set. This includes Iris, Anscombe and OldFaithful.
                      .
                      * other data sets which need to be fetched over the network with
@@ -55,6 +55,7 @@ Library
                  , Numeric.Datasets.BreastCancerWisconsin
                  , Numeric.Datasets.Car
                  , Numeric.Datasets.Iris
+                 , Numeric.Datasets.Michelson
                  , Numeric.Datasets.Wine
    Build-depends:
                  base                    >= 4.6 && < 5
@@ -68,3 +69,4 @@ Library
                , text
                , stringsearch
                , file-embed
+               , aeson
