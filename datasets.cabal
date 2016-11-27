@@ -1,5 +1,5 @@
 Name:                datasets
-Version:             0.2
+Version:             0.2.0.1
 Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
@@ -37,6 +37,9 @@ bug-reports:         https://github.com/glutamate/datasets/issues
 category:            Statistics, Machine Learning, Data Mining, Data
 extra-source-files:
                    changelog.md
+                   datafiles/iris.data
+                   datafiles/michelson.json
+                   datafiles/nightingale.json
 
 source-repository head
   type:     git
