@@ -56,6 +56,7 @@ Library
                  , Numeric.Datasets.Car
                  , Numeric.Datasets.Iris
                  , Numeric.Datasets.Michelson
+                 , Numeric.Datasets.Nightingale
                  , Numeric.Datasets.Wine
    Build-depends:
                  base                    >= 4.6 && < 5
@@ -70,3 +71,4 @@ Library
                , stringsearch
                , file-embed
                , aeson
+               , time
