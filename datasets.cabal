@@ -1,5 +1,5 @@
 Name:                datasets
-Version:             0.2.0.2
+Version:             0.2.0.3
 Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
@@ -35,6 +35,7 @@ Cabal-Version: 	     >= 1.8
 homepage:            https://github.com/glutamate/datasets
 bug-reports:         https://github.com/glutamate/datasets/issues
 category:            Statistics, Machine Learning, Data Mining, Data
+Tested-With:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 extra-source-files:
                    changelog.md
                    datafiles/iris.data
@@ -44,7 +45,6 @@ extra-source-files:
 source-repository head
   type:     git
   location: https://github.com/glutamate/datasets
-
 
 Library
    ghc-options:       -Wall

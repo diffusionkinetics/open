@@ -14,6 +14,7 @@ import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics
+import Control.Applicative
 
 data RelScore = Low | Med | High | VeryHigh deriving (Show, Read, Eq, Generic)
 

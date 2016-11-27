@@ -22,9 +22,9 @@ data IrisClass = Setosa | Versicolor | Virginica
   deriving (Show, Read, Eq, Generic)
 
 instance FromField IrisClass where
-  parseField "Iris-setosa" = pure Setosa
-  parseField "Iris-versicolor" = pure Versicolor
-  parseField "Iris-virginica" = pure Virginica
+  parseField "Iris-setosa" = return Setosa
+  parseField "Iris-versicolor" = return Versicolor
+  parseField "Iris-virginica" = return Virginica
   parseField _ = fail "unknown iris class"
 
 data Iris = Iris

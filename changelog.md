@@ -1,3 +1,7 @@
+0.2.0.3
+
+* Further GHC portability
+
 0.2.0.2
 
 * Improve GHC portability
