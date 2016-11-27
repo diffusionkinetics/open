@@ -35,6 +35,8 @@ Cabal-Version: 	     >= 1.8
 homepage:            https://github.com/glutamate/datasets
 bug-reports:         https://github.com/glutamate/datasets/issues
 category:            Statistics, Machine Learning, Data Mining, Data
+extra-source-files:
+                   changelog.md
 
 source-repository head
   type:     git
