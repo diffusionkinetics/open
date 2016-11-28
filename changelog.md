@@ -1,5 +1,7 @@
 0.2.1
 
+* Vocabulary, UN, States datasets
+
 * CO2, Sunspots and Quakes datasets
 
 0.2.0.3

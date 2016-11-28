@@ -64,6 +64,7 @@ Library
                  , Numeric.Datasets.Michelson
                  , Numeric.Datasets.Nightingale
                  , Numeric.Datasets.Quakes
+                 , Numeric.Datasets.States
                  , Numeric.Datasets.Sunspots
                  , Numeric.Datasets.UN
                  , Numeric.Datasets.Vocab
