@@ -1,3 +1,7 @@
+0.2.1
+
+* CO2, Sunspots and Quakes datasets
+
 0.2.0.3
 
 * Further GHC portability

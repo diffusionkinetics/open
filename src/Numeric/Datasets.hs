@@ -30,6 +30,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 import qualified Data.Aeson as JSON
 import Control.Applicative
+import Data.Time
 
 import Data.Char (toUpper)
 import Text.Read (readMaybe)
@@ -62,6 +63,12 @@ csvDatasetPreprocess preF src cacheDir = do
 csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset  = csvDatasetPreprocess id
 
+-- |Define a dataset from a source for a CSV file with a known header
+csvHdrDataset :: FromNamedRecord a => Source -> Dataset a
+csvHdrDataset src cacheDir = do
+  parseCSVHdr <$> getFileFromSource cacheDir src
+
+-- |Define a dataset from a source for a JSON file -- data file must be accessible with HTTP, not HTTPS
 jsonDataset :: JSON.FromJSON a => Source -> Dataset a
 jsonDataset src cacheDir = do
   bs <- getFileFromSource cacheDir src
@@ -84,12 +91,21 @@ getFileFromSource cacheDir (URL url) = do
        BL.writeFile fnm bs
        return bs
 
+-- | Parse CSV file
 parseCSV :: FromRecord a => (BL.ByteString -> BL.ByteString) -> BL.ByteString -> [a]
 parseCSV preF contents =
         case decode NoHeader (preF contents) of
           Right theData -> V.toList theData
           Left err -> error err
 
+-- | Parse CSV file with known header
+parseCSVHdr :: FromNamedRecord a => BL.ByteString -> [a]
+parseCSVHdr contents =
+        case decodeByName contents of
+          Right (_,theData) -> V.toList theData
+          Left err -> error err
+
+-- | Parse JSON file
 parseJSON :: JSON.FromJSON a => BL.ByteString -> [a]
 parseJSON bs = case JSON.decode bs of
   Just theData ->  theData
@@ -139,3 +155,15 @@ fixedWidthToCSV = BL8.pack . fnl . BL8.unpack where
   chomp (' ':cs) = chomp cs
   chomp (c:cs) = c:cs
   chomp [] = []
+
+-- * Helper functions for data analysis
+
+-- | convert a fractional year to UTCTime with second-level precision (due to not taking into account leap seconds)
+yearToUTCTime :: Double -> UTCTime
+yearToUTCTime yearDbl =
+  let (yearn,yearFrac)  = properFraction yearDbl
+      dayYearBegin = fromGregorian yearn 1 1
+      (dayn, dayFrac) = properFraction $ yearFrac * (if isLeapYear yearn then 366 else 365)
+      day = addDays dayn dayYearBegin
+      dt = secondsToDiffTime $ round $ dayFrac * 86400
+  in UTCTime day dt
