@@ -15,6 +15,7 @@ import Numeric.Datasets
 
 import Data.Csv
 import GHC.Generics
+import Control.Applicative
 
 data Sunspot = Sunspot
   { time :: Double
