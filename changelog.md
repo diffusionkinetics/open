@@ -1,5 +1,7 @@
 0.2.1
 
+* Wine quality datasets
+
 * Vocabulary, UN, States datasets
 
 * CO2, Sunspots and Quakes datasets
