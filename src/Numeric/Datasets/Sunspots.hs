@@ -6,6 +6,7 @@ Monthly sunspots from 1749
 
 Listed as sunspot.month here: http://vincentarelbundock.github.io/Rdatasets/datasets.html
 
+See <http://vincentarelbundock.github.io/Rdatasets/doc/datasets/sunspot.month.html>
 
 -}
 

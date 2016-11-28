@@ -7,6 +7,7 @@ Mauna Loa CO2 time-series
 
 Listed as co2 here: http://vincentarelbundock.github.io/Rdatasets/datasets.html
 
+See <http://vincentarelbundock.github.io/Rdatasets/doc/datasets/co2.html>
 
 -}
 

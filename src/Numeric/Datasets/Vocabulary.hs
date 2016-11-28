@@ -8,7 +8,7 @@ Vocabulary and Education
 
 -}
 
-module Numeric.Datasets.Vocab where
+module Numeric.Datasets.Vocabulary where
 
 import Numeric.Datasets
 

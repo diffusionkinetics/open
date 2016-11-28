@@ -31,6 +31,7 @@ import qualified Data.Vector as V
 import qualified Data.Aeson as JSON
 import Control.Applicative
 import Data.Time
+import Data.Char (ord)
 
 import Data.Char (toUpper)
 import Text.Read (readMaybe)
@@ -68,6 +69,11 @@ csvHdrDataset :: FromNamedRecord a => Source -> Dataset a
 csvHdrDataset src cacheDir = do
   parseCSVHdr <$> getFileFromSource cacheDir src
 
+-- |Define a dataset from a source for a CSV file with a known header and separator
+csvHdrDatasetSep :: FromNamedRecord a => Char -> Source -> Dataset a
+csvHdrDatasetSep sepc src cacheDir = do
+  parseCSVHdrSep sepc <$> getFileFromSource cacheDir src
+
 -- |Define a dataset from a source for a JSON file -- data file must be accessible with HTTP, not HTTPS
 jsonDataset :: JSON.FromJSON a => Source -> Dataset a
 jsonDataset src cacheDir = do
@@ -102,6 +108,14 @@ parseCSV preF contents =
 parseCSVHdr :: FromNamedRecord a => BL.ByteString -> [a]
 parseCSVHdr contents =
         case decodeByName contents of
+          Right (_,theData) -> V.toList theData
+          Left err -> error err
+
+-- | Parse CSV file with known header
+parseCSVHdrSep :: FromNamedRecord a => Char -> BL.ByteString -> [a]
+parseCSVHdrSep sepc contents =
+        let opts = defaultDecodeOptions { decDelimiter = fromIntegral (ord sepc)} in
+        case decodeByNameWith opts contents of
           Right (_,theData) -> V.toList theData
           Left err -> error err
 

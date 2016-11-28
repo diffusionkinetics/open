@@ -67,8 +67,9 @@ Library
                  , Numeric.Datasets.States
                  , Numeric.Datasets.Sunspots
                  , Numeric.Datasets.UN
-                 , Numeric.Datasets.Vocab
+                 , Numeric.Datasets.Vocabulary
                  , Numeric.Datasets.Wine
+                 , Numeric.Datasets.WineQuality
    Build-depends:
                  base                    >= 4.6 && < 5
                , cassava
