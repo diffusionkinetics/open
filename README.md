@@ -1,7 +1,8 @@
-datasets: data sets for statistics and machine learning, in Haskell
+# datasets
+### data sets for statistics and machine learning, in Haskell
 =====
 
-[![Hackage](https://img.shields.io/hackage/v/datasets.svg)](https://hackage.haskell.org/package/datasets) [![Build Status](https://secure.travis-ci.org/glutamate/datasets.svg)](http://travis-ci.org/glutamate/datasets)
+[![Hackage](https://img.shields.io/hackage/v/datasets.svg)](https://hackage.haskell.org/package/datasets) [![datasets on Stackage Nightly](http://stackage.org/package/datasets/badge/nightly)](http://stackage.org/nightly/package/datasets) [![Build Status](https://secure.travis-ci.org/glutamate/datasets.svg)](http://travis-ci.org/glutamate/datasets)
 
 This library provides easy access in Haskell to a series of data sets
 for Statistics and Machine learning.
