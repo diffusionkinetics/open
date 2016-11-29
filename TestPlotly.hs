@@ -12,10 +12,12 @@ main = T.writeFile "plotlyTest.html" $ renderText $ doctypehtml_ $ do
   head_ $ do meta_ [charset_ "utf-8"]
              script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
 --  head_ $ script_ "hello"
-  body_ $ do div_ [id_ "myDiv", style_ "width: 480px; height: 400px;"] ""
-             newPlot "myDiv" $ plotly [myTrace] & (layout . title) ?~  "my plot"
+  body_ $ do p_ "hello world"
+             div_ [id_ "myDiv", style_ "width: 500px; height: 500px;"] ""
+             newPlot "myDiv" $ plotly [myTrace] & layout . title ?~  "my plot"
+                                                & layout . margin ?~  titleMargins
              p_ "hello world"
 
 myTrace = scatter & x ?~ [1,2,3,4]
-                  & y ?~ [5,3,7,2]
+                  & y ?~ [500,3000,700,200]
                   & mode ?~ [Markers]

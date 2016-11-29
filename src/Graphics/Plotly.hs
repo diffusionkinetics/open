@@ -121,8 +121,8 @@ instance ToJSON Trace where
 data Axis = Axis
   { _range :: Maybe (Double,Double)
   , _axistitle :: Maybe Text
-  , _showgrid :: Bool
-  , _zeroline :: Bool
+  , _showgrid :: Maybe Bool
+  , _zeroline :: Maybe Bool
   } deriving Generic
 
 makeLenses ''Axis
@@ -132,24 +132,41 @@ instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing True False
+defAxis = Axis Nothing Nothing Nothing Nothing
 
 
+data Margin = Margin
+  { _marginl :: Int
+  , _marginr :: Int
+  , _marginb :: Int
+  , _margint :: Int
+  , _marginpad :: Int
+  } deriving Generic
+
+makeLenses ''Margin
+
+instance ToJSON Margin where
+  toJSON = genericToJSON jsonOptions { fieldLabelModifier = dropInitial "margin" . unLens}
+
+thinMargins, titleMargins :: Margin
+thinMargins = Margin 40 25 30 10 4
+titleMargins = Margin 40 25 30 40 4
 
 data Layout = Layout
   { _xaxis :: Maybe (Double,Double)
   , _yaxis :: Maybe (Double,Double)
   , _title :: Maybe Text
-  , _showlegend :: Bool
+  , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
   , _barmode :: Maybe Barmode
+  , _margin :: Maybe Margin
   } deriving Generic
 
 makeLenses ''Layout
 
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing False Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
@@ -170,4 +187,4 @@ newPlot divNm (Plotly trs lay) =
       layoutJSON = {-case mlay of
                      Nothing -> ""
                      Just lay -> -} ","<>(decodeUtf8 $ toStrict $ encode lay)
-  in script_ ("Plotly.newPlot('"<>pack divNm<>"', "<>trJSON<>layoutJSON<>");")
+  in script_ ("Plotly.newPlot('"<>pack divNm<>"', "<>trJSON<>layoutJSON<>", {displayModeBar: false});")
