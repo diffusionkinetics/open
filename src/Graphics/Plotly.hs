@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings,FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings,FlexibleInstances, TemplateHaskell #-}
 
 module Graphics.Plotly where
 
@@ -6,12 +6,15 @@ import Data.Aeson
 import Data.Aeson.Types
 import Lucid
 import Data.Char (toLower)
-import Data.List (intercalate, stripPrefix)
+import Data.List (intercalate)
 import Data.Monoid ((<>))
 import Data.Text (pack, Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString.Lazy (toStrict)
 import GHC.Generics
+import Lens.Micro.TH
+
+import Graphics.Plotly.Utils
 
 data Mode = Markers | Lines deriving Show
 
@@ -41,14 +44,16 @@ instance ToJSON Symbol where
 
 
 data Marker = Marker
-  { size :: Maybe Int
-  , markercolor :: Maybe Color
-  , symbol :: Maybe Symbol
-  , opacity :: Maybe Double
+  { _size :: Maybe Int
+  , _markercolor :: Maybe Color
+  , _symbol :: Maybe Symbol
+  , _opacity :: Maybe Double
   } deriving Generic
 
+makeLenses ''Marker
+
 instance ToJSON Marker where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True }
+  toJSON = genericToJSON jsonOptions
 
 data Dash = Solid | Dashdot | Dot deriving Show
 
@@ -73,14 +78,15 @@ instance ToJSON Fill where
 
 
 data Line = Line
-  { linewidth :: Maybe Double
-  , linecolor :: Maybe Color
-  , dash :: Maybe Dash
+  { _linewidth :: Maybe Double
+  , _linecolor :: Maybe Color
+  , _dash :: Maybe Dash
   } deriving Generic
 
+makeLenses ''Line
+
 instance ToJSON Line where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True,
-                                         fieldLabelModifier = dropInitial "line"}
+  toJSON = genericToJSON jsonOptions { fieldLabelModifier = dropInitial "line" . unLens}
 
 defLine :: Line
 defLine = Line Nothing Nothing Nothing
@@ -89,73 +95,77 @@ defMarker :: Marker
 defMarker  = Marker Nothing Nothing Nothing Nothing
 
 data Trace = Trace
-  { x :: Maybe [Double]
-  , y :: Maybe [Double]
-  , xtext :: Maybe [Text]
-  , ytext :: Maybe [Text]
-  , mode :: Maybe [Mode]
-  , name :: Maybe Text
-  , text :: Maybe [Text]
-  , tracetype :: TraceType
-  , marker :: Maybe Marker
-  , line :: Maybe Line
-  , fill :: Maybe Fill
+  { _x :: Maybe [Double]
+  , _y :: Maybe [Double]
+  , _xtext :: Maybe [Text]
+  , _ytext :: Maybe [Text]
+  , _mode :: Maybe [Mode]
+  , _name :: Maybe Text
+  , _text :: Maybe [Text]
+  , _tracetype :: TraceType
+  , _marker :: Maybe Marker
+  , _line :: Maybe Line
+  , _fill :: Maybe Fill
   } deriving Generic
+
+
+makeLenses ''Trace
 
 scatter :: Trace
 scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing
 
 instance ToJSON Trace where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True,
-                                         fieldLabelModifier = rename "xtext" "x" . rename "ytext" "y" . dropLeadingUnderscore}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "xtext" "x" . rename "ytext" "y" . unLens}
 
-
-dropLeadingUnderscore :: String -> String
-dropLeadingUnderscore ('_':s) = s
-dropLeadingUnderscore s = s
-
-dropInitial :: String -> String -> String
-dropInitial s s' = case stripPrefix s s' of
-                  Nothing -> s'
-                  Just s'' -> s''
 
 data Axis = Axis
-  { range :: Maybe (Double,Double)
-  , axistitle :: Maybe Text
-  , showgrid :: Bool
-  , zeroline :: Bool
+  { _range :: Maybe (Double,Double)
+  , _axistitle :: Maybe Text
+  , _showgrid :: Bool
+  , _zeroline :: Bool
   } deriving Generic
 
+makeLenses ''Axis
+
+
 instance ToJSON Axis where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True,
-                                         fieldLabelModifier = rename "axistitle" "axis"}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
 
 defAxis :: Axis
 defAxis = Axis Nothing Nothing True False
 
-rename :: String -> String -> String -> String
-rename froms tos s | s == froms = tos
-                   | otherwise = s
 
 
 data Layout = Layout
-  { xaxis :: Maybe (Double,Double)
-  , yaxis :: Maybe (Double,Double)
-  , title :: Maybe Text
-  , showlegend :: Bool
-  , height :: Maybe Int
-  , width :: Maybe Int
-  , barmode :: Maybe Barmode
+  { _xaxis :: Maybe (Double,Double)
+  , _yaxis :: Maybe (Double,Double)
+  , _title :: Maybe Text
+  , _showlegend :: Bool
+  , _height :: Maybe Int
+  , _width :: Maybe Int
+  , _barmode :: Maybe Barmode
   } deriving Generic
+
+makeLenses ''Layout
 
 defLayout :: Layout
 defLayout = Layout Nothing Nothing Nothing False Nothing Nothing Nothing
 
 instance ToJSON Layout where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True}
+  toJSON = genericToJSON jsonOptions
 
-newPlot :: String -> [Trace] -> Layout -> Html ()
-newPlot divNm trs lay =
+data Plotly = Plotly
+  { _traces :: [Trace]
+  , _layout :: Layout
+  }
+
+makeLenses ''Plotly
+
+plotly :: [Trace] -> Plotly
+plotly trs = Plotly trs defLayout
+
+newPlot :: String -> Plotly -> Html ()
+newPlot divNm (Plotly trs lay) =
   let trJSON = decodeUtf8 $ toStrict $ encode trs
       layoutJSON = {-case mlay of
                      Nothing -> ""

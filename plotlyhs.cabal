@@ -1,6 +1,6 @@
 Name:                plotlyhs
 Version:             0.1.0
-Synopsis:            Haskell bindings to Plotlyy.js
+Synopsis:            Haskell bindings to Plotly.js
 Description:
         Generate web-based plots
 
@@ -13,12 +13,13 @@ build-type:          Simple
 Cabal-Version: 	     >= 1.8
 
 Library
-   ghc-options:       -Wall -Werror
+   ghc-options:       -Wall
    ghc-prof-options:  -auto-all
    hs-source-dirs:    src
 
    Exposed-modules:
                    Graphics.Plotly
+                 , Graphics.Plotly.Utils
 
    Build-depends:
                  base                    >= 4.6
@@ -26,6 +27,7 @@ Library
                , lucid
                , text
                , bytestring
+               , microlens-th
 
 executable test-plotly
   main-is: TestPlotly.hs
@@ -34,3 +36,4 @@ executable test-plotly
                      , lucid
                      , aeson
                      , text
+                     , microlens
