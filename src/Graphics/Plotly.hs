@@ -114,6 +114,10 @@ makeLenses ''Trace
 scatter :: Trace
 scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing
 
+bars :: Trace
+bars = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing
+
+
 instance ToJSON Trace where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "xtext" "x" . rename "ytext" "y" . unLens}
 

@@ -20,6 +20,7 @@ Library
    Exposed-modules:
                    Graphics.Plotly
                  , Graphics.Plotly.Utils
+                 , Graphics.Plotly.Histogram
 
    Build-depends:
                  base                    >= 4.6
@@ -28,6 +29,7 @@ Library
                , text
                , bytestring
                , microlens-th
+               , microlens
 
 executable test-plotly
   main-is: TestPlotly.hs
