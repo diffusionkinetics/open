@@ -4,15 +4,12 @@ module Graphics.Plotly where
 
 import Data.Aeson
 import Data.Aeson.Types
-import Lucid
 import Data.Char (toLower)
 import Data.List (intercalate, nub, findIndex)
 import Data.Monoid ((<>))
 import Data.Maybe (fromJust)
-import Data.Text (pack, Text)
+import Data.Text (Text)
 
-import Data.Text.Encoding (decodeUtf8)
-import Data.ByteString.Lazy (toStrict)
 import GHC.Generics
 import Lens.Micro.TH
 
@@ -114,16 +111,17 @@ data Trace = Trace
   , _marker :: Maybe Marker
   , _line :: Maybe Line
   , _fill :: Maybe Fill
+  , _orientation :: Maybe Orientation
   } deriving Generic
 
 
 makeLenses ''Trace
 
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing
+scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
 
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing
+bars = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
 
 
 instance ToJSON Trace where
@@ -192,11 +190,3 @@ makeLenses ''Plotly
 
 plotly :: [Trace] -> Plotly
 plotly trs = Plotly trs defLayout
-
-newPlot :: String -> Plotly -> Html ()
-newPlot divNm (Plotly trs lay) =
-  let trJSON = decodeUtf8 $ toStrict $ encode trs
-      layoutJSON = {-case mlay of
-                     Nothing -> ""
-                     Just lay -> -} ","<>(decodeUtf8 $ toStrict $ encode lay)
-  in script_ ("Plotly.newPlot('"<>pack divNm<>"', "<>trJSON<>layoutJSON<>", {displayModeBar: false});")

@@ -3,6 +3,7 @@
 import Lucid
 import Lucid.Html5
 import Graphics.Plotly
+import Graphics.Plotly.Lucid
 import Lens.Micro
 
 import qualified Data.Text.Lazy as T
