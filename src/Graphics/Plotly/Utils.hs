@@ -1,3 +1,9 @@
+{-|
+
+Helper functions for defining valid JSON instances
+
+-}
+
 module Graphics.Plotly.Utils where
 
 import Data.List (stripPrefix)
@@ -16,5 +22,6 @@ rename :: String -> String -> String -> String
 rename froms tos s | s == froms = tos
                    | otherwise = s
 
+jsonOptions :: Options
 jsonOptions = defaultOptions {omitNothingFields = True,
                               fieldLabelModifier = unLens }

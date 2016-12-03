@@ -1,10 +1,19 @@
+{-|
+
+Simple histograms
+
+-}
+
 module Graphics.Plotly.Histogram where
 
 import Graphics.Plotly
 import Data.List (sort, group)
 import Lens.Micro
 
-histogram :: Int -> [Double] -> Trace
+-- | build a histogram with a given binsize
+histogram :: Int -- ^ number of bins
+          -> [Double] -- ^ the individual observations
+          -> Trace
 histogram nbins pts =
   let (lo, hi) = (minimum pts, maximum pts)
       binSize = (hi - lo) / realToFrac nbins
