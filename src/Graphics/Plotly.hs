@@ -119,7 +119,7 @@ bars = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Bar Nothing
 
 
 instance ToJSON Trace where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "xtext" "x" . rename "ytext" "y" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . rename "xtext" "x" . rename "ytext" "y" . unLens}
 
 
 data Axis = Axis
