@@ -6,9 +6,11 @@ import Data.Aeson
 import Data.Aeson.Types
 import Lucid
 import Data.Char (toLower)
-import Data.List (intercalate)
+import Data.List (intercalate, nub, findIndex)
 import Data.Monoid ((<>))
+import Data.Maybe (fromJust)
 import Data.Text (pack, Text)
+
 import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString.Lazy (toStrict)
 import GHC.Generics
@@ -32,10 +34,16 @@ data Color = RGBA Int Int Int Int
            | Cols [Color]
 
 instance ToJSON Color where
-  toJSON (RGB r g b) = toJSON $ "rbg("<>show r<>","<>show g<>","<>show b<>")"
-  toJSON (RGBA r g b a) = toJSON $ "rbg("<>show r<>","<>show g<>","<>show b<>","<> show a<>")"
+  toJSON (RGB r g b) = toJSON $ "rgb("<>show r<>","<>show g<>","<>show b<>")"
+  toJSON (RGBA r g b a) = toJSON $ "rgba("<>show r<>","<>show g<>","<>show b<>","<> show a<>")"
   toJSON (ColIxs cs) = toJSON cs
   toJSON (Cols cs) = toJSON cs
+
+colorVal :: Eq a => [a] -> Color
+colorVal xs =
+  let vals = nub xs
+      f x = fromJust $ findIndex (==x) vals
+  in ColIxs $ map f xs
 
 data Symbol = Circle | Square | Diamond | Cross deriving Show
 
@@ -53,7 +61,7 @@ data Marker = Marker
 makeLenses ''Marker
 
 instance ToJSON Marker where
-  toJSON = genericToJSON jsonOptions
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "markercolor" "color" . unLens}
 
 data Dash = Solid | Dashdot | Dot deriving Show
 
