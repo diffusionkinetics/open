@@ -39,8 +39,8 @@ instance ToJSON Color where
   toJSON (ColIxs cs) = toJSON cs
   toJSON (Cols cs) = toJSON cs
 
-colorVal :: Eq a => [a] -> Color
-colorVal xs =
+catColors :: Eq a => [a] -> Color
+catColors xs =
   let vals = nub xs
       f x = fromJust $ findIndex (==x) vals
   in ColIxs $ map f xs
