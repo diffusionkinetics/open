@@ -20,7 +20,6 @@ imported directly.
 
 module Numeric.Datasets where
 
-import Network.HTTP
 import Data.Csv
 import System.FilePath
 import System.Directory
@@ -32,6 +31,8 @@ import qualified Data.Aeson as JSON
 import Control.Applicative
 import Data.Time
 import Data.Char (ord)
+import qualified Network.Wreq as Wreq
+import Lens.Micro ((^.))
 
 import Data.Char (toUpper)
 import Text.Read (readMaybe)
@@ -85,15 +86,13 @@ getFileFromSource :: FilePath -> Source -> IO (BL.ByteString)
 getFileFromSource cacheDir (URL url) = do
   createDirectoryIfMissing True cacheDir
   let fnm = cacheDir </> "ds" <> show (hash url)
-      castRequest :: Request String -> Request BL.ByteString
-      castRequest r = Request (rqURI r) (rqMethod r) (rqHeaders r) ""
 
   ex <- doesFileExist fnm
   if ex
      then BL.readFile fnm
      else do
-       rsp <- simpleHTTP (castRequest $ getRequest url)
-       bs <- getResponseBody rsp
+       rsp <- Wreq.get url
+       let bs = rsp ^. Wreq.responseBody
        BL.writeFile fnm bs
        return bs
 
