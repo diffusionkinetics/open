@@ -21,12 +21,15 @@ Library
                    Graphics.Plotly
                  , Graphics.Plotly.Utils
                  , Graphics.Plotly.Lucid
+                 , Graphics.Plotly.Blaze
                  , Graphics.Plotly.Histogram
 
    Build-depends:
                  base                    >= 4.6
                , aeson
                , lucid
+               , blaze-html
+               , blaze-markup
                , text
                , bytestring
                , microlens-th

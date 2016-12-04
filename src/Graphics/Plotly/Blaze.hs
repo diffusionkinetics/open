@@ -2,7 +2,7 @@
 
 {-|
 
-Plot traces to html using lucid
+Plot traces to html using blaze-html
 
 Example code:
 
@@ -16,9 +16,11 @@ plotHtml = toHtml $ plotly "myDiv" [trace] & layout . title ?~ "my plot"
 where `trace` is a value of type `Trace`
 
 -}
-module Graphics.Plotly.Lucid where
+module Graphics.Plotly.Blaze where
 
-import Lucid
+import Text.Blaze
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 import Graphics.Plotly
 import Data.Monoid ((<>))
 import Data.Text.Encoding (decodeUtf8)
@@ -27,21 +29,21 @@ import Data.Aeson
 import Data.Text (Text)
 
 -- |`script` tag to go in the header to import the plotly.js javascript from the official CDN
-plotlyCDN :: Monad m => HtmlT m ()
-plotlyCDN = script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
+plotlyCDN :: H.Html
+plotlyCDN = H.script ! A.src "https://cdn.plot.ly/plotly-latest.min.js" $ ""
 
 -- |Activate a plot defined by a `Plotly` value
-plotlyJS :: Monad m => Plotly -> HtmlT m ()
+plotlyJS :: Plotly -> H.Html
 plotlyJS (Plotly divNm trs lay) =
   let trJSON = decodeUtf8 $ toStrict $ encode trs
       layoutJSON = decodeUtf8 $ toStrict $ encode lay
-  in script_ ("Plotly.newPlot('"<>divNm<>"', "<>trJSON<>","<>layoutJSON<>", {displayModeBar: false});")
+  in H.script $ H.toHtml ("Plotly.newPlot('"<>divNm<>"', "<>trJSON<>","<>layoutJSON<>", {displayModeBar: false});")
 
 -- |Create a div for a Plotly value
-plotlyDiv :: Monad m => Plotly -> HtmlT m ()
+plotlyDiv :: Plotly -> H.Html
 plotlyDiv (Plotly divNm _ mlay) =
-  div_ [id_ divNm]
-       ""
+  H.div ! A.id (toValue divNm) $ ""
 
-instance ToHtml Plotly where
-  toHtml pl = plotlyDiv pl >> plotlyJS pl
+
+instance ToMarkup Plotly where
+  toMarkup pl = plotlyDiv pl >> plotlyJS pl
