@@ -27,14 +27,21 @@ import Data.Aeson
 import Data.Text (Text)
 
 -- |`script` tag to go in the header to import the plotly.js javascript from the official CDN
-plotlyCDN :: Html ()
+plotlyCDN :: Monad m => HtmlT m ()
 plotlyCDN = script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
 
 -- |Activate a plot defined by a `Plotly` value in a given `div` (which is not created).
-newPlot :: Text -> Plotly -> Html ()
-newPlot divNm (Plotly trs lay) =
+plotlyJS :: Monad m => Plotly -> HtmlT m ()
+plotlyJS (Plotly divNm trs lay) =
   let trJSON = decodeUtf8 $ toStrict $ encode trs
-      layoutJSON = {-case mlay of
-                     Nothing -> ""
-                     Just lay -> -} ","<>(decodeUtf8 $ toStrict $ encode lay)
-  in script_ ("Plotly.newPlot('"<>divNm<>"', "<>trJSON<>layoutJSON<>", {displayModeBar: false});")
+      layoutJSON = decodeUtf8 $ toStrict $ encode lay
+  in script_ ("Plotly.newPlot('"<>divNm<>"', "<>trJSON<>","<>layoutJSON<>", {displayModeBar: false});")
+
+plotlyDiv :: Monad m => Plotly -> HtmlT m ()
+plotlyDiv (Plotly divNm _ mlay) =
+  div_ [id_ divNm]
+--        style_ "width: 500px; height: 500px;"]
+       ""
+
+instance ToHtml Plotly where
+  toHtml pl = plotlyDiv pl >> plotlyJS pl

@@ -65,3 +65,9 @@ extra-package-dbs: []
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+
+# https://github.com/gibiansky/IHaskell/issues/636#issuecomment-228571480
+
+apply-ghc-options: everything
+ghc-options:
+  "*": -opta-Wa,-mrelax-relocations=no

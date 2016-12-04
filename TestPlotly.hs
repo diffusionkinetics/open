@@ -14,9 +14,8 @@ main = T.writeFile "plotlyTest.html" $ renderText $ doctypehtml_ $ do
              script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
 --  head_ $ script_ "hello"
   body_ $ do p_ "hello world"
-             div_ [id_ "myDiv", style_ "width: 500px; height: 500px;"] ""
-             newPlot "myDiv" $ plotly [myTrace] & layout . title ?~  "my plot"
-                                                & layout . margin ?~  titleMargins
+             toHtml $ plotly "myDiv" [myTrace] & layout . title ?~  "my plot"
+                                               & layout . margin ?~  titleMargins
              p_ "hello world"
 
 myTrace = scatter & x ?~ [1,2,3,4]

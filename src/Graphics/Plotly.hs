@@ -237,12 +237,13 @@ instance ToJSON Layout where
 
 -- | A helper record which represents the whole plot
 data Plotly = Plotly
-  { _traces :: [Trace]
+  { _elemid :: Text
+  , _traces :: [Trace]
   , _layout :: Layout
   }
 
 makeLenses ''Plotly
 
 -- | helper function for building the plot.
-plotly :: [Trace] -> Plotly
-plotly trs = Plotly trs defLayout
+plotly :: Text -> [Trace] -> Plotly
+plotly idnm trs = Plotly idnm trs defLayout
