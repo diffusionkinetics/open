@@ -11,6 +11,9 @@ Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
 Cabal-Version: 	     >= 1.8
+extra-source-files:
+                   changelog.md
+
 
 Library
    ghc-options:       -Wall
