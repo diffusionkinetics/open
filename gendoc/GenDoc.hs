@@ -11,7 +11,7 @@ import Lens.Micro
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 
-main = T.writeFile "../doc/index.html" $ renderText $ doctypehtml_ $ do
+main = T.writeFile "../docs/index.html" $ renderText $ doctypehtml_ $ do
   head_ $ do meta_ [charset_ "utf-8"]
              plotlyCDN
   body_ $ do p_ "hello world"
