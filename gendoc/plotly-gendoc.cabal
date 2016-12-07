@@ -22,3 +22,4 @@ executable plotly-gendoc
                      , microlens
                      , plotlyhs
                      , datasets
+                     , neat-interpolation
