@@ -40,7 +40,7 @@ plotlyJS (Plotly divNm trs lay) =
 plotlyDiv :: Monad m => Plotly -> HtmlT m ()
 plotlyDiv (Plotly divNm _ _) =
   div_ [id_ divNm]
-       mempty
+       ""
 
 instance ToHtml Plotly where
   toHtml pl = plotlyDiv pl >> plotlyJS pl
