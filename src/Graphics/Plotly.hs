@@ -51,6 +51,8 @@ import Lens.Micro.TH
 
 import Graphics.Plotly.Utils
 
+-- * Traces
+
 -- |How should traces be drawn? (lines or markers)
 data Mode = Markers | Lines deriving Show
 
@@ -111,12 +113,6 @@ defMarker  = Marker Nothing Nothing Nothing Nothing
 data Dash = Solid | Dashdot | Dot deriving Show
 
 instance ToJSON Dash where
-  toJSON = toJSON . map toLower . show
-
--- | How different bar traces be superimposed? By grouping or by stacking?
-data Barmode = Stack | Group deriving Show
-
-instance ToJSON Barmode where
   toJSON = toJSON . map toLower . show
 
 -- | Horizontal or Vertical orientation of bars
@@ -187,12 +183,19 @@ data Axis = Axis
 
 makeLenses ''Axis
 
-
 instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
 
 defAxis :: Axis
 defAxis = Axis Nothing Nothing Nothing Nothing
+
+-- * Layouts
+
+-- | How different bar traces be superimposed? By grouping or by stacking?
+data Barmode = Stack | Group deriving Show
+
+instance ToJSON Barmode where
+  toJSON = toJSON . map toLower . show
 
 -- |Options for Margins.
 data Margin = Margin
@@ -210,14 +213,14 @@ instance ToJSON Margin where
 
 -- | some good values for margins
 thinMargins, titleMargins :: Margin
-thinMargins = Margin 40 25 30 10 4
-titleMargins = Margin 40 25 30 40 4
+thinMargins = Margin 50 25 30 10 4
+titleMargins = Margin 50 25 30 40 4
 
 
 -- |options for the layout of the whole plot
 data Layout = Layout
-  { _xaxis :: Maybe (Double,Double)
-  , _yaxis :: Maybe (Double,Double)
+  { _xaxis :: Maybe Axis
+  , _yaxis :: Maybe Axis
   , _title :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
@@ -234,6 +237,8 @@ defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothi
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
+
+-- * Plotly
 
 -- | A helper record which represents the whole plot
 data Plotly = Plotly

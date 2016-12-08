@@ -24,7 +24,6 @@ import Data.Monoid ((<>))
 import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString.Lazy (toStrict)
 import Data.Aeson
-import Data.Text (Text)
 
 -- |`script` tag to go in the header to import the plotly.js javascript from the official CDN
 plotlyCDN :: Monad m => HtmlT m ()
@@ -39,9 +38,10 @@ plotlyJS (Plotly divNm trs lay) =
 
 -- |Create a div for a Plotly value
 plotlyDiv :: Monad m => Plotly -> HtmlT m ()
-plotlyDiv (Plotly divNm _ mlay) =
+plotlyDiv (Plotly divNm _ _) =
   div_ [id_ divNm]
-       ""
+       mempty
 
 instance ToHtml Plotly where
   toHtml pl = plotlyDiv pl >> plotlyJS pl
+  toHtmlRaw = toHtml

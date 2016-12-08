@@ -16,7 +16,7 @@ extra-source-files:
 
 
 Library
-   ghc-options:       -Wall
+   ghc-options:       -Wall -fno-warn-type-defaults
    ghc-prof-options:  -auto-all
    hs-source-dirs:    src
 
