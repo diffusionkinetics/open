@@ -56,7 +56,7 @@ import Graphics.Plotly.Utils
 -- |How should traces be drawn? (lines or markers)
 data Mode = Markers | Lines deriving Show
 
-instance ToJSON [Mode] where
+instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
