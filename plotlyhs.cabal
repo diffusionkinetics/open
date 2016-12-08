@@ -43,12 +43,3 @@ Library
                , bytestring
                , microlens-th
                , microlens
-
-executable test-plotly
-  main-is: TestPlotly.hs
-  build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , lucid
-                     , aeson
-                     , text
-                     , microlens
