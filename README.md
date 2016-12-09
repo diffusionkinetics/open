@@ -14,6 +14,8 @@ pages.
 
 ## Example
 
+For more, [see the examples page](https://glutamate.github.io/plotlyhs/)
+
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -35,5 +37,3 @@ main =
 myTrace = scatter & x ?~ [1,2,3,4]
                   & y ?~ [500,3000,700,200]
 ```
-
-For more, [see the examples page](https://glutamate.github.io/plotlyhs/)
