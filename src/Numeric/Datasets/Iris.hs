@@ -19,7 +19,7 @@ import Data.ByteString.Lazy (fromStrict)
 
 
 data IrisClass = Setosa | Versicolor | Virginica
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Enum, Bounded)
 
 instance FromField IrisClass where
   parseField "Iris-setosa" = return Setosa

@@ -1,3 +1,11 @@
+0.2.2
+
+* Enum, bounded instances for IrisClass
+
+* Gapminder dataset
+
+* Use wreq for HTTP and HTTPS requests
+
 0.2.1
 
 * Wine quality datasets
