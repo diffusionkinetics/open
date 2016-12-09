@@ -1,5 +1,5 @@
 Name:                plotlyhs
-Version:             0.1.0
+Version:             0.1.1
 Synopsis:            Haskell bindings to Plotly.js
 Description:
             Generate web-based plots with the Plotly.js library.
@@ -32,6 +32,7 @@ Library
                  , Graphics.Plotly.Lucid
                  , Graphics.Plotly.Blaze
                  , Graphics.Plotly.Histogram
+                 , Graphics.Plotly.Simple
 
    Build-depends:
                  base                    >= 4.7
