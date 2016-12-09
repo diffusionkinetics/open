@@ -87,11 +87,18 @@ size :: (AxisValue v, Num v) => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,vc,v) a
 size = lens _size setsize
 
 
-points :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t))
+points :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t), ToJSON (CVal t), ToJSON (SVal t))
        => Aes t a -> [a] -> Plot.Trace
-points a xs = Plot.scatter & Plot.x ?~ map (toJSON . _x a) xs
+points a xs =  setSize (_size a) $ setColors (_color a) $ Plot.scatter
+                 & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.mode ?~ [Plot.Markers]
+  where setColors Nothing p = p
+        setColors (Just setC) p
+          = p & Plot.marker . non Plot.defMarker . Plot.markercolor ?~ Plot.List (map (toJSON . setC) xs)
+        setSize Nothing p = p
+        setSize (Just setS) p
+          = p & Plot.marker . non Plot.defMarker . Plot.size ?~ Plot.List (map (toJSON . setS) xs)
 
 line :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t))
        => Aes t a -> [a] -> Plot.Trace

@@ -6,9 +6,11 @@ import Lucid
 import Lucid.Html5
 import Graphics.Plotly hiding (text)
 import Graphics.Plotly.Lucid
+import qualified Graphics.Plotly.GoG as GG
 import Lucid.Bootstrap
 import Data.Monoid ((<>))
 import NeatInterpolation
+import Data.Aeson
 import Lens.Micro
 import Numeric.Datasets.Iris
 
@@ -148,10 +150,29 @@ main = T.writeFile "../docs/index.html" $ renderText $ doctypehtml_ $ do
                             & layout . margin ?~ thinMargins
                             & layout . height ?~ 300 |]
                  div_ [class_ "col-md-6"] $ toHtml $ plotly "div6"
-                           [scatter & x ?~ map sepalLength iris
-                                    & y ?~ map sepalWidth iris
-                                    & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass iris))
+                           [scatter & x ?~ map (toJSON . sepalLength) iris
+                                    & y ?~ map (toJSON . sepalWidth) iris
+                                    & marker ?~ (defMarker & markercolor ?~ (catColors (map irisClass iris)))
                                     & mode ?~ [Markers]]
+                            & layout . margin ?~ thinMargins
+                            & layout . height ?~ 300
+               row_ $ p_ "Grammar of Graphics-style interface"
+               row_ $ do
+                 div_ [class_ "col-md-6"] $ pre_ $ code_ $ toHtml
+                  [text|
+                    plotly "div6gg"
+                           [points (aes & x .~ sepalLength
+                                        & y .~ sepalWidth
+                                        & color ?~ fromEnum . irisClass) iris]
+                            & layout . margin ?~ thinMargins
+                            & layout . height ?~ 300 |]
+                 {-let irisClassN Setosa = 1
+                     irisClassN Versicolor = 2
+                     irisClassN Virginica = 3 -}
+                 div_ [class_ "col-md-6"] $ toHtml $ plotly "div6gg"
+                           [GG.points (GG.aes & GG.x .~ sepalLength
+                                           & GG.y .~ sepalWidth
+                                           & GG.color ?~ fromEnum . irisClass) iris]
                             & layout . margin ?~ thinMargins
                             & layout . height ?~ 300
                row_ $ h4_ "Horizontal bar plots"
@@ -168,8 +189,8 @@ main = T.writeFile "../docs/index.html" $ renderText $ doctypehtml_ $ do
                            & layout . margin ?~ thinMargins
                            & layout . height ?~ 300|]
                  div_ [class_ "col-md-6"] $ toHtml $ plotly "div7"
-                       [bars & ytext ?~ map fst hbarData
-                             & x ?~ map snd hbarData
+                       [bars & y ?~ map (toJSON . fst) hbarData
+                             & x ?~ map (toJSON . snd) hbarData
                              & orientation ?~ Horizontal]
                        & layout . margin ?~ thinMargins
                             & layout . height ?~ 300
@@ -184,5 +205,5 @@ hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
 
 
 myTrace
-  = scatter & x ?~ [1,2,3,4]
-            & y ?~ [500,3000,700,200]
+  = scatter & x ?~ (map toJSON [1,2,3,4])
+            & y ?~ (map toJSON [500,3000,700,200])

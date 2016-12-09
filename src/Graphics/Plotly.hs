@@ -77,31 +77,31 @@ instance ToJSON Color where
   toJSON (ColIx cs) = toJSON cs
 
 -- | Assign colors based on any categorical value
-catColors :: Eq a => [a] -> ListOrElem Color
+catColors :: Eq a => [a] -> ListOrElem Value
 catColors xs =
   let vals = nub xs
       f x = fromJust $ findIndex (==x) vals
-  in List $ map (ColIx . f) xs
+  in List $ map (toJSON . ColIx . f) xs
 
 -- | Different types of markers
-data Symbol = Circle | Square | Diamond | Cross deriving Show
+data Symbol = Circle | Square | Diamond | Cross deriving (Show, Eq)
 
 instance ToJSON Symbol where
   toJSON = toJSON . map toLower . show
 
-data ListOrElem a = List [a] | Elem a
+data ListOrElem a = List [a] | All a deriving Eq
 
 instance ToJSON a => ToJSON (ListOrElem a) where
   toJSON (List xs) = toJSON xs
-  toJSON (Elem x) = toJSON x
+  toJSON (All x) = toJSON x
 
 -- | Marker specification
 data Marker = Marker
-  { _size :: Maybe (ListOrElem Int)
-  , _markercolor :: Maybe (ListOrElem Color)
+  { _size :: Maybe (ListOrElem Value)
+  , _markercolor :: Maybe (ListOrElem Value)
   , _symbol :: Maybe Symbol
   , _opacity :: Maybe Double
-  } deriving Generic
+  } deriving (Generic, Eq)
 
 makeLenses ''Marker
 
