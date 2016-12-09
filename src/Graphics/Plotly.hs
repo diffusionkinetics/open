@@ -69,21 +69,19 @@ instance ToJSON TraceType where
 -- | A color specification, either as a concrete RGB/RGBA value or a color per point.
 data Color = RGBA Int Int Int Int -- ^ use this RGBA color for every point in the trace
            | RGB Int Int Int -- ^ use this RGB color for every point in the trace
-           | ColIxs [Int]  -- ^ use a different color index for each point
-           | Cols [Color] -- ^ use a different color for each point
+           | ColIx Int  -- ^ use a different color index for each point
 
 instance ToJSON Color where
   toJSON (RGB r g b) = toJSON $ "rgb("<>show r<>","<>show g<>","<>show b<>")"
   toJSON (RGBA r g b a) = toJSON $ "rgba("<>show r<>","<>show g<>","<>show b<>","<> show a<>")"
-  toJSON (ColIxs cs) = toJSON cs
-  toJSON (Cols cs) = toJSON cs
+  toJSON (ColIx cs) = toJSON cs
 
 -- | Assign colors based on any categorical value
-catColors :: Eq a => [a] -> Color
+catColors :: Eq a => [a] -> ListOrElem Color
 catColors xs =
   let vals = nub xs
       f x = fromJust $ findIndex (==x) vals
-  in ColIxs $ map f xs
+  in List $ map (ColIx . f) xs
 
 -- | Different types of markers
 data Symbol = Circle | Square | Diamond | Cross deriving Show
@@ -91,10 +89,16 @@ data Symbol = Circle | Square | Diamond | Cross deriving Show
 instance ToJSON Symbol where
   toJSON = toJSON . map toLower . show
 
+data ListOrElem a = List [a] | Elem a
+
+instance ToJSON a => ToJSON (ListOrElem a) where
+  toJSON (List xs) = toJSON xs
+  toJSON (Elem x) = toJSON x
+
 -- | Marker specification
 data Marker = Marker
-  { _size :: Maybe Int
-  , _markercolor :: Maybe Color
+  { _size :: Maybe (ListOrElem Int)
+  , _markercolor :: Maybe (ListOrElem Color)
   , _symbol :: Maybe Symbol
   , _opacity :: Maybe Double
   } deriving Generic
