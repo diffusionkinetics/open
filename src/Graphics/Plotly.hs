@@ -145,10 +145,8 @@ defLine = Line Nothing Nothing Nothing
 
 -- | A `Trace` is the component of a plot. Multiple traces can be superimposed.
 data Trace = Trace
-  { _x :: Maybe [Double] -- ^ x values, as numbers
-  , _y :: Maybe [Double] -- ^ y values, as numbers
-  , _xtext :: Maybe [Text]  -- ^ x values, as Text
-  , _ytext :: Maybe [Text]  -- ^ y values, as Text
+  { _x :: Maybe [Value] -- ^ x values, as numbers
+  , _y :: Maybe [Value] -- ^ y values, as numbers
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
@@ -163,15 +161,15 @@ makeLenses ''Trace
 
 -- |an empty scatter plot
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
+scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
 
 -- |an empty bar plot
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
+bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
 
 
 instance ToJSON Trace where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . rename "xtext" "x" . rename "ytext" "y" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . unLens}
 
 -- |Options for axes
 data Axis = Axis

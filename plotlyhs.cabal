@@ -30,6 +30,7 @@ Library
                    Graphics.Plotly
                  , Graphics.Plotly.Utils
                  , Graphics.Plotly.Lucid
+                 , Graphics.Plotly.GoG
                  , Graphics.Plotly.Blaze
                  , Graphics.Plotly.Histogram
                  , Graphics.Plotly.Simple
