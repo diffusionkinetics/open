@@ -19,32 +19,72 @@ instance AxisValue Text
 instance AxisValue String
 instance AxisValue Int
 
+data RGB a = RGB a a a
+data RGBA a = RGBA a a a a
+
+instance ToJSON (RGB Int) where
+  toJSON (RGB r g b) = toJSON $ concat ["rgb(",show r,",",show g, ",", show b,")"]
+
+instance ToJSON (RGB Double) where
+  toJSON (RGB r g b) = toJSON $ concat ["rgb(",showd r,",",showd g, ",", showd b,")"]
+   where showd = show . floor . (*256)
+
+instance ToJSON (RGBA Int) where
+  toJSON (RGBA r g b a) = toJSON $ concat ["rgba(",show r,",",show g, ",", show b,",", show a, ")"]
+
+instance ToJSON (RGBA Double) where
+  toJSON (RGBA r g b a) = toJSON $ concat ["rgb(",showd r,",",showd g, ",", showd b,",", showd a,")"]
+   where showd = show . floor . (*256)
+
+class ToJSON a => IsColor a
+
+instance IsColor Int
+instance IsColor (RGB Int)
+instance IsColor (RGB Double)
+instance IsColor (RGBA Int)
+instance IsColor (RGBA Double)
+
 type family XVal a
 type family YVal a
+type family CVal a
+type family SVal a
 
-type instance XVal (a,b) = a
-type instance YVal (a,b) = b
+type instance XVal (x,y,c,s) = x
+type instance YVal (x,y,c,s) = y
+type instance CVal (x,y,c,s) = c
+type instance SVal (x,y,c,s) = s
 
 data Aes t a = Aes { _x :: (a -> XVal t)
                    , _y :: (a -> YVal t)
-                   , _color :: Maybe (a -> Int)
-                   , _size :: Maybe (a -> Double)
+                   , _color :: Maybe (a -> CVal t)
+                   , _size :: Maybe (a -> SVal t)
                    }
-aes :: Aes ((), ()) a
+aes :: Aes ((), (), (), ()) a
 aes = Aes (const ()) (const ()) Nothing Nothing
 
-setx :: AxisValue v => Aes (vx,vy) a -> (a -> v) -> Aes (v, vy) a
-setx (Aes _ fy fc fs) f = (Aes f fy fc fs) --a { _x = f}
+setx :: AxisValue v => Aes (vx,vy,vc,vs) a -> (a -> v) -> Aes (v, vy, vc, vs) a
+setx (Aes _ fy fc fs) f = (Aes f fy fc fs)
 
-x :: AxisValue v => Lens (Aes (vx,vy) a) (Aes (v,vy) a) (a -> vx) (a -> v)
+x :: AxisValue v => Lens (Aes (vx,vy, vc, vs) a) (Aes (v,vy, vc, vs) a) (a -> vx) (a -> v)
 x = lens _x setx
 
-sety :: AxisValue v => Aes (vx,vy) a -> (a -> v) -> Aes (vx, v) a
-sety (Aes fx _ fc fs) f = (Aes fx f fc fs) --a { _x = f}
---sety a f = a { _y = f}
+sety :: AxisValue v => Aes (vx,vy, vc, vs) a -> (a -> v) -> Aes (vx, v, vc, vs) a
+sety (Aes fx _ fc fs) f = (Aes fx f fc fs)
 
-y :: AxisValue v => Lens (Aes (vx,vy) a) (Aes (vx,v) a) (a -> vy) (a -> v)
+y :: AxisValue v => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,v, vc, vs) a) (a -> vy) (a -> v)
 y = lens _y sety
+
+setcol :: IsColor v => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, v, vs) a
+setcol (Aes fx fy _ fs) f = (Aes fx fy f fs)
+
+color :: IsColor v => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,v,vs) a) (Maybe (a -> vc)) (Maybe (a -> v))
+color = lens _color setcol
+
+setsize :: (AxisValue v, Num v) => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vc, v) a
+setsize (Aes fx fy fc _) f = (Aes fx fy fc f)
+
+size :: (AxisValue v, Num v) => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,vc,v) a) (Maybe (a -> vs)) (Maybe (a -> v))
+size = lens _size setsize
 
 
 points :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t))
