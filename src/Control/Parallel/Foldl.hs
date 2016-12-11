@@ -179,7 +179,7 @@ groupBy f (Fold step initial extract comb) = Fold step1 Map.empty (Map.map extra
 -- https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
 variance :: Fractional a => Fold a a
 variance = f <$> genericLength <*> sum <*> sumSqr where
-  f (n::Int) sm smsqr = ((smsqr - (sm * sm))/realToFrac n) / (realToFrac $ n-1)
+  f (n::Int) sm smsqr = (smsqr - (sm * sm)/realToFrac n) / (realToFrac $ n-1)
 
 rmse :: Floating a => Fold (a,a) a
 rmse = pure sqrt <*> premap (\(x,y)-> (x-y)*(x-y)) average

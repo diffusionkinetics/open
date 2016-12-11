@@ -35,3 +35,10 @@ Library
                , containers
                , monad-par
                , foldl
+
+executable test-parfoldl
+  main-is: TestParFoldl.hs
+  build-depends:       base >=4.6 && <5
+                     , datasets
+                     , parfoldl
+                     , containers
