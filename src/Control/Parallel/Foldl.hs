@@ -15,10 +15,12 @@ module Control.Parallel.Foldl where
 
 import Control.Applicative
 --import Data.Foldable (Foldable)
---import Data.Vector.Generic (Vector, Mutable)
+import qualified Data.Vector.Generic as VG
 import qualified Data.Map.Strict as Map
+import Data.List (foldl1')
 import Data.Map.Strict (Map)
 import Data.Profunctor
+import Control.Monad.Par
 import Prelude hiding
     ( head
     , last
@@ -113,6 +115,24 @@ fold (Fold step begin done _) as = F.foldr cons done as begin
     cons a k x = k $! step x a
 {-# INLINE fold #-}
 
+foldPar :: (VG.Vector v a, Foldable v) => Int -> Fold a b -> v a -> b
+foldPar nthreads (Fold step begin done comb) v = runPar $ do
+  let vs = vectorSlices nthreads v
+      fv v' = return $! F.foldr cons id v' begin
+      cons a k x = k $! step x a
+  ivs <- mapM (spawn_ . fv) vs
+  xs <- mapM get ivs
+  return $ done $ foldl1' comb xs
+
+
+vectorSlices :: VG.Vector w a => Int -> w a -> [w a]
+vectorSlices nsegs v = go v where
+  seglen = ceiling $ realToFrac (VG.length v) / realToFrac nsegs
+  go v' | VG.null v' = []
+        | VG.length v' < seglen = [v']
+        | otherwise = let (v1,v2) = VG.splitAt seglen v'
+                      in v1 : go v2
+
 -- | Computes the product all elements
 product :: Num a => Fold a a
 product = Fold (*) 1 id (*)
@@ -137,7 +157,8 @@ average = (/) <$> sum <*> genericLength
 frequency :: Fold Bool Double
 frequency = (/) <$> filter id genericLength <*> genericLength
 
--- | group Fold processing by an extracted key
+-- | group Fold processing by an extracted key. Using a composite `a` gives a
+-- pivot table
 groupBy :: (Eq a, Ord a) => (b -> a) -> Fold b c -> Fold b (Map a c)
 groupBy f (Fold step initial extract comb) = Fold step1 Map.empty (Map.map extract) comb1 where
   step1 mapacc val =
@@ -148,7 +169,9 @@ groupBy f (Fold step initial extract comb) = Fold step1 Map.empty (Map.map extra
   comb1 map1 map2 = Map.unionWith comb map1 map2
 
 -- | Naive variance calculation
--- https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
+-- https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na.C3.AFve_algorithm
+-- we probably want to do this instead:
+-- https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
 variance :: Fractional a => Fold a a
 variance = f <$> genericLength <*> sum <*> sumSqr where
   f (n::Int) sm smsqr = ((smsqr - (sm * sm))/realToFrac n) / (realToFrac $ n-1)

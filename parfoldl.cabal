@@ -33,3 +33,4 @@ Library
                , vector
                , profunctors
                , containers
+               , monad-par
