@@ -21,6 +21,8 @@ import Data.List (foldl1')
 import Data.Map.Strict (Map)
 import Data.Profunctor
 import Control.Monad.Par
+import qualified Control.Foldl as L
+
 import Prelude hiding
     ( head
     , last
@@ -101,13 +103,6 @@ premap f (Fold step begin done comb) = Fold step' begin done comb
     step' x a = step x (f a)
 {-# INLINABLE premap #-}
 
-sum :: Num a => Fold a a
-sum = Fold (+) 0 id (+)
-{-# INLINABLE sum #-}
-
-sumSqr :: Num a => Fold a a
-sumSqr = premap sq sum where sq x = x * x
-
 -- | Apply a strict left 'Fold' to a 'Foldable' container
 fold :: Foldable f => Fold a b -> f a -> b
 fold (Fold step begin done _) as = F.foldr cons done as begin
@@ -132,6 +127,16 @@ vectorSlices nsegs v = go v where
         | VG.length v' < seglen = [v']
         | otherwise = let (v1,v2) = VG.splitAt seglen v'
                       in v1 : go v2
+
+toFoldl :: Fold a b -> L.Fold a b
+toFoldl (Fold step initial extract _) = L.Fold step initial extract
+
+sum :: Num a => Fold a a
+sum = Fold (+) 0 id (+)
+{-# INLINABLE sum #-}
+
+sumSqr :: Num a => Fold a a
+sumSqr = premap sq sum where sq x = x * x
 
 -- | Computes the product all elements
 product :: Num a => Fold a a

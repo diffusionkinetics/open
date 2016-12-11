@@ -34,3 +34,4 @@ Library
                , profunctors
                , containers
                , monad-par
+               , foldl
