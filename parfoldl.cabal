@@ -1,0 +1,32 @@
+Name:                parfoldl
+Version:             0.1.0
+Synopsis:            Parallel folds
+Description:
+        similar to foldl, with an extra 'combine' step, along with statistical folds
+
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen
+Maintainer:          tanielsen@gmail.com
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+homepage:            https://github.com/glutamate/parfoldl
+bug-reports:         https://github.com/glutamate/parfoldl/issues
+category:            Control, Statistics
+Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+
+
+extra-source-files:
+                   changelog.md
+
+
+Library
+   ghc-options:       -Wall -fno-warn-type-defaults
+   hs-source-dirs:    src
+
+   Exposed-modules:
+                   Control.Parallel.Foldl
+
+   Build-depends:
+                 base                    >= 4.7
