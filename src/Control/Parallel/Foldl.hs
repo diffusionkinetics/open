@@ -40,6 +40,7 @@ import Prelude hiding
     , notElem
     , filter
     )
+import qualified Prelude
 
 import qualified Data.Foldable               as F
 --import qualified Data.List                   as List
@@ -180,6 +181,14 @@ groupBy f (Fold step initial extract comb) = Fold step1 Map.empty (Map.map extra
 variance :: Fractional a => Fold a a
 variance = f <$> genericLength <*> sum <*> sumSqr where
   f (n::Int) sm smsqr = (smsqr - (sm * sm)/realToFrac n) / (realToFrac $ n-1)
+
+-- | two-pass variance, for testing accuracy
+twoPassVariance :: [Double] -> Double
+twoPassVariance xs =
+  let n = realToFrac $ Prelude.length xs
+      mn = Prelude.sum xs / n
+      devs = map (\x-> (x - mn)^2) xs
+  in Prelude.sum devs / (n-1)
 
 rmse :: Floating a => Fold (a,a) a
 rmse = pure sqrt <*> premap (\(x,y)-> (x-y)*(x-y)) average
