@@ -17,11 +17,15 @@ import Control.Applicative
 --import Data.Foldable (Foldable)
 import qualified Data.Vector.Generic as VG
 import qualified Data.Map.Strict as Map
+import qualified Data.Sequence as Seq
+import Data.Sequence (Seq, (<|), (><))
 import Data.List (foldl1')
 import Data.Map.Strict (Map)
 import Data.Profunctor
 import Control.Monad.Par
 import qualified Control.Foldl as L
+import Data.List (maximumBy)
+import Data.Ord (comparing)
 
 import Prelude hiding
     ( head
@@ -160,8 +164,8 @@ average :: Fractional a => Fold a a
 average = (/) <$> sum <*> genericLength
 
 -- | frequency
-frequency :: Fold Bool Double
-frequency = (/) <$> filter id genericLength <*> genericLength
+frequencyTrue :: Fold Bool Double
+frequencyTrue = (/) <$> filter id genericLength <*> genericLength
 
 -- | group Fold processing by an extracted key. Using a composite `a` gives a
 -- pivot table
@@ -192,3 +196,44 @@ twoPassVariance xs =
 
 rmse :: Floating a => Fold (a,a) a
 rmse = pure sqrt <*> premap (\(x,y)-> (x-y)*(x-y)) average
+
+mode :: (Eq a, Ord a) => Fold a a
+mode = Fold step Map.empty findMaxIx comb1 where
+  step mapacc x = Map.insertWith (+) x (1::Int) mapacc
+  findMaxIx mp = fst $ maximumBy (comparing snd) $ Map.toList mp
+  comb1 mp1 mp2 = Map.unionWith (+) mp1 mp2
+
+occurrences :: (Eq a, Ord a) => Fold a (Map a Int)
+occurrences = Fold step Map.empty id comb1 where
+  step mapacc x = Map.insertWith (+) x 1 mapacc
+  comb1 mp1 mp2 = Map.unionWith (+) mp1 mp2
+
+--http://wis.kuleuven.be/stat/robust/papers/publications-1990/rousseeuwbassett-remedian-jasa-1990.pdf
+remedian :: (Eq a, Ord a, Show a) => Int -> Fold a a
+remedian nbuf' = Fold step ini final comb where
+  nbuf = if odd nbuf' then nbuf' else nbuf' +1
+  ini = Pair Seq.empty (Pair Seq.empty (0::Int))
+  step (Pair ms (Pair seqacc nacc)) x
+    | nacc < nbuf = Pair ms (Pair (x <| seqacc) (nacc+1))
+    | otherwise = let m = oddMedianS seqacc
+                  in Pair (m <| ms) (Pair (Seq.singleton x) 1)
+  final (Pair ms (Pair _ 0)) = oddMedianS ms
+  final (Pair ms (Pair leftover _)) = oddMedianS $ oddMedianS leftover <| ms
+  comb (Pair ms1 (Pair seqacc1 nacc1))
+       (Pair ms2 (Pair seqacc2 nacc2))
+       = Pair (ms1 >< ms2) (Pair (seqacc1 >< seqacc2) (nacc1+nacc2))
+
+medianL :: (Ord a, Num a, Fractional a) => [a] -> a
+medianL = medianS . Seq.fromList
+
+medianS :: (Ord a, Num a, Fractional a) => Seq a -> a
+medianS s | odd len = sorted `Seq.index` (len `div` 2)
+          | otherwise = av2 (sorted `Seq.index` (len `div` 2 - 1)) (sorted `Seq.index` (len `div` 2))
+  where sorted = Seq.unstableSort s
+        len = Seq.length s
+        av2 x y = (x+y)/2
+
+oddMedianS :: (Ord a) => Seq a -> a
+oddMedianS s = sorted `Seq.index` (len `div` 2)
+  where sorted = Seq.unstableSort s
+        len = Seq.length s

@@ -11,7 +11,7 @@ irisApply f = Iris <$> premap sepalLength f
                    <*> premap sepalWidth f
                    <*> premap petalLength f
                    <*> premap petalWidth f
-                   <*> pure Setosa
+                   <*> premap irisClass mode
 
 deriving instance Ord IrisClass
 
@@ -19,7 +19,7 @@ main = do print $ ("iris average seplen", fold (premap sepalLength average) iris
           print $ ("iris variance seplen", fold (premap sepalLength variance) iris)
           print $ ("iris twopvar  seplen", twoPassVariance $ map sepalLength iris)
           print $ fold (irisApply average) iris
-          let byClass = map updClass $ Map.toList $ fold (groupBy irisClass $ irisApply average) iris
+          let byClass = Map.toList $ fold (groupBy irisClass $ irisApply average) iris
           mapM_ print byClass
           bh <- getDataset bostonHousing
           print $ length bh
@@ -29,9 +29,6 @@ main = do print $ ("iris average seplen", fold (premap sepalLength average) iris
           let manyNums = [1..100000000]
           print $ twoPassVariance manyNums
           print $ fold variance manyNums
-
-updClass :: (IrisClass, Iris) -> Iris
-updClass (c, i) = i { irisClass = c }
 
 
 {-
