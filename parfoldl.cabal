@@ -30,3 +30,6 @@ Library
 
    Build-depends:
                  base                    >= 4.7
+               , vector
+               , profunctors
+               , containers
