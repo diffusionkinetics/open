@@ -212,16 +212,29 @@ occurrences = Fold step Map.empty id comb1 where
 remedian :: (Eq a, Ord a, Show a) => Int -> Fold a a
 remedian nbuf' = Fold step ini final comb where
   nbuf = if odd nbuf' then nbuf' else nbuf' +1
-  ini = Pair Seq.empty (Pair Seq.empty (0::Int))
-  step (Pair ms (Pair seqacc nacc)) x
-    | nacc < nbuf = Pair ms (Pair (x <| seqacc) (nacc+1))
-    | otherwise = let m = oddMedianS seqacc
-                  in Pair (m <| ms) (Pair (Seq.singleton x) 1)
-  final (Pair ms (Pair _ 0)) = oddMedianS ms
-  final (Pair ms (Pair leftover _)) = oddMedianS $ oddMedianS leftover <| ms
-  comb (Pair ms1 (Pair seqacc1 nacc1))
-       (Pair ms2 (Pair seqacc2 nacc2))
-       = Pair (ms1 >< ms2) (Pair (seqacc1 >< seqacc2) (nacc1+nacc2))
+  nbufm1 = nbuf - 1
+  ini = []
+
+  step = flip push
+
+  final mss = oddMedianS $ Prelude.last mss
+
+  comb = mergeMedians
+
+  push :: (Ord a) => a -> [Seq a] -> [Seq a]
+  push x [] = [Seq.singleton x]
+  push x (ms:mss) | Seq.length ms < nbufm1  = (x <| ms) : mss
+                  | otherwise = Seq.empty : push (oddMedianS (x <| ms)) mss
+
+  mergeMedians :: (Ord a) => [Seq a] -> [Seq a] -> [Seq a]
+  mergeMedians [] s = s
+  mergeMedians s [] = s
+  mergeMedians (s1:s1s) (s2:s2s) =
+    let sq = s1 >< s2
+    in if Seq.length sq < nbuf
+          then sq : mergeMedians s1s s2s
+          else Seq.empty : mergeMedians (push (oddMedianS sq) s1s)  s2s
+
 
 medianL :: (Ord a, Num a, Fractional a) => [a] -> a
 medianL = medianS . Seq.fromList
