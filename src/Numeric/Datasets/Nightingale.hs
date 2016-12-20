@@ -31,4 +31,4 @@ data Nightingale = Nightingale
 instance FromJSON Nightingale
 
 nightingale :: [Nightingale]
-nightingale = parseJSON $ fromStrict $(embedFile "datafiles/nightingale.json")
+nightingale = readDataset JSON $ fromStrict $(embedFile "datafiles/nightingale.json")

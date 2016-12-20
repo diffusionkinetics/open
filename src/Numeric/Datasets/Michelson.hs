@@ -18,4 +18,4 @@ import Data.ByteString.Lazy (fromStrict)
 
 
 michelson :: [[Double]]
-michelson = parseJSON $ fromStrict $(embedFile "datafiles/michelson.json")
+michelson = readDataset JSON (fromStrict $(embedFile "datafiles/michelson.json"))

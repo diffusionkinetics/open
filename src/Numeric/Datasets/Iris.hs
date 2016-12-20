@@ -38,4 +38,4 @@ data Iris = Iris
 instance FromRecord Iris
 
 iris :: [Iris]
-iris = parseCSV id $ fromStrict $(embedFile "datafiles/iris.data")
+iris = readDataset csvRecord (fromStrict $(embedFile "datafiles/iris.data"))

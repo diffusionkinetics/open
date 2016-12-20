@@ -18,7 +18,8 @@ data OldFaithful = OF
   { recordingDay :: Int -- ^ Recording day. 1-8: 1978, 16-23: 1979
   , waiting :: Double -- ^ waiting time until next eruption
   , duration :: Double -- ^ duration of eruption in minutes
-  }
+  } deriving Show
+
 -- The first comp
 oldFaithful :: [OldFaithful]
 oldFaithful =

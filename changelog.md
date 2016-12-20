@@ -1,5 +1,7 @@
 0.2.3
 
+* New internal API
+
 * Ord instance for IrisClass
 
 0.2.2
