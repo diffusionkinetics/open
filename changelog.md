@@ -1,5 +1,7 @@
 0.2.3
 
+* Coal dataset
+
 * New internal API
 
 * Ord instance for IrisClass
