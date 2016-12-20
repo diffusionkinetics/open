@@ -1,3 +1,7 @@
+0.2.3
+
+* Ord instance for IrisClass
+
 0.2.2
 
 * Enum, bounded instances for IrisClass
