@@ -26,6 +26,7 @@ import Control.Monad.Par
 import qualified Control.Foldl as L
 import Data.List (maximumBy)
 import Data.Ord (comparing)
+import Control.Arrow ((***))
 
 import Prelude hiding
     ( head
@@ -114,6 +115,13 @@ fold (Fold step begin done _) as = F.foldr cons done as begin
   where
     cons a k x = k $! step x a
 {-# INLINE fold #-}
+
+combine :: Fold a b -> Fold c d -> Fold (a,c) (b,d)
+combine (Fold step1 begin1 done1 comb1) (Fold step2 begin2 done2 comb2)
+  = Fold (\(x1,y1) (x2,y2) -> (step1 x1 x2, step2 y1 y2))
+         (begin1, begin2)
+         (done1 *** done2)
+         (\(x1,y1) (x2,y2) -> (comb1 x1 x2, comb2 y1 y2))
 
 foldPar :: (VG.Vector v a, Foldable v) => Int -> Fold a b -> v a -> b
 foldPar nthreads (Fold step begin done comb) v = runPar $ do
@@ -250,3 +258,22 @@ oddMedianS :: (Ord a) => Seq a -> a
 oddMedianS s = sorted `Seq.index` (len `div` 2)
   where sorted = Seq.unstableSort s
         len = Seq.length s
+
+
+--approximate method first mentioned http://en.wikipedia.org/wiki/Mean_of_circular_quantities
+circularMean :: Fold Double Double
+circularMean = premap toCartesian (getAngle <$> vmean ) where
+  getAngle (x,y) = atan2 y x
+  toCartesian alpha = (cos alpha, sin alpha)
+
+--http://webspace.ship.edu/pgmarr/Geo441/Lectures/Lec%2016%20-%20Directional%20Statistics.pdf
+circularDispersion :: Fold Double Double
+circularDispersion = getR <$> ((,) <$> xs <*> ys) where
+  xs = premap cos sum
+  ys = premap sin sum
+  getR (x,y) = sqrt (x*x + y*y)
+
+
+--average points as vectors
+vmean :: Fold (Double,Double) (Double,Double)
+vmean = combine average average
