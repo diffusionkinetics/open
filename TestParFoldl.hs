@@ -13,8 +13,6 @@ irisApply f = Iris <$> premap sepalLength f
                    <*> premap petalWidth f
                    <*> premap irisClass mode
 
-deriving instance Ord IrisClass
-
 main = do print $ ("iris average seplen", fold (premap sepalLength average) iris)
           print $ ("iris variance seplen", fold (premap sepalLength variance) iris)
           print $ ("iris twopvar  seplen", twoPassVariance $ map sepalLength iris)
