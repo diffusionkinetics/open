@@ -1,0 +1,29 @@
+Name:                lucid-extras
+Version:             0.1.0.0
+Synopsis:            Generate more HTML with Lucid
+Description:         Generate more HTML with Lucid
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen <tanielsen@gmail.com>
+Maintainer:          Tom Nielsen <tanielsen@gmail.com>
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+homepage:            https://github.com/filopodia/open/lucid-extra
+bug-reports:         https://github.com/filopodia/open/issues
+category:            Web
+Tested-With:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+extra-source-files:
+                   changelog.md
+
+source-repository head
+  type:     git
+  location: https://github.com/filopodia/open
+
+Library
+   ghc-options:       -Wall
+   hs-source-dirs:    lib
+   Exposed-modules:
+               Lucid.Bootstrap3
+   Build-depends:
+                 base                    >= 4.6 && < 5
+               , lucid
