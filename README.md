@@ -6,3 +6,4 @@ data science, machine learning and statistics in Haskell
 
 * [datasets](https://github.com/filopodia/open/tree/master/datasets) - Classical datasets
 * [plotlyhs](https://github.com/filopodia/open/tree/master/plotlyhs) - Plotting using plotly.js
+* [parfoldl](https://github.com/filopodia/open/tree/master/parfold) - Parallel folds
