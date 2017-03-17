@@ -1,0 +1,78 @@
+<!DOCTYPE HTML><html><head><meta charset="utf-8"><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-latest.min.js"></script></head><body><div class=" container "><div class=" row "><h2>Plotly.js Haskell bindings examples</h2><p>This web pages shows plots generated with the plotlyhs packages, along with the Haskell code that generated the plots. To use the plots on the generate page, the Plotly.js source code should first be including by adding this tag to your HTML header:</p><pre><code>&lt;script src=&quot;https://cdn.plot.ly/plotly-latest.min.js&quot;&gt;&lt;/script&gt;</code></pre><p>Alternatively, this tag can be included in an HTML page using the <code>plotlyCDN</code> function in <code>Graphics.Plotly.Lucid</code> (when using Lucid) or <code>Graphics.Plotly.Blaze</code> (when using blaze-html).</p></div><div class=" row "><h4>A complete &amp; minimal example</h4></div><div class=" row "><div class="col-md-6"><pre><code>{-# LANGUAGE OverloadedStrings #-}
+
+import Lucid
+import Lucid.Html5
+import Graphics.Plotly
+import Graphics.Plotly.Lucid
+import Lens.Micro
+
+import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy.IO as T
+
+main =
+  T.writeFile &quot;test.html&quot; $ renderText $ doctypehtml_ $ do
+    head_ $ do meta_ [charset_ &quot;utf-8&quot;]
+               plotlyCDN
+    body_ $ toHtml $ plotly &quot;myDiv&quot; [myTrace]
+
+myTrace = scatter &amp; x ?~ [1,2,3,4]
+                  &amp; y ?~ [500,3000,700,200]
+</code></pre></div><div class="col-md-6"><div id="p0"></div><script>Plotly.newPlot('p0', [{"x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{}, {displayModeBar: false});</script></div></div><div class=" row "><p>In the examples below, we omit all of the imports, main function, html header and focus only on the <code>Plotly</code> value (the argument to <code>toHtml</code>). The <code>Plotly</code> value can be constructed with the function <code>plotly</code> which takes two arguments: the element id of the <code>&lt;div&gt;</code> for the plot (this element will be created if you call toHtml on the <code>Plotly</code> value) and a list of traces.</p></div><div class=" row "><h4>A simple plot</h4></div><div class=" row "><div class="col-md-6"><pre><code>let myTrace
+       = scatter &amp; x ?~ [1,2,3,4]
+                 &amp; y ?~ [500,3000,700,200]
+in plotly &quot;div1&quot; [myTrace]
+</code></pre></div><div class="col-md-6"><div id="p1"></div><script>Plotly.newPlot('p1', [{"x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{}, {displayModeBar: false});</script></div></div><div class=" row "><p>Note that Plotlyjs considers a line plot to be a kind of scatter plot, which may not be the terminology you are used to. The above is quite unbearably sized &amp; padded for this tutorial, so let&#39;s fix the margins and the plot height</p></div><div class=" row "><div class="col-md-6"><pre><code>let myTrace
+       = scatter &amp; x ?~ [1,2,3,4]
+                 &amp; y ?~ [500,3000,700,200]
+in plotly &quot;div2&quot; [myTrace] &amp; layout . margin ?~ thinMargins
+                           &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="p2"></div><script>Plotly.newPlot('p2', [{"x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><h4>Lines and Markers</h4></div><div class=" row "><div class="col-md-6"><pre><code>let myTrace
+       = scatter &amp; x ?~ [1,2,3,4]
+                 &amp; y ?~ [500,3000,700,200]
+
+in plotly &quot;div3&quot;
+          [myTrace &amp; mode ?~ [Markers]]
+          &amp; layout . margin ?~ thinMargins
+          &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div3"></div><script>Plotly.newPlot('div3', [{"mode":"markers","x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><div class="col-md-6"><pre><code>let myTrace
+       = scatter &amp; x ?~ [1,2,3,4]
+                 &amp; y ?~ [500,3000,700,200]
+
+in plotly &quot;div4&quot;
+          [myTrace &amp; mode ?~ [Lines]]
+          &amp; layout . margin ?~ thinMargins
+          &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div4"></div><script>Plotly.newPlot('div4', [{"mode":"lines","x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><div class="col-md-6"><pre><code>let myTrace
+       = scatter &amp; x ?~ [1,2,3,4]
+                 &amp; y ?~ [500,3000,700,200]
+
+in plotly &quot;div5&quot;
+          [myTrace &amp; mode ?~ [Lines,Markers]]
+          &amp; layout . margin ?~ thinMargins
+          &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div5"></div><script>Plotly.newPlot('div5', [{"mode":"lines+markers","x":[1,2,3,4],"type":"scatter","y":[500,3000,700,200]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><h4>Iris plots</h4></div><div class=" row "><p>This plot uses the iris value from the datasets package</p></div><div class=" row "><div class="col-md-6"><pre><code>plotly &quot;div6&quot;
+       [scatter &amp; x ?~ map sepalLength iris
+                &amp; y ?~ map sepalWidth iris
+                &amp; marker ?~
+                   (defMarker
+                       &amp; markercolor ?~ catColors (map irisClass
+                                                       iris))
+                &amp; mode ?~ [Markers]]
+        &amp; layout . margin ?~ thinMargins
+        &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div6"></div><script>Plotly.newPlot('div6', [{"mode":"markers","marker":{"color":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]},"x":[5.1,4.9,4.7,4.6,5,5.4,4.6,5,4.4,4.9,5.4,4.8,4.8,4.3,5.8,5.7,5.4,5.1,5.7,5.1,5.4,5.1,4.6,5.1,4.8,5,5,5.2,5.2,4.7,4.8,5.4,5.2,5.5,4.9,5,5.5,4.9,4.4,5.1,5,4.5,4.4,5,5.1,4.8,5.1,4.6,5.3,5,7,6.4,6.9,5.5,6.5,5.7,6.3,4.9,6.6,5.2,5,5.9,6,6.1,5.6,6.7,5.6,5.8,6.2,5.6,5.9,6.1,6.3,6.1,6.4,6.6,6.8,6.7,6,5.7,5.5,5.5,5.8,6,5.4,6,6.7,6.3,5.6,5.5,5.5,6.1,5.8,5,5.6,5.7,5.7,6.2,5.1,5.7,6.3,5.8,7.1,6.3,6.5,7.6,4.9,7.3,6.7,7.2,6.5,6.4,6.8,5.7,5.8,6.4,6.5,7.7,7.7,6,6.9,5.6,7.7,6.3,6.7,7.2,6.2,6.1,6.4,7.2,7.4,7.9,6.4,6.3,6.1,7.7,6.3,6.4,6,6.9,6.7,6.9,5.8,6.8,6.7,6.7,6.3,6.5,6.2,5.9],"type":"scatter","y":[3.5,3,3.2,3.1,3.6,3.9,3.4,3.4,2.9,3.1,3.7,3.4,3,3,4,4.4,3.9,3.5,3.8,3.8,3.4,3.7,3.6,3.3,3.4,3,3.4,3.5,3.4,3.2,3.1,3.4,4.1,4.2,3.1,3.2,3.5,3.1,3,3.4,3.5,2.3,3.2,3.5,3.8,3,3.8,3.2,3.7,3.3,3.2,3.2,3.1,2.3,2.8,2.8,3.3,2.4,2.9,2.7,2,3,2.2,2.9,2.9,3.1,3,2.7,2.2,2.5,3.2,2.8,2.5,2.8,2.9,3,2.8,3,2.9,2.6,2.4,2.4,2.7,2.7,3,3.4,3.1,2.3,3,2.5,2.6,3,2.6,2.3,2.7,3,2.9,2.9,2.5,2.8,3.3,2.7,3,2.9,3,3,2.5,2.9,2.5,3.6,3.2,2.7,3,2.5,2.8,3.2,3,3.8,2.6,2.2,3.2,2.8,2.8,2.7,3.3,3.2,2.8,3,2.8,3,2.8,3.8,2.8,2.8,2.6,3,3.4,3.1,3,3.1,3.1,3.1,2.7,3.2,3.3,3,2.5,3,3.4,3]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><p>Grammar of Graphics-style interface</p></div><div class=" row "><div class="col-md-6"><pre><code>plotly &quot;div6gg&quot;
+       [points (aes &amp; x .~ sepalLength
+                    &amp; y .~ sepalWidth
+                    &amp; color ?~ fromEnum . irisClass) iris]
+        &amp; layout . margin ?~ thinMargins
+        &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div6gg"></div><script>Plotly.newPlot('div6gg', [{"mode":"markers","marker":{"color":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]},"x":[5.1,4.9,4.7,4.6,5,5.4,4.6,5,4.4,4.9,5.4,4.8,4.8,4.3,5.8,5.7,5.4,5.1,5.7,5.1,5.4,5.1,4.6,5.1,4.8,5,5,5.2,5.2,4.7,4.8,5.4,5.2,5.5,4.9,5,5.5,4.9,4.4,5.1,5,4.5,4.4,5,5.1,4.8,5.1,4.6,5.3,5,7,6.4,6.9,5.5,6.5,5.7,6.3,4.9,6.6,5.2,5,5.9,6,6.1,5.6,6.7,5.6,5.8,6.2,5.6,5.9,6.1,6.3,6.1,6.4,6.6,6.8,6.7,6,5.7,5.5,5.5,5.8,6,5.4,6,6.7,6.3,5.6,5.5,5.5,6.1,5.8,5,5.6,5.7,5.7,6.2,5.1,5.7,6.3,5.8,7.1,6.3,6.5,7.6,4.9,7.3,6.7,7.2,6.5,6.4,6.8,5.7,5.8,6.4,6.5,7.7,7.7,6,6.9,5.6,7.7,6.3,6.7,7.2,6.2,6.1,6.4,7.2,7.4,7.9,6.4,6.3,6.1,7.7,6.3,6.4,6,6.9,6.7,6.9,5.8,6.8,6.7,6.7,6.3,6.5,6.2,5.9],"type":"scatter","y":[3.5,3,3.2,3.1,3.6,3.9,3.4,3.4,2.9,3.1,3.7,3.4,3,3,4,4.4,3.9,3.5,3.8,3.8,3.4,3.7,3.6,3.3,3.4,3,3.4,3.5,3.4,3.2,3.1,3.4,4.1,4.2,3.1,3.2,3.5,3.1,3,3.4,3.5,2.3,3.2,3.5,3.8,3,3.8,3.2,3.7,3.3,3.2,3.2,3.1,2.3,2.8,2.8,3.3,2.4,2.9,2.7,2,3,2.2,2.9,2.9,3.1,3,2.7,2.2,2.5,3.2,2.8,2.5,2.8,2.9,3,2.8,3,2.9,2.6,2.4,2.4,2.7,2.7,3,3.4,3.1,2.3,3,2.5,2.6,3,2.6,2.3,2.7,3,2.9,2.9,2.5,2.8,3.3,2.7,3,2.9,3,3,2.5,2.9,2.5,3.6,3.2,2.7,3,2.5,2.8,3.2,3,3.8,2.6,2.2,3.2,2.8,2.8,2.7,3.3,3.2,2.8,3,2.8,3,2.8,3.8,2.8,2.8,2.6,3,3.4,3.1,3,3.1,3.1,3.1,2.7,3.2,3.3,3,2.5,3,3.4,3]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div><div class=" row "><h4>Horizontal bar plots</h4></div><div class=" row "><div class="col-md-6"><pre><code>let hbarData :: [(Text, Double)]
+    hbarData =  [(&quot;Simon&quot;, 14.5), (&quot;Joe&quot;, 18.9), (&quot;Dorothy&quot;, 16.2)]
+
+in plotly &quot;div7&quot;
+       [bars &amp; ytext ?~ map fst hbarData
+             &amp; x ?~ map snd hbarData
+             &amp; orientation ?~ Horizontal]
+       &amp; layout . margin ?~ thinMargins
+       &amp; layout . height ?~ 300
+</code></pre></div><div class="col-md-6"><div id="div7"></div><script>Plotly.newPlot('div7', [{"x":[14.5,18.9,16.2],"type":"bar","orientation":"h","y":["Simon","Joe","Dorothy"]}],{"height":300,"margin":{"l":50,"pad":4,"t":10,"b":30,"r":25}}, {displayModeBar: false});</script></div></div></div><script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script></body></html>

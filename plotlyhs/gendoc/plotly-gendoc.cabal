@@ -1,0 +1,25 @@
+Name:                plotly-gendoc
+Version:             0.1.0
+Synopsis:            Generate docs for Haskell bindings to Plotly.js
+Description:
+        Generate docs for generating web-based plots
+
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen
+Maintainer:          tanielsen@gmail.com
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+
+executable plotly-gendoc
+  main-is: GenDoc.hs
+  build-depends:       base >=4.6 && <5
+                     , plotlyhs
+                     , lucid
+                     , aeson
+                     , text
+                     , microlens
+                     , plotlyhs
+                     , datasets
+                     , neat-interpolation
