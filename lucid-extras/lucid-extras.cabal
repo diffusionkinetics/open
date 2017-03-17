@@ -27,3 +27,4 @@ Library
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid
+               , text
