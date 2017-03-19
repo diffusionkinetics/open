@@ -1,8 +1,8 @@
-Name:                dampf
+Name:                stanhs
 Version:             0.1.0
-Synopsis:            Declarative DevOps for busy developers
+Synopsis:            Bindings to Stan (Bayesian inference with MCMC)
 Description:
-                     Declarative DevOps for busy developers
+                     Bindings to Stan, a language for Bayesian inference with MCMC and other methods
 
 License:             MIT
 License-file:        LICENSE
@@ -10,7 +10,7 @@ Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
 Cabal-Version: 	     >= 1.8
-homepage:            https://github.com/filopodia/open/dampf
+homepage:            https://github.com/filopodia/open/stanhs
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Control, Statistics
 Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
@@ -25,15 +25,14 @@ Library
    hs-source-dirs:    lib
 
    Exposed-modules:
-                   Dampf
+                   Stan
 
    Build-depends:
                  base                    >= 4.7
-               , yaml
-               , aeson
+               , pretty
 
-executable dampf
-  main-is: Main.hs
-  build-depends:       base >=4.6 && <5
-                     , optparse-applicative
-                     , dampf
+Test-Suite test-stan
+    type:       exitcode-stdio-1.0
+    main-is:    test-stan.hs
+    build-depends: base
+                 , stanhs
