@@ -36,7 +36,8 @@ Library
                , monad-par
                , foldl
 
-executable test-parfoldl
+Test-suite test-parfoldl
+  type:       exitcode-stdio-1.0
   main-is: TestParFoldl.hs
   build-depends:       base >=4.6 && <5
                      , datasets
