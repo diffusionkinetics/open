@@ -25,7 +25,9 @@ Library
    hs-source-dirs:    lib
 
    Exposed-modules:
-                   Stan
+                   Stan.AST
+                 , Stan.IO
+                 , Stan.Schools
 
    Build-depends:
                  base                    >= 4.7

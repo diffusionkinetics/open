@@ -1,7 +1,6 @@
-module Stan where
+module Stan.AST where
 
 import Text.PrettyPrint.HughesPJClass
-import Text.PrettyPrint
 
 type Var = String
 
@@ -14,12 +13,30 @@ data Stan = Data [Decl]
 data Decl = TypeDecl Type Var [Expr]
           | Assign (Var,[Expr]) Expr
           | Distribute (Var,[Expr]) String [Expr]
+          | For Var Expr Expr [Decl]
             deriving (Eq, Show)
 
 instance Pretty Stan where
   pPrint (Model ds) = text "model {"
-                      $$ nest 2 (vcat $ map ((<>(char ';')) . pPrint) ds)
+                      $$ nest 2 (ppDecls ds)
                       $$ char '}'
+  pPrint (Parameters ds)
+                    = text "parameters {"
+                      $$ nest 2 (ppDecls ds)
+                      $$ char '}'
+  pPrint (TransformedParameters ds)
+                    = text "transformed parameters {"
+                      $$ nest 2 (ppDecls ds)
+                      $$ char '}'
+  pPrint (Data ds) = text "data {"
+                      $$ nest 2 (ppDecls ds)
+                      $$ char '}'
+
+ppStans :: [Stan] -> String
+ppStans = render . vcat . map pPrint
+
+ppDecls :: [Decl] -> Doc
+ppDecls = vcat . map ((<>(char ';')) . pPrint)
 
 instance Pretty Decl where
   pPrint (TypeDecl t nm ixs) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
@@ -27,6 +44,12 @@ instance Pretty Decl where
                                   <+> text "<-" <+> pPrint e
   pPrint (Distribute (nm,ixes) dnm es) = (text nm <> mcommasepBrackets (map pPrint ixes))
                                   <+> text "~" <+> text dnm <> parens (commasep (map pPrint es))
+  pPrint (For vnm elo ehi ds) = let range = pPrint elo <> char ':' <> pPrint ehi
+                                in text "for" <+> parens (text vnm <+> text "in" <+> range) <+> char '{'
+                                $$ nest 2 (ppDecls ds)
+                                $$ char '}'
+
+--          | For Var Expr Expr [Decl]
 
 data Type = Real
           | Int

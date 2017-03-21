@@ -1,6 +1,7 @@
 module Main where
 
-import Stan
+import Stan.AST
+import Stan.Schools
 
 myExpr :: Expr
 myExpr = sin $ Ix (Var "xs") [2+1*3]
@@ -16,6 +17,7 @@ myModel = Model [
 
 main = do
   putStrLn ""
-  putStrLn $ pp myExpr
-  putStrLn $ pp myModel
+--  putStrLn $ pp myExpr
+--  putStrLn $ pp myModel
+  putStrLn $ ppStans schools
   return ()
