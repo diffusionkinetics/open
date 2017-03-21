@@ -1,6 +1,8 @@
 module Main where
 
 import Stan.AST
+import Stan.IO
+import Stan.Run
 import Stan.Schools
 
 myExpr :: Expr
@@ -19,5 +21,10 @@ main = do
   putStrLn ""
 --  putStrLn $ pp myExpr
 --  putStrLn $ pp myModel
+  let dataLines = [ dumpAs "j" j
+                  , dumpAs "y" y
+                  , dumpAs "sigma" sigma ]
   putStrLn $ ppStans schools
+  putStrLn $ unlines dataLines
+  runStan schools dataLines
   return ()

@@ -21,3 +21,12 @@ schools = [
         , Distribute ("y",[]) "normal" [Var "theta",Var "sigma"]
         ]
   ]
+
+j :: Int
+j = 8
+
+y ::  [Double]
+y = [28,  8, -3,  7, -1,  1, 18, 12]
+
+sigma :: [Double]
+sigma = [15, 10, 16, 11,  9, 11, 10, 18]

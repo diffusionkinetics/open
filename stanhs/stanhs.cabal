@@ -28,10 +28,15 @@ Library
                    Stan.AST
                  , Stan.IO
                  , Stan.Schools
+                 , Stan.Run
 
    Build-depends:
                  base                    >= 4.7
                , pretty
+               , directory
+               , hashable
+               , filepath
+               , process
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

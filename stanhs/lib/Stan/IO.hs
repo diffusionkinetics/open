@@ -22,6 +22,12 @@ instance Dump1 a => Dump1 [a] where
 
 dumpAll :: ([String], [Int]) -> String
 dumpAll ([s], []) = s
-dumpAll (ss, [n]) = concat $ "c(" : intersperse "," ss ++[")"]
+dumpAll (ss, [_]) = concat $ "c(" : intersperse "," ss ++[")"]
 dumpAll (ss, ns) = concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c("]
                              ++intersperse "," (map show ns)++[")"]
+
+dumpAs :: Dump1 a => String -> a -> String
+dumpAs nm x = nm++"<-"++(dumpAll $ dump1 x)
+
+class ToStanData a where
+  toStanData :: a -> String

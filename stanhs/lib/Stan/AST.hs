@@ -1,6 +1,11 @@
+{-# LANGUAGE DeriveAnyClass, DeriveGeneric #-}
+
 module Stan.AST where
 
 import Text.PrettyPrint.HughesPJClass
+import Data.Hashable
+import GHC.Generics (Generic)
+
 
 type Var = String
 
@@ -8,13 +13,13 @@ data Stan = Data [Decl]
           | Parameters [Decl]
           | TransformedParameters [Decl]
           | Model [Decl]
-            deriving (Eq, Show)
+            deriving (Eq, Show, Generic, Hashable)
 
 data Decl = TypeDecl Type Var [Expr]
           | Assign (Var,[Expr]) Expr
           | Distribute (Var,[Expr]) String [Expr]
           | For Var Expr Expr [Decl]
-            deriving (Eq, Show)
+            deriving (Eq, Show, Generic, Hashable)
 
 instance Pretty Stan where
   pPrint (Model ds) = text "model {"
@@ -41,7 +46,7 @@ ppDecls = vcat . map ((<>(char ';')) . pPrint)
 instance Pretty Decl where
   pPrint (TypeDecl t nm ixs) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
   pPrint (Assign (nm,ixes) e) = (text nm <> mcommasepBrackets (map pPrint ixes))
-                                  <+> text "<-" <+> pPrint e
+                                  <+> text "=" <+> pPrint e
   pPrint (Distribute (nm,ixes) dnm es) = (text nm <> mcommasepBrackets (map pPrint ixes))
                                   <+> text "~" <+> text dnm <> parens (commasep (map pPrint es))
   pPrint (For vnm elo ehi ds) = let range = pPrint elo <> char ':' <> pPrint ehi
@@ -56,7 +61,7 @@ data Type = Real
           | Bounded (Maybe Expr)
                     (Maybe Expr)
                     Type
-            deriving (Eq, Show)
+            deriving (Eq, Show, Generic, Hashable)
 
 instance Pretty Type where
   pPrint Real = text "real"
@@ -87,7 +92,7 @@ data Expr = LitInt Int
           | Ix Expr [Expr]
           | Apply String [Expr]
           | Var Var
-            deriving (Eq, Show)
+            deriving (Eq, Show, Generic, Hashable)
 
 
 instance Num Expr where
