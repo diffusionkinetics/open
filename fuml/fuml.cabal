@@ -33,6 +33,7 @@ library
                 , Fuml.Supervised.KNN
                 , Fuml.Unsupervised
                 , Fuml.Optimisation
+                , Fuml.Optimisation.NelderMead
                 , Fuml.Optimisation.BFGS
                 , Fuml.Optimisation.SGD
   build-depends:       base >= 4.7 && < 5
