@@ -1,0 +1,57 @@
+name:                fuml
+version:             0.1.0.0
+synopsis:            Functional Machine Learning
+description:
+homepage:            https://github.com/glutamate/fuml
+license:             MIT
+license-file:        LICENSE
+author:              Tom Nielsen
+maintainer:          tanielsen@gmail.com
+copyright:           Tom Nielsen
+category:            Statistics
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/glutamate/fuml
+
+library
+  hs-source-dirs:      lib
+  ghc-options:  -fwarn-unused-imports -fno-warn-unused-do-bind -fno-warn-type-defaults
+
+  exposed-modules:
+                  Fuml.Base
+                , Fuml.Base.LinearRegression
+                , Fuml.Base.Logistic
+                , Fuml.Base.PCA
+                , Fuml.Base.KNN
+                , Fuml.Core
+                , Fuml.Supervised
+                , Fuml.Supervised.Accuracy
+                , Fuml.Supervised.KNN
+                , Fuml.Unsupervised
+                , Fuml.Optimisation
+                , Fuml.Optimisation.BFGS
+                , Fuml.Optimisation.SGD
+  build-depends:       base >= 4.7 && < 5
+                     , vector
+                     , hmatrix
+                     , random-fu
+                     , data-default
+                     , kmeans-vector
+                     , microlens
+                     , mtl
+                     , random-fu
+  default-language:    Haskell2010
+
+Test-Suite test-fuml
+  type:       exitcode-stdio-1.0
+  main-is: TestFuml.hs
+  build-depends:       base >=4.6 && <5
+                     , fuml
+                     , datasets
+                     , vector
+                     , mtl
+                     , random-fu
