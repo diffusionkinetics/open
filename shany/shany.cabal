@@ -1,0 +1,52 @@
+Name:                shany
+Version:             0.1.0
+Synopsis:            Shiny for Haskell
+Description:
+        Web-based interactive applets for data analysis
+
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen
+Maintainer:          tanielsen@gmail.com
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+extra-source-files:
+        public/js/shany.js
+
+Library
+   ghc-options:       -Wall -fno-warn-type-defaults -Werror
+   ghc-prof-options:  -auto-all
+   hs-source-dirs:    src
+
+   Exposed-modules:
+                   Shany
+                 , Shany.Serve
+                 , Shany.Types
+                 , Shany.Elements
+   Build-depends:
+                 base                    >= 4.6
+               , scotty
+               , lucid
+               , text
+               , cassava
+               , mtl
+               , microlens
+               , microlens-th
+               , uuid
+               , bytestring
+               , random
+               , file-embed
+               , hashable
+
+executable test-shany
+  main-is: TestShany.hs
+  build-depends:       base >=4.6 && <5
+                     , plotlyhs
+                     , datasets
+                     , lucid
+                     , aeson
+                     , text
+                     , shany
+                     , microlens-platform
+                     , random-fu
