@@ -27,6 +27,7 @@ Library
 
    Exposed-modules:
                    Inliterate
+                 , Inliterate.Class
 
    Build-depends:
                  base                    >= 4.7
