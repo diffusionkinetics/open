@@ -37,6 +37,8 @@ Library
                , cheapskate
                , blaze-html
                , time
+               , plotlyhs
+               , lucid
 
 
 Executable inlitpp
