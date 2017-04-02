@@ -61,7 +61,7 @@ printBlock blk = printAnyBlock blk
 
 printAsk :: Set CodeType -> Text -> [Text]
 printAsk _ t
-  = [T.concat ["ask ", escape $ chomp t, " $ ", chomp t]]
+  = [T.concat ["askInliterate ", escape $ chomp t, " $ ", chomp t]]
 
 printAnyBlock :: Block -> [Text]
 printAnyBlock blk =

@@ -2,12 +2,17 @@
 
 module Inliterate.Class where
 
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-
 class AskInliterate a where
-  askInliterate :: T.Text -> a -> IO ()
-  default askInliterate :: Show a => T.Text -> a -> IO ()
-  askInliterate t x = T.putStrLn $ T.concat [t, " => ", T.pack $ show x]
+  askInliterate :: String -> a -> IO ()
+  default askInliterate :: Show a => String -> a -> IO ()
+  askInliterate = answerWith show
+
+answerWith :: (a -> String) -> String -> a -> IO ()
+answerWith f t x = putStrLn $ concat [t, " => ", f x]
 
 instance AskInliterate Int
+
+instance AskInliterate Double
+instance AskInliterate Float
+
+instance (Show a, Show b) => AskInliterate (a,b)

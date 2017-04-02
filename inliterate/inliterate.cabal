@@ -37,9 +37,23 @@ Library
                , blaze-html
 
 
+Executable inlitpp
+  main-is: InlitPreProc.hs
+  build-depends:       base >=4.6 && <5
+                     , inliterate
+                     , text
+
 Test-suite test-inliterate
   type:       exitcode-stdio-1.0
   main-is: TestInliterate.hs
   build-depends:       base >=4.6 && <5
                      , inliterate
                      , text
+
+Test-suite test-inliterate-pp
+  type:       exitcode-stdio-1.0
+  main-is: TestInliteratePreProc.hs
+  build-depends:       base >=4.6 && <5
+                     , inliterate
+                     , text
+                     , time
