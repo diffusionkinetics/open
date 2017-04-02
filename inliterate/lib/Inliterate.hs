@@ -1,10 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, StandaloneDeriving #-}
 
 module Inliterate where
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Text (Text)
+import Data.List (isPrefixOf)
 import qualified Data.Text.IO as T
 import Cheapskate
 import Cheapskate.Html
@@ -78,10 +79,19 @@ chomp :: Text -> Text
 chomp = T.dropWhile (=='\n') . T.strip . T.dropWhileEnd (=='\n')
 
 getBlocks :: Doc -> [Block]
-getBlocks (Doc _ sblocks) = toList sblocks
+getBlocks (Doc _ sblocks) = removeOptionsGhc $ toList sblocks
 
 codeBlocks :: Doc -> [(Set CodeType, Text)]
 codeBlocks d =
   [(parseCodeInfo ci, body)
       | CodeBlock (CodeAttr "haskell" ci) body
           <- getBlocks d]
+
+removeOptionsGhc :: [Block] -> [Block]
+removeOptionsGhc allBlks@(Para inls:blks)
+    | [Str "{",Str "-",Str "#",Space,Str "OPTIONS",Str "_",Str "GHC"] `isPrefixOf` toList inls
+         = blks
+    | otherwise = allBlks
+removeOptionsGhc blks = blks
+
+deriving instance Eq Inline

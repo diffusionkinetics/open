@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -F -pgmF inlitpp #-}
+
 # Test document
 
 Hello from my test document!

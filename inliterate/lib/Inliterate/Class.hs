@@ -2,6 +2,8 @@
 
 module Inliterate.Class where
 
+import Data.Time
+
 class AskInliterate a where
   askInliterate :: String -> a -> IO ()
   default askInliterate :: Show a => String -> a -> IO ()
@@ -14,5 +16,7 @@ instance AskInliterate Int
 
 instance AskInliterate Double
 instance AskInliterate Float
+
+instance AskInliterate UTCTime
 
 instance (Show a, Show b) => AskInliterate (a,b)
