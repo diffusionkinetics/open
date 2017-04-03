@@ -2,10 +2,9 @@
 module Lucid.Bootstrap3 where
 
 import Lucid
-import Lucid.Base (makeElementNoEnd)
+import Lucid.PreEscaped (scriptSrc)
 import Data.Char (toLower)
 import Data.Text (pack, Text)
-import Data.Monoid (mempty)
 infixr 0 $:
 
 ($:) :: (Monad m, ToHtml a) => (HtmlT m () -> HtmlT m ()) -> a -> HtmlT m ()
@@ -35,7 +34,3 @@ cdnJqueryJS
 
 cdnBootstrapJS
   =  scriptSrc "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-
-
-scriptSrc :: Monad m => Text -> HtmlT m ()
-scriptSrc url = with (makeElementNoEnd "script") [src_ url]

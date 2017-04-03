@@ -24,7 +24,9 @@ Library
    hs-source-dirs:    lib
    Exposed-modules:
                Lucid.Bootstrap3
+               Lucid.PreEscaped
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid
                , text
+               , blaze-builder

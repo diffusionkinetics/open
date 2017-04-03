@@ -20,6 +20,8 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import System.Environment
 import Lucid
 import Lucid.Bootstrap3
+import Lucid.PreEscaped
+import Data.Monoid ((<>))
 
 
 dumpDoc :: FilePath -> IO ()
@@ -54,8 +56,9 @@ genHaskell doc =
       doBody = concatMap printDoBody (filter inDoBody cbs) ++
                concatMap printBlock (getBlocks doc) ++
                ["return ()"]
+      hdr = unlines $ map (T.unpack . codeBlockBody) $ filter isHtmlHeader $ getBlocks doc
 
-  in T.unlines $ tops ++ ["main = wrapMain \"\" $ do"] ++ map ("  " `T.append`) doBody
+  in T.unlines $ tops ++ ["main = wrapMain "<>T.pack (show hdr)<>" $ do"] ++ map ("  " `T.append`) doBody
 
 printBlock :: Block -> [Text]
 printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
@@ -63,8 +66,12 @@ printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
      | Hide `Set.member` ct = []
      | otherwise = printAnyBlock blk
   where ct = parseCodeInfo ci
-printBlock blk@(CodeBlock (CodeAttr "html_header" ci) t) = []
-printBlock blk = printAnyBlock blk
+printBlock blk = if isHtmlHeader blk then [] else printAnyBlock blk
+
+isHtmlHeader (CodeBlock (CodeAttr "html_header" ci) t) = True
+isHtmlHeader _ = False
+
+codeBlockBody (CodeBlock (CodeAttr "html_header" ci) t) = t
 
 printAsk :: Set CodeType -> Text -> [Text]
 printAsk _ t
@@ -111,9 +118,12 @@ wrapMain hdrTxt go = do
       meta_ [charset_ "utf-8"]
       cdnCSS
       cdnThemeCSS
-    TL.putStrLn "<body>"
+      cdnJqueryJS
+      cdnBootstrapJS
+      preEscaped $ T.pack hdrTxt
+    TL.putStrLn "<body><div class=\"container\"><div class=\"row\"><div class=\"col-sm-12\">"
   go
   unless ("--no-inlit-wrap" `elem` args) $ do
-    TL.putStrLn "</body></html>"
+    TL.putStrLn "</div></div></div></body></html>"
 
   -- get extra headers

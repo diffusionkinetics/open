@@ -8,4 +8,5 @@ main = do
   putStr "\n"
   dumpDoc "example.ihs"
   d <- readDoc "example.ihs"
+
   T.putStrLn $ genHaskell d

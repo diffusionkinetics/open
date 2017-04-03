@@ -7,6 +7,7 @@ Hello from my test document!
 ```haskell hide top
 import Data.Time
 import Inliterate.Class
+import Inliterate (wrapMain)
 
 ```
 
