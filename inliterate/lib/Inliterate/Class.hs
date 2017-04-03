@@ -3,6 +3,7 @@
 module Inliterate.Class where
 
 import Data.Time
+import qualified Data.Text as T
 import Graphics.Plotly
 import Graphics.Plotly.Lucid ()
 import qualified Data.Text.Lazy.IO as TL
@@ -22,6 +23,12 @@ instance AskInliterate Double
 instance AskInliterate Float
 
 instance AskInliterate UTCTime
+
+instance AskInliterate String where
+  askInliterate = answerWith id
+
+instance AskInliterate T.Text where
+  askInliterate = answerWith T.unpack
 
 instance (Show a, Show b) => AskInliterate (a,b)
 
