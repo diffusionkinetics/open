@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
 
-module Shany.Serve where
+module Dashdo.Serve where
 
-import Shany
-import Shany.Types
+import Dashdo
+import Dashdo.Types
 
 import Web.Scotty
 import Control.Monad.Trans (liftIO)
@@ -15,8 +15,8 @@ import qualified Data.ByteString.Lazy as BLS
 import Data.FileEmbed
 import Data.Hashable
 
-runShany :: Shany a -> IO ()
-runShany s = do
+runDashdo :: Dashdo a -> IO ()
+runDashdo s = do
   uuid <- fromStrict . UUID.toText <$> randomIO
   -- this is obviously incorrect (if the form fields change dynamically)
   (iniHtml, ff) <- shanyGenOut s (initial s)

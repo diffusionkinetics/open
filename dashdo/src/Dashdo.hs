@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, Rank2Types, TemplateHaskell, ScopedTypeVariables #-}
 
-module Shany where
+module Dashdo where
 
 import qualified Data.Text.Lazy as TL
-import Shany.Types
+import Dashdo.Types
 import Data.Monoid ((<>))
 
-pureShany :: a -> (a -> SHtml a ()) -> Shany a
-pureShany ini f = Shany ini (const (return ())) (\x () -> f x)
+pureDashdo :: a -> (a -> SHtml a ()) -> Dashdo a
+pureDashdo ini f = Dashdo ini (const (return ())) (\x () -> f x)
 
 
-shanyGenOut :: Shany a -> a -> IO (TL.Text, FormFields a)
-shanyGenOut (Shany _ f r) x = do
+shanyGenOut :: Dashdo a -> a -> IO (TL.Text, FormFields a)
+shanyGenOut (Dashdo _ f r) x = do
   y <- f x
   let (formFs, htmlText) = runSHtml x $ r x y
   return (htmlText, formFs)

@@ -2,10 +2,10 @@
 
 import Numeric.Datasets.Iris
 
-import Shany
-import Shany.Types
-import Shany.Serve
-import Shany.Elements
+import Dashdo
+import Dashdo.Types
+import Dashdo.Serve
+import Dashdo.Elements
 import Control.Monad
 import Lucid
 import Data.Monoid ((<>))
@@ -30,9 +30,9 @@ makeLenses ''Example
 
 
 main = do
-  runShany theShany
+  runDashdo theDashdo
 
-theShany = Shany initv getDraws (example iris)
+theDashdo = Dashdo initv getDraws (example iris)
 
 getDraws :: Example -> IO [Double]
 getDraws nm = do
@@ -46,7 +46,7 @@ example irisd nm xs = wrap plotlyCDN $ do
                           & y .~ (nm ^. yaxis . tagVal)) irisd
 --                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
 
-  h2_ "Testing Shany"
+  h2_ "Testing Dashdo"
   textInput pname
   select [("Male", True),("Female", False)] isMale
   br_ []

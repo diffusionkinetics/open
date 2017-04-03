@@ -1,4 +1,4 @@
-Name:                shany
+Name:                dashdo
 Version:             0.1.0
 Synopsis:            Shiny for Haskell
 Description:
@@ -20,10 +20,10 @@ Library
    hs-source-dirs:    src
 
    Exposed-modules:
-                   Shany
-                 , Shany.Serve
-                 , Shany.Types
-                 , Shany.Elements
+                   Dashdo
+                 , Dashdo.Serve
+                 , Dashdo.Types
+                 , Dashdo.Elements
    Build-depends:
                  base                    >= 4.6
                , scotty
@@ -40,14 +40,14 @@ Library
                , file-embed
                , hashable
 
-executable test-shany
-  main-is: TestShany.hs
+executable test-dashdo
+  main-is: TestDashdo.hs
   build-depends:       base >=4.6 && <5
                      , plotlyhs
                      , datasets
                      , lucid
                      , aeson
                      , text
-                     , shany
+                     , dashdo
                      , microlens-platform
                      , random-fu

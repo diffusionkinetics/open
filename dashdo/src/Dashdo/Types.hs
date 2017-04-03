@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, Rank2Types, TemplateHaskell, ScopedTypeVariables #-}
 
-module Shany.Types where
+module Dashdo.Types where
 
 import Lucid
 import Data.Text (Text, pack)
@@ -14,7 +14,7 @@ type FormFields t = [FormField t]
 
 type SHtml t a = HtmlT (State (Int,t,FormFields t)) a
 
-data Shany t = forall b. Shany
+data Dashdo t = forall b. Dashdo
   { initial :: t
   , fetch :: t -> IO b
   , render :: t -> b -> SHtml t () }

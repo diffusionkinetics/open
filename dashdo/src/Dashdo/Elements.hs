@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, Rank2Types, TemplateHaskell #-}
 
-module Shany.Elements where
+module Dashdo.Elements where
 
-import Shany.Types
+import Dashdo.Types
 
 import Lucid
 import Lucid.Bootstrap
