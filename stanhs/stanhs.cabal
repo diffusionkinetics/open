@@ -37,6 +37,7 @@ Library
                , hashable
                , filepath
                , process
+               , containers
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

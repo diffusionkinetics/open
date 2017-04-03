@@ -8,8 +8,10 @@ import System.Directory
 import Data.Hashable
 import System.Process
 import Control.Monad (unless)
+import Data.List (transpose)
+import qualified Data.Map.Strict as Map
 
-runStan :: [Stan] -> [String] -> IO ()
+runStan :: [Stan] -> [String] -> IO (Map.Map String [Double])
 runStan ss dataLines = do
   tmp <- getTemporaryDirectory
   let stTmpDir = tmp </> "stanhs"
@@ -31,4 +33,19 @@ runStan ss dataLines = do
   withCurrentDirectory stTmpDir $ do
     let cmd = "./"++mdlNm ++ " sample data file="++dataFile
     _ <- system cmd
-    return ()
+    readStanOutput "output.csv"
+
+
+readStanOutput :: FilePath -> IO (Map.Map String [Double])
+readStanOutput fp = do
+  let noHash ('#':_) = False
+      noHash _ = True
+  (hdrLn:lns) <- fmap (filter noHash . lines) $ readFile fp
+  let hdrs = splitBy ',' hdrLn
+      samples = transpose $ map (map read . splitBy ',') lns
+  return $ Map.fromList $ zip hdrs samples
+
+splitBy :: Char -> String -> [String]
+splitBy delimiter = foldr f [[]]
+          where f c l@(x:xs) | c == delimiter = []:l
+                             | otherwise = (c:x):xs
