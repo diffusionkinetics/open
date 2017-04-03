@@ -21,7 +21,7 @@ main = do
   putStrLn ""
 --  putStrLn $ pp myExpr
 --  putStrLn $ pp myModel
-  let dataLines = [ dumpAs "j" j
+  let dataLines = [ dumpAs "J" j
                   , dumpAs "y" y
                   , dumpAs "sigma" sigma ]
   putStrLn $ ppStans schools
