@@ -39,6 +39,7 @@ Library
                , time
                , plotlyhs
                , lucid
+               , lucid-extras
 
 
 Executable inlitpp

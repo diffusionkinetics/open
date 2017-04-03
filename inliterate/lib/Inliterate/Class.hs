@@ -4,10 +4,7 @@ module Inliterate.Class where
 
 import Data.Time
 import Graphics.Plotly
-import Graphics.Plotly.Lucid
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.IO as T
+import Graphics.Plotly.Lucid ()
 import qualified Data.Text.Lazy.IO as TL
 import Lucid
 

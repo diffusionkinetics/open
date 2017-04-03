@@ -6,6 +6,7 @@ import Shany.Types
 
 import Lucid
 import Lucid.Bootstrap
+import Lucid.Bootstrap3
 import Data.Text (Text, unpack, pack)
 import Control.Monad.RWS.Strict
 import Text.Read (readMaybe)
@@ -32,17 +33,15 @@ wrap :: SHtml a () -> SHtml a () ->  SHtml a ()
 wrap hdr h =  doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
-    link_ [rel_ "stylesheet",
-           href_ "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"]
-    link_ [rel_ "stylesheet",
-           href_ "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"]
+    cdnCSS
+    cdnThemeCSS
     hdr
 
   body_ $ do
     container_ $ form_ [action_ "/", method_ "post", id_ "shanyform"] $ do
       h
-    script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"] ""
-    script_ [src_ "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"] ""
+    cdnJqueryJS
+    cdnBootstrapJS
     script_ [src_ "/js/shany.js"] ""
 
 textInput :: Lens' a Text -> SHtml a ()

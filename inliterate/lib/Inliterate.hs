@@ -4,6 +4,7 @@ module Inliterate where
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.IO as TL
 import Data.Text (Text)
 import Data.List (isPrefixOf)
 import qualified Data.Text.IO as T
@@ -11,10 +12,14 @@ import Cheapskate
 import Cheapskate.Html
 import Text.Read (readMaybe)
 import Data.Foldable (toList)
+import Control.Monad (unless)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Sequence as Seq
 import Text.Blaze.Html.Renderer.Text (renderHtml)
+import System.Environment
+import Lucid
+import Lucid.Bootstrap3
 
 
 dumpDoc :: FilePath -> IO ()
@@ -50,7 +55,7 @@ genHaskell doc =
                concatMap printBlock (getBlocks doc) ++
                ["return ()"]
 
-  in T.unlines $ tops ++ ["main = do"] ++ map ("  " `T.append`) doBody
+  in T.unlines $ tops ++ ["main = wrapMain \"\" $ do"] ++ map ("  " `T.append`) doBody
 
 printBlock :: Block -> [Text]
 printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
@@ -58,6 +63,7 @@ printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
      | Hide `Set.member` ct = []
      | otherwise = printAnyBlock blk
   where ct = parseCodeInfo ci
+printBlock blk@(CodeBlock (CodeAttr "html_header" ci) t) = []
 printBlock blk = printAnyBlock blk
 
 printAsk :: Set CodeType -> Text -> [Text]
@@ -95,3 +101,19 @@ removeOptionsGhc allBlks@(Para inls:blks)
 removeOptionsGhc blks = blks
 
 deriving instance Eq Inline
+
+wrapMain :: String -> IO () -> IO ()
+wrapMain hdrTxt go = do
+  args <- getArgs
+  unless ("--no-inlit-wrap" `elem` args) $ do
+    TL.putStrLn "<!DOCTYPE HTML><html>"
+    TL.putStrLn $ renderText $ head_ $ do
+      meta_ [charset_ "utf-8"]
+      cdnCSS
+      cdnThemeCSS
+    TL.putStrLn "<body>"
+  go
+  unless ("--no-inlit-wrap" `elem` args) $ do
+    TL.putStrLn "</body></html>"
+
+  -- get extra headers

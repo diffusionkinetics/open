@@ -38,6 +38,7 @@ resolver: lts-8.5
 packages:
 - '.'
 - '../../open/plotlyhs/'
+- '../../open/lucid-extras/'
 #- location:
 #    git: git@github.com:glutamate/plotlyhs
 #    commit: 1739b231193107297c38021dd8bf1a7c3cb2e3f8

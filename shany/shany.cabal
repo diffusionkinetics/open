@@ -28,6 +28,7 @@ Library
                  base                    >= 4.6
                , scotty
                , lucid
+               , lucid-extras
                , text
                , cassava
                , mtl
