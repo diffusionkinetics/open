@@ -12,16 +12,14 @@ import Cheapskate
 import Cheapskate.Html
 import Text.Read (readMaybe)
 import Data.Foldable (toList)
-import Control.Monad (unless)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Sequence as Seq
 import Text.Blaze.Html.Renderer.Text (renderHtml)
-import System.Environment
 import Lucid
-import Lucid.Bootstrap3
-import Lucid.PreEscaped
 import Data.Monoid ((<>))
+
+import Inliterate.Inspect
 
 
 dumpDoc :: FilePath -> IO ()
@@ -30,12 +28,6 @@ dumpDoc fp = do
   let md = markdown def t
   print md
   mapM_ print $ codeBlocks md
-
-readDoc :: FilePath -> IO Doc
-readDoc fp = do
-  t <- T.readFile fp
-  return $ markdown def t
-
 
 data CodeType = Top | Eval | Do | Hide | Fake deriving (Show, Eq, Read, Ord)
 
@@ -108,22 +100,5 @@ removeOptionsGhc allBlks@(Para inls:blks)
 removeOptionsGhc blks = blks
 
 deriving instance Eq Inline
-
-wrapMain :: String -> IO () -> IO ()
-wrapMain hdrTxt go = do
-  args <- getArgs
-  unless ("--no-inlit-wrap" `elem` args) $ do
-    TL.putStrLn "<!DOCTYPE HTML><html>"
-    TL.putStrLn $ renderText $ head_ $ do
-      meta_ [charset_ "utf-8"]
-      cdnCSS
-      cdnThemeCSS
-      cdnJqueryJS
-      cdnBootstrapJS
-      preEscaped $ T.pack hdrTxt
-    TL.putStrLn "<body><div class=\"container\"><div class=\"row\"><div class=\"col-sm-12\">"
-  go
-  unless ("--no-inlit-wrap" `elem` args) $ do
-    TL.putStrLn "</div></div></div></body></html>"
 
   -- get extra headers
