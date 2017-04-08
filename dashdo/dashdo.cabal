@@ -50,4 +50,3 @@ executable test-dashdo
                      , text
                      , dashdo
                      , microlens-platform
-                     , random-fu

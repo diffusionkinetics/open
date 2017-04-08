@@ -17,8 +17,6 @@ import Graphics.Plotly.Lucid
 import Graphics.Plotly.GoG
 import Graphics.Plotly.Histogram (histogram)
 
-import Data.Random
-
 data Example = Example
  { _pname :: Text
  , _isMale :: Bool
