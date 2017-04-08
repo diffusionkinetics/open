@@ -9,13 +9,19 @@ import           Blaze.ByteString.Builder (Builder)
 import qualified Blaze.ByteString.Builder as Blaze
 import qualified Blaze.ByteString.Builder.Html.Utf8 as Blaze
 import Data.Monoid ((<>))
+import qualified Data.ByteString.Lazy as LBS
 
 
 preEscaped :: Monad m => T.Text -> HtmlT m ()
 preEscaped name =
-  HtmlT (return (\attr -> Blaze.fromText name, ()))
+  HtmlT (return (\_ -> Blaze.fromText name, ()))
+
+preEscapedByteString :: Monad m => LBS.ByteString -> HtmlT m ()
+preEscapedByteString name =
+  HtmlT (return (\_ -> Blaze.fromLazyByteString name, ()))
+
 
 
 scriptSrc :: Monad m => T.Text -> HtmlT m ()
 scriptSrc url =
-  HtmlT (return (\attr -> "<script src=\"" <> Blaze.fromHtmlEscapedText url<>"\"></script>", ()))
+  HtmlT (return (\_ -> "<script src=\"" <> Blaze.fromHtmlEscapedText url<>"\"></script>", ()))

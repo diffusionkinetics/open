@@ -30,3 +30,4 @@ Library
                , lucid
                , text
                , blaze-builder
+               , bytestring
