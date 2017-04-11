@@ -4,7 +4,15 @@
 A limited Grammar of Graphics-like interface.
 
 @
+myPts :: [(Double, Double)]
+myPts = [(1,2), (1.2, 3), (1.4,3.5)]
 
+
+
+myTrace :: Plot.Trace
+myTrace = points (aes & x .~ fst
+                      & y .~ snd)
+                 myPts
 @
 
 
