@@ -9,7 +9,7 @@ myPts = [(1,2), (1.2, 3), (1.4,3.5)]
 
 
 
-myTrace :: Plot.Trace
+myTrace :: Trace
 myTrace = points (aes & x .~ fst
                       & y .~ snd)
                  myPts
