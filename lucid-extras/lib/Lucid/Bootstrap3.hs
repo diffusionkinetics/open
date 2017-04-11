@@ -41,11 +41,12 @@ cdnFontAwesome
             rel_ "stylesheet",
             type_ "text/css"]
 
-data NavAttribute = Inverse | Transparent | FixedTop deriving Eq
+data NavAttribute = Inverse | Transparent | FixedTop | NavBarClass Text deriving Eq
 
 navAttributeToClass Inverse = "navbar-inverse"
 navAttributeToClass Transparent = "navbar-transparent"
 navAttributeToClass FixedTop = "navbar-fixed-top"
+navAttributeToClass (NavBarClass c)= c
 
 navBar :: [NavAttribute] -> Html () -> [Html ()] -> Html ()
 navBar attrs brand items = do
