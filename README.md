@@ -10,3 +10,4 @@ data science, machine learning and statistics in Haskell
 * [dashdo](https://github.com/filopodia/open/tree/master/dashdo) - Dashboards (Shiny for Haskell)
 * [fuml](https://github.com/filopodia/open/tree/master/fuml) - Functional machine learning
 * [inliterate](https://github.com/filopodia/open/tree/master/inliterate) - Dynamically generated reports
+* [stanhs](https://github.com/filopodia/open/tree/master/stanhs) - Probabilistic programming (interface to [Stan](http://mc-stan.org))

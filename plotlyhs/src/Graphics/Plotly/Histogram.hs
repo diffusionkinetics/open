@@ -6,7 +6,7 @@ Simple histograms
 
 module Graphics.Plotly.Histogram where
 
-import Graphics.Plotly
+import Graphics.Plotly.Base
 import Data.List (sort, group)
 import Lens.Micro
 import Data.Aeson (toJSON)

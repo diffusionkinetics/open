@@ -19,7 +19,7 @@ where `trace` is a value of type `Trace`
 module Graphics.Plotly.Lucid where
 
 import Lucid
-import Graphics.Plotly
+import Graphics.Plotly.Base
 import Data.Monoid ((<>))
 import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString.Lazy (toStrict)

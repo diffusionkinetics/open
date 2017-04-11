@@ -2,11 +2,18 @@
 
 {-|
 A limited Grammar of Graphics-like interface.
+
+@
+
+@
+
+
+
 -}
 
 module Graphics.Plotly.GoG where
 
-import qualified Graphics.Plotly as Plot
+import qualified Graphics.Plotly.Base as Plot
 import Data.Text (Text)
 import Lens.Micro
 import Data.Aeson
@@ -111,20 +118,3 @@ hbars :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t))
 hbars a xs = Plot.bars & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.orientation ?~ Plot.Horizontal
-
-
-fanPlot :: Double -> [(Double, (Double, Double))] -> Plot.Trace
-fanPlot sdCount tmnsds =
-  let xs = map fst tmnsds ++ reverse (map fst tmnsds)
-      ys = map ((\(m,sd) -> m+sdCount*sd) . snd) tmnsds
-           ++ reverse ( map ((\(m,sd) -> m-sdCount*sd) . snd) tmnsds)
-  in  Plot.scatter & Plot.x ?~ map toJSON xs & Plot.y ?~ map toJSON ys & Plot.fill ?~ Plot.ToZeroY
-
-
-myPts :: [(Double, Double)]
-myPts = [(1,2), (1.2, 3), (1.4,3.5)]
-
-myTrace :: Plot.Trace
-myTrace = points (aes & x .~ fst
-                      & y .~ snd)
-                 myPts

@@ -8,7 +8,7 @@ Functions to build Traces from standard data. Generated traces can still be cust
 
 module Graphics.Plotly.Simple where
 
-import Graphics.Plotly
+import Graphics.Plotly.Base
 import Lens.Micro
 import Data.Text (Text)
 import Data.Aeson
@@ -30,3 +30,12 @@ hbarChart :: [(Text, Double)] -> Trace
 hbarChart tvs = bars & y ?~ map (toJSON . fst) tvs
                      & x ?~ map (toJSON .snd) tvs
                      & orientation ?~ Horizontal
+
+-- |Generate a fan plot with a given width in standard deviations and
+--  (x,(y,sd)) data
+fanPlot :: Double -> [(Double, (Double, Double))] -> Trace
+fanPlot sdCount tmnsds =
+  let xs = map fst tmnsds ++ reverse (map fst tmnsds)
+      ys = map ((\(m,sd) -> m+sdCount*sd) . snd) tmnsds
+           ++ reverse ( map ((\(m,sd) -> m-sdCount*sd) . snd) tmnsds)
+  in  scatter & x ?~ map toJSON xs & y ?~ map toJSON ys & fill ?~ ToZeroY
