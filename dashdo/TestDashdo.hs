@@ -30,14 +30,10 @@ makeLenses ''Example
 main = do
   runDashdo theDashdo
 
-theDashdo = Dashdo initv getDraws (example iris)
+theDashdo = Dashdo initv (return . const ()) (example iris)
 
-getDraws :: Example -> IO [Double]
-getDraws nm = do
-  sample $ replicateM 1000 $ normal 0 1
-
-example :: [Iris] -> Example -> [Double] -> SHtml Example ()
-example irisd nm xs = wrap plotlyCDN $ do
+example :: [Iris] -> Example -> () -> SHtml Example ()
+example irisd nm () = wrap plotlyCDN $ do
   let ptitle = if _isMale nm then "Mr " else "Ms "
       trace :: Trace
       trace = points (aes & x .~ (nm ^. xaxis . tagVal)
