@@ -43,12 +43,13 @@ cdnFontAwesome
 
 data NavAttribute = Inverse | Transparent | FixedTop | NavBarClass Text deriving Eq
 
+navAttributeToClass :: NavAttribute -> Text
 navAttributeToClass Inverse = "navbar-inverse"
 navAttributeToClass Transparent = "navbar-transparent"
 navAttributeToClass FixedTop = "navbar-fixed-top"
 navAttributeToClass (NavBarClass c)= c
 
-navBar :: [NavAttribute] -> Html () -> [Html ()] -> Html ()
+navBar :: Monad m => [NavAttribute] -> HtmlT m () -> [HtmlT m ()] -> HtmlT m ()
 navBar attrs brand items = do
   let cls = T.unwords $ "navbar" : map navAttributeToClass attrs
   nav_ [class_ cls, role_ "navigation"] $ div_ [class_ "container"] $ do
