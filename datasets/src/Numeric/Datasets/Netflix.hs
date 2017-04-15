@@ -1,3 +1,4 @@
+{-# language OverloadedStrings, TemplateHaskell #-}
 {-|
 Netflix prize dataset
 
@@ -14,6 +15,11 @@ module Numeric.Datasets.Netflix where
 
 import Numeric.Datasets
 import Data.Csv
+import Data.FileEmbed
+import Data.ByteString
+
+asdf :: [(FilePath, ByteString)]
+asdf = $(embedDir "datafiles/")
 
 
 
