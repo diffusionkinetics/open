@@ -18,12 +18,14 @@ import Data.Csv
 
 
 
+data Rating = Rating {userId :: UserId, ratingDate :: Date} deriving (Eq, Show)
+
 -- training set
 
 newtype UserId = UserId {unUserId :: Int} deriving (Eq, Show)
 data Date = Date Int Int Int deriving (Eq, Show)  -- FIXME use `time`
 
-data TrainingSet = TS {usrId :: UserId, rating :: Int, ratingDate :: Date } deriving (Eq, Show)
+data TrainingSet = TrainSet {trainRating :: Rating, rating :: Int } deriving (Eq, Show)
 
 -- movies file
 
@@ -31,3 +33,8 @@ newtype MovieId = MovieId {unMovieId :: Int} deriving (Eq, Show)
 type Year = Int    -- FIXME use `time`
 
 data Movies = Movie { movieId :: MovieId, releaseYear :: Year, movieTitle :: String } deriving (Eq, Show)
+
+
+-- "qualifying" file (test set)
+
+data TestSet = TestSet { testRating :: Rating } deriving (Eq, Show)
