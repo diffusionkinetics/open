@@ -72,6 +72,7 @@ Library
                  , Numeric.Datasets.Vocabulary
                  , Numeric.Datasets.Wine
                  , Numeric.Datasets.WineQuality
+                 , Numeric.Datasets.Netflix                 
    Build-depends:
                  base                    >= 4.6 && < 5
                , cassava
