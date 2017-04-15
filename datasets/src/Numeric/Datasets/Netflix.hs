@@ -18,8 +18,16 @@ import Data.Csv
 
 
 
-type UserId = Int
+-- training set
 
+type UserId = Int
 data Date = Date Int Int Int deriving (Eq, Show)
 
-data TrainingSet = TS UserId Int Date deriving (Eq, Show)
+data TrainingSet = TS {usrId :: UserId, rating :: Int, ratingDate :: Date } deriving (Eq, Show)
+
+-- movies file
+
+type MovieId = Int
+type Year = Int
+
+data Movies = Movie { movieId :: MovieId, releaseYear :: Year, movieTitle :: String } deriving (Eq, Show)
