@@ -20,14 +20,14 @@ import Data.Csv
 
 -- training set
 
-type UserId = Int
-data Date = Date Int Int Int deriving (Eq, Show)
+newtype UserId = UserId {unUserId :: Int} deriving (Eq, Show)
+data Date = Date Int Int Int deriving (Eq, Show)  -- FIXME use `time`
 
 data TrainingSet = TS {usrId :: UserId, rating :: Int, ratingDate :: Date } deriving (Eq, Show)
 
 -- movies file
 
-type MovieId = Int
-type Year = Int
+newtype MovieId = MovieId {unMovieId :: Int} deriving (Eq, Show)
+type Year = Int    -- FIXME use `time`
 
 data Movies = Movie { movieId :: MovieId, releaseYear :: Year, movieTitle :: String } deriving (Eq, Show)
