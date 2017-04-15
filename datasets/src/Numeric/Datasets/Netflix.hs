@@ -14,3 +14,12 @@ module Numeric.Datasets.Netflix where
 
 import Numeric.Datasets
 import Data.Csv
+
+
+
+
+type UserId = Int
+
+data Date = Date Int Int Int deriving (Eq, Show)
+
+data TrainingSet = TS UserId Int Date deriving (Eq, Show)
