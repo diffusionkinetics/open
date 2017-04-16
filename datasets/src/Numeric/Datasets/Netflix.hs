@@ -29,7 +29,7 @@ import Data.Attoparsec.ByteString.Char8 hiding (takeWhile, inClass)
 
 
 
--- | Dataset files. The directories are scanned recursively and their contents are presented as (FilePath, ByteString) pairs
+-- * Dataset files. The directories are scanned recursively and their contents are presented as (FilePath, ByteString) pairs
 
 trainingSet :: [(FilePath, ByteString)]
 trainingSet = $(embedDir "datafiles/netflix/training/")
@@ -44,17 +44,32 @@ movies = $(embedDir "datafiles/netflix/movies/")
 
 -- * Data types
 
-data Rating = Rating {userId :: UserId,
-                      ratingDate :: Day} deriving (Eq, Show)
+data RatingDate = RatingDate {userId :: UserId,
+                              ratingDate :: Day} deriving (Eq, Show)
 
--- training set
+-- | Training set
 newtype UserId = UserId {unUserId :: Int} deriving Eq
 instance Show UserId where show = show . unUserId
 
-data Train = Train {trainRating :: Rating,
+data Train = Train {trainRating :: RatingDate,
                     rating :: Int } deriving (Eq, Show)
 
--- movies file
+-- Every file in the training set corresponds to a distinct column. The whole dataset can therefore be seen as a (very sparse) users vs. movies matrix
+data TrainCol = TrainC { tcMovieId :: MovieId,
+                         tcTrainSet :: [Train]} deriving (Eq, Show)
+
+
+-- Convert a column of training data into (row, col, value) format suitable for populating a sparse matrix
+toCoordsCol :: Num a => TrainCol -> [(UserId, MovieId, a)]
+toCoordsCol tc = f mid <$> tss where
+  tss = tcTrainSet tc
+  mid = tcMovieId tc
+  f m ts = (uid, m, r) where
+    r = fromIntegral (rating ts)
+    uid = userId (trainRating ts)
+
+
+-- | Movies file
 newtype MovieId = MovieId {unMovieId :: Int} deriving Eq
 instance Show MovieId where show = show . unMovieId
 
@@ -62,8 +77,9 @@ data Movie = Movie { movieId :: MovieId,
                      releaseYear :: Day,
                      movieTitle :: ByteString } deriving (Eq, Show)
 
--- "qualifying" file (test set)
-newtype Test = Test { testRating :: Rating } deriving (Eq, Show)
+-- | "Qualifying" file (test set)
+newtype Test = Test { testRating :: RatingDate } deriving (Eq, Show)
+
 
 
 
@@ -81,8 +97,10 @@ CustomerID,Rating,Date
 - CustomerIDs range from 1 to 2649429, with gaps. There are 480189 users.
 - Ratings are on a five star (integral) scale from 1 to 5.
 - Dates have the format YYYY-MM-DD.-}
-trainingSetParser :: PT.Parser ByteString (MovieId, [Train])
-trainingSetParser = stanza trainRow
+trainingSetParser :: PT.Parser ByteString TrainCol
+trainingSetParser = do
+  (mid, tr) <- stanza trainRow
+  return $ TrainC mid tr
 
 {-The test set ("qualifying") file consists of lines indicating a movie id, followed by a colon, and then customer ids and rating dates, one per line for that movie id.
 The movie and customer ids are contained in the training set.  Of course the
@@ -112,14 +130,14 @@ trainRow = do
   uid <- decc
   rate <- decc
   d <- date
-  let r = Rating (UserId uid) d
+  let r = RatingDate (UserId uid) d
   return $ Train r rate
   
 testRow :: PT.Parser ByteString Test
 testRow = do
   uid <- decc
   d <- date
-  let r = Rating (UserId uid) d
+  let r = RatingDate (UserId uid) d
   return $ Test r
 
 moviesRow :: PT.Parser ByteString Movie
@@ -138,7 +156,7 @@ moviesRow = do
 parseRows :: PT.Parser ByteString a -> PT.Parser ByteString [a]
 parseRows p = many1 (p <* endOfLine)
 
--- a "stanza" is a block of rows starting starting with the movie ID and a colon. 
+-- a "stanza" is a block of rows starting with the movie ID and a colon. 
 stanza :: PT.Parser ByteString a -> PT.Parser ByteString (MovieId, [a])
 stanza p = do
   i <- ident <* endOfLine
@@ -168,7 +186,7 @@ ident :: PT.Parser ByteString Integer
 ident = do
   i <- decimal
   _ <- char ':'
-  pure i
+  return i
 
 
 
