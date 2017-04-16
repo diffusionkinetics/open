@@ -41,6 +41,8 @@ extra-source-files:
                    datafiles/iris.data
                    datafiles/michelson.json
                    datafiles/nightingale.json
+                   datafiles/netflix/training/mv_0000001.txt
+                   datafiles/netflix/test/qualifying.txt
 
 source-repository head
   type:     git

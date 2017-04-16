@@ -8,6 +8,8 @@ The movie rating files contain over 100 million ratings from 480 thousand random
 
 The competition ended on September, 2009, and the dataset was subsequently removed from the public domain by the company. 
 
+We include in this repository a small mock dataset in the same format for development purposes.
+
 For further information, see <http://netflixprize.com/>
 -}
 
@@ -18,9 +20,11 @@ import Data.Csv
 import Data.FileEmbed
 import Data.ByteString
 
-asdf :: [(FilePath, ByteString)]
-asdf = $(embedDir "datafiles/")
+trainingSet :: [(FilePath, ByteString)]
+trainingSet = $(embedDir "datafiles/netflix/training/")
 
+testSet :: [(FilePath, ByteString)]
+testSet = $(embedDir "datafiles/netflix/test/")
 
 
 
