@@ -76,17 +76,18 @@ Library
                  , Numeric.Datasets.WineQuality
                  , Numeric.Datasets.Netflix                 
    Build-depends:
-                 base                    >= 4.6 && < 5
-               , cassava
-               , wreq
-               , hashable
-               , filepath
-               , bytestring
-               , directory
-               , vector
-               , text
-               , stringsearch
-               , file-embed
-               , aeson
-               , time
-               , microlens
+                   base                    >= 4.6 && < 5
+                 , aeson
+                 , attoparsec >= 0.13.1.0
+                 , bytestring
+                 , cassava
+                 , directory
+                 , file-embed
+                 , filepath
+                 , hashable
+                 , microlens
+                 , stringsearch
+                 , text
+                 , time
+                 , vector
+                 , wreq
