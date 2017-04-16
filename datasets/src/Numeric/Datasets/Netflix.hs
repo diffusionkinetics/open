@@ -20,7 +20,7 @@ import Prelude hiding (takeWhile)
 import Numeric.Datasets
 -- import Data.Csv
 import Data.FileEmbed
-import Data.ByteString hiding (takeWhile)
+import Data.ByteString hiding (map, takeWhile)
 import Data.Time (Day, fromGregorian)
 
 import qualified Data.Attoparsec.Internal.Types as PT (Parser) 
@@ -54,21 +54,6 @@ instance Show UserId where show = show . unUserId
 data Train = Train {trainRating :: RatingDate,
                     rating :: Int } deriving (Eq, Show)
 
--- Every file in the training set corresponds to a distinct column. The whole dataset can therefore be seen as a (very sparse) users vs. movies matrix
-data TrainCol = TrainC { tcMovieId :: MovieId,
-                         tcTrainSet :: [Train]} deriving (Eq, Show)
-
-
--- Convert a column of training data into (row, col, value) format suitable for populating a sparse matrix
-toCoordsCol :: Num a => TrainCol -> [(UserId, MovieId, a)]
-toCoordsCol tc = f mid <$> tss where
-  tss = tcTrainSet tc
-  mid = tcMovieId tc
-  f m ts = (uid, m, r) where
-    r = fromIntegral (rating ts)
-    uid = userId (trainRating ts)
-
-
 -- | Movies file
 newtype MovieId = MovieId {unMovieId :: Int} deriving Eq
 instance Show MovieId where show = show . unMovieId
@@ -83,6 +68,36 @@ newtype Test = Test { testRating :: RatingDate } deriving (Eq, Show)
 
 
 
+-- * Additional types and helper functions
+
+-- Every file in the training set corresponds to a distinct column. The whole dataset can therefore be seen as a (very sparse) users vs. movies matrix
+data TrainCol = TrainC { tcMovieId :: MovieId,
+                         tcTrainSet :: [Train]} deriving (Eq, Show)
+
+-- A type for date-tagged ratings
+data RD a = RD { rdRating :: a,
+                 rdDate :: Day} deriving (Eq, Show)
+
+-- Convert a column of training data into (row, col, (rating, date)) coordinate format suitable for populating a sparse matrix
+toCoordsCol :: Num a => TrainCol -> [(UserId, MovieId, RD a)]
+toCoordsCol tc = map (f mid) tss where
+  tss = tcTrainSet tc
+  mid = tcMovieId tc
+  f m ts = (uid, m, RD r d) where
+    r = fromIntegral $ rating ts
+    d = ratingDate $ trainRating ts
+    uid = userId $ trainRating ts
+
+
+-- Parse the whole training set, convert to coordinate format and concatenate into a single list.
+parseTrainingSet :: Num a => Either String [(UserId, MovieId, RD a)]
+parseTrainingSet = mconcat <$> parseTrainingSet'
+
+-- Parse the whole training set and convert to coordinate format
+parseTrainingSet' :: Num a => Either String [[(UserId, MovieId, RD a)]]
+parseTrainingSet' = do
+  d <- traverse (parseOnly trainingSetParser . snd) trainingSet
+  pure $ map toCoordsCol d
 
 
 -- * Netflix dataset parsers
