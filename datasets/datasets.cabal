@@ -43,6 +43,7 @@ extra-source-files:
                    datafiles/nightingale.json
                    datafiles/netflix/training/mv_0000001.txt
                    datafiles/netflix/test/qualifying.txt
+                   datafiles/netflix/movies/movie_titles.txt                   
 
 source-repository head
   type:     git
