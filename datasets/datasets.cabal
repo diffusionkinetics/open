@@ -41,6 +41,9 @@ extra-source-files:
                    datafiles/iris.data
                    datafiles/michelson.json
                    datafiles/nightingale.json
+                   datafiles/netflix/training/mv_0000001.txt
+                   datafiles/netflix/test/qualifying.txt
+                   datafiles/netflix/movies/movie_titles.txt                   
 
 source-repository head
   type:     git
@@ -72,18 +75,20 @@ Library
                  , Numeric.Datasets.Vocabulary
                  , Numeric.Datasets.Wine
                  , Numeric.Datasets.WineQuality
+                 , Numeric.Datasets.Netflix                 
    Build-depends:
-                 base                    >= 4.6 && < 5
-               , cassava
-               , wreq
-               , hashable
-               , filepath
-               , bytestring
-               , directory
-               , vector
-               , text
-               , stringsearch
-               , file-embed
-               , aeson
-               , time
-               , microlens
+                   base                    >= 4.6 && < 5
+                 , aeson
+                 , attoparsec >= 0.13.1.0
+                 , bytestring
+                 , cassava
+                 , directory
+                 , file-embed
+                 , filepath
+                 , hashable
+                 , microlens
+                 , stringsearch
+                 , text
+                 , time
+                 , vector
+                 , wreq
