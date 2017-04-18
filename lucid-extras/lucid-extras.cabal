@@ -22,6 +22,8 @@ source-repository head
 Library
    ghc-options:       -Wall
    hs-source-dirs:    lib
+   default-language:  Haskell2010
+
    Exposed-modules:
                Lucid.Bootstrap3
                Lucid.PreEscaped

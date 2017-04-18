@@ -6,6 +6,7 @@ packages:
   - ./parfoldl
   - ./dashdo
   - ./fuml
+  - ./inliterate
 
 
 # Needed for LTS 2

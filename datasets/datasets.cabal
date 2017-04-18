@@ -53,6 +53,8 @@ Library
    ghc-options:       -Wall
    hs-source-dirs:    src
    other-extensions: TemplateHaskell
+   default-language:  Haskell2010
+
    Exposed-modules:
                    Numeric.Datasets
                  , Numeric.Datasets.Anscombe
