@@ -24,6 +24,8 @@ import Data.ByteString hiding (map, takeWhile)
 import Data.Time (Day, fromGregorian)
 
 import Control.Applicative
+import Data.Monoid (mconcat)
+import Data.Traversable (traverse)
 import qualified Data.Attoparsec.Internal.Types as PT (Parser) 
 import Data.Attoparsec.ByteString
 import Data.Attoparsec.ByteString.Char8 hiding (takeWhile, inClass)
