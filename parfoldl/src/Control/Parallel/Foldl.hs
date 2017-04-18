@@ -135,7 +135,7 @@ foldPar nthreads (Fold step begin done comb) v = runPar $ do
 
 vectorSlices :: VG.Vector w a => Int -> w a -> [w a]
 vectorSlices nsegs v = go v where
-  seglen = ceiling $ realToFrac (VG.length v) / realToFrac nsegs
+  seglen = ceiling $ realToFrac (VG.length v) / (realToFrac nsegs :: Double)
   go v' | VG.null v' = []
         | VG.length v' < seglen = [v']
         | otherwise = let (v1,v2) = VG.splitAt seglen v'
@@ -199,7 +199,7 @@ twoPassVariance :: [Double] -> Double
 twoPassVariance xs =
   let n = realToFrac $ Prelude.length xs
       mn = Prelude.sum xs / n
-      devs = map (\x-> (x - mn)^2) xs
+      devs = map (\x-> (x - mn)^(2::Int)) xs
   in Prelude.sum devs / (n-1)
 
 rmse :: Floating a => Fold (a,a) a
