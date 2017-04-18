@@ -2,7 +2,7 @@ Name:                inliterate
 Version:             0.1.0
 Synopsis:            Interactive literate programming
 Description:
-        Evaluate markdown code blocks
+        Evaluate markdown code blocks to show the results of running the code.
 
 
 License:             MIT

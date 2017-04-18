@@ -1,7 +1,8 @@
 name:                fuml
 version:             0.1.0.0
 synopsis:            Functional Machine Learning
-description:         Functional Machine Learning
+description:         Functional Machine Learning using combinators for classification,
+                     regression, clustering and dimensionality reduction.
 homepage:            https://github.com/glutamate/fuml
 license:             MIT
 license-file:        LICENSE

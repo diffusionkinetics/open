@@ -1,7 +1,7 @@
 Name:                lucid-extras
 Version:             0.1.0.0
 Synopsis:            Generate more HTML with Lucid
-Description:         Generate more HTML with Lucid
+Description:         Generate more HTML with Lucid - Bootstrap, Rdash and Email.
 License:             MIT
 License-file:        LICENSE
 Author:              Tom Nielsen <tanielsen@gmail.com>
