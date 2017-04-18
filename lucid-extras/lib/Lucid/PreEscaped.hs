@@ -5,7 +5,6 @@ module Lucid.PreEscaped where
 import Lucid
 import Lucid.Base
 import qualified Data.Text as T
-import           Blaze.ByteString.Builder (Builder)
 import qualified Blaze.ByteString.Builder as Blaze
 import qualified Blaze.ByteString.Builder.Html.Utf8 as Blaze
 import Data.Monoid ((<>))
