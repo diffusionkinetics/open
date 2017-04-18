@@ -26,7 +26,7 @@ main = do print $ ("iris average seplen", fold (premap sepalLength average) iris
           print $ fold (premap tax average) bh
           print $ fold (premap tax variance) bh
           print $ twoPassVariance $ map tax bh
-          let manyNums = [1..1000000]
+          let manyNums = [1..10000]
           print $ twoPassVariance manyNums
           print $ fold variance manyNums
 
