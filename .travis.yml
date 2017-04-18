@@ -30,7 +30,8 @@ cache:
 #
 # If you need to have different apt packages for each combination in the
 # matrix, you can use a line such as:
-#     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
+addons: {apt: {packages: [libblas-dev, libatlas-dev, liblapack-dev]}}
+
 matrix:
   include:
   # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
