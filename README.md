@@ -1,5 +1,6 @@
 Filopodia open source projects
 =====
+[![Build Status](https://secure.travis-ci.org/filopodia/open.svg)](http://travis-ci.org/filopodia/open)
 
 This is a mega-repo containing a series of projects, mostly related to
 data science, machine learning and statistics in Haskell
