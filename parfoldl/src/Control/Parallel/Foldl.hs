@@ -110,7 +110,7 @@ premap f (Fold step begin done comb) = Fold step' begin done comb
 {-# INLINABLE premap #-}
 
 -- | Apply a strict left 'Fold' to a 'Foldable' container
-fold :: Foldable f => Fold a b -> f a -> b
+fold :: F.Foldable f => Fold a b -> f a -> b
 fold (Fold step begin done _) as = F.foldr cons done as begin
   where
     cons a k x = k $! step x a
@@ -123,7 +123,7 @@ combine (Fold step1 begin1 done1 comb1) (Fold step2 begin2 done2 comb2)
          (done1 *** done2)
          (\(x1,y1) (x2,y2) -> (comb1 x1 x2, comb2 y1 y2))
 
-foldPar :: (VG.Vector v a, Foldable v) => Int -> Fold a b -> v a -> b
+foldPar :: (VG.Vector v a, F.Foldable v) => Int -> Fold a b -> v a -> b
 foldPar nthreads (Fold step begin done comb) v = runPar $ do
   let vs = vectorSlices nthreads v
       fv v' = return $! F.foldr cons id v' begin
