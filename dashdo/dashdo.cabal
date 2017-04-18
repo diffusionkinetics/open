@@ -10,6 +10,7 @@ License-file:        LICENSE
 Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
+category:            Statistics, Web
 Cabal-Version: 	     >= 1.10
 extra-source-files:
         public/js/shany.js
