@@ -1,3 +1,7 @@
+0.2.4
+
+* Netflix dataset
+
 0.2.3
 
 * Coal dataset

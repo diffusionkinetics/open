@@ -110,7 +110,7 @@ premap f (Fold step begin done comb) = Fold step' begin done comb
 {-# INLINABLE premap #-}
 
 -- | Apply a strict left 'Fold' to a 'Foldable' container
-fold :: Foldable f => Fold a b -> f a -> b
+fold :: F.Foldable f => Fold a b -> f a -> b
 fold (Fold step begin done _) as = F.foldr cons done as begin
   where
     cons a k x = k $! step x a
@@ -123,7 +123,7 @@ combine (Fold step1 begin1 done1 comb1) (Fold step2 begin2 done2 comb2)
          (done1 *** done2)
          (\(x1,y1) (x2,y2) -> (comb1 x1 x2, comb2 y1 y2))
 
-foldPar :: (VG.Vector v a, Foldable v) => Int -> Fold a b -> v a -> b
+foldPar :: (VG.Vector v a, F.Foldable v) => Int -> Fold a b -> v a -> b
 foldPar nthreads (Fold step begin done comb) v = runPar $ do
   let vs = vectorSlices nthreads v
       fv v' = return $! F.foldr cons id v' begin
@@ -135,7 +135,7 @@ foldPar nthreads (Fold step begin done comb) v = runPar $ do
 
 vectorSlices :: VG.Vector w a => Int -> w a -> [w a]
 vectorSlices nsegs v = go v where
-  seglen = ceiling $ realToFrac (VG.length v) / realToFrac nsegs
+  seglen = ceiling $ realToFrac (VG.length v) / (realToFrac nsegs :: Double)
   go v' | VG.null v' = []
         | VG.length v' < seglen = [v']
         | otherwise = let (v1,v2) = VG.splitAt seglen v'
@@ -199,7 +199,7 @@ twoPassVariance :: [Double] -> Double
 twoPassVariance xs =
   let n = realToFrac $ Prelude.length xs
       mn = Prelude.sum xs / n
-      devs = map (\x-> (x - mn)^2) xs
+      devs = map (\x-> (x - mn)^(2::Int)) xs
   in Prelude.sum devs / (n-1)
 
 rmse :: Floating a => Fold (a,a) a

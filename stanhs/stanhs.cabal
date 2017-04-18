@@ -31,7 +31,7 @@ Library
                  , Stan.Run
 
    Build-depends:
-                 base                    >= 4.7
+                 base                    >= 4.6 && <5
                , pretty
                , directory
                , hashable

@@ -10,14 +10,16 @@ License-file:        LICENSE
 Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
-Cabal-Version: 	     >= 1.8
+category:            Statistics, Web
+Cabal-Version: 	     >= 1.10
 extra-source-files:
         public/js/shany.js
 
 Library
    ghc-options:       -Wall -fno-warn-type-defaults
-   ghc-prof-options:  -auto-all
    hs-source-dirs:    src
+   default-language:  Haskell2010
+
 
    Exposed-modules:
                    Dashdo
@@ -42,6 +44,8 @@ Library
 
 executable test-dashdo
   main-is: TestDashdo.hs
+  default-language:  Haskell2010
+
   build-depends:       base >=4.6 && <5
                      , plotlyhs
                      , datasets

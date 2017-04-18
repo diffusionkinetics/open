@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy as BLS
 
 import Data.FileEmbed
 import Data.Hashable
+import Control.Applicative
 
 runDashdo :: Dashdo a -> IO ()
 runDashdo s = do
