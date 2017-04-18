@@ -32,7 +32,7 @@ Library
                  , Inliterate.Inspect
 
    Build-depends:
-                 base                    >= 4.7
+                 base                    >= 4.7 && <5
                , text
                , containers
                , cheapskate

@@ -11,7 +11,7 @@ License-file:        LICENSE
 Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
-Cabal-Version: 	     >= 1.8
+Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/filopodia/open/plotlyhs
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Graphics, Charts
@@ -39,7 +39,7 @@ Library
                  , Graphics.Plotly.Simple
 
    Build-depends:
-                 base                    >= 4.7
+                 base                    >= 4.7 && <5
                , aeson
                , lucid
                , blaze-html

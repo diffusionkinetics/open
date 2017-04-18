@@ -31,7 +31,7 @@ License-file:        LICENSE
 Author:              Tom Nielsen <tanielsen@gmail.com>
 Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
-Cabal-Version: 	     >= 1.8
+Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/filopodia/open/datasets
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Statistics, Machine Learning, Data Mining, Data
