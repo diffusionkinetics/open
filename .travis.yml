@@ -150,7 +150,7 @@ script:
         # Use slightly less intensive options on OS X due to Travis timeouts
         stack --install-ghc --no-terminal $ARGS test --fast
       else
-        stack --install-ghc --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
+        stack --install-ghc --no-terminal $ARGS test --fast --haddock --no-haddock-deps
       fi
       ;;
     cabal)
