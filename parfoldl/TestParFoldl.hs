@@ -1,6 +1,7 @@
 {-# LANGUAGE StandaloneDeriving     #-}
 
 import Control.Parallel.Foldl
+import Control.Applicative
 import Numeric.Datasets.Iris
 import Numeric.Datasets.BostonHousing
 import Numeric.Datasets
