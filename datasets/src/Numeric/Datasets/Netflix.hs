@@ -23,6 +23,7 @@ import Data.FileEmbed
 import Data.ByteString hiding (map, takeWhile)
 import Data.Time (Day, fromGregorian)
 
+import Control.Applicative
 import qualified Data.Attoparsec.Internal.Types as PT (Parser) 
 import Data.Attoparsec.ByteString
 import Data.Attoparsec.ByteString.Char8 hiding (takeWhile, inClass)

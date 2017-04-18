@@ -9,7 +9,6 @@ packages:
   - ./inliterate
 
 
-# Needed for LTS 2
 extra-deps: 
 - kmeans-vector-0.3.2
 - probable-0.1.2
