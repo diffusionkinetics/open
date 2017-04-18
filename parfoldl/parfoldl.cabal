@@ -30,7 +30,7 @@ Library
                    Control.Parallel.Foldl
 
    Build-depends:
-                 base                    >= 4.7 && <5
+                 base                    >= 4.6 && <5
                , vector
                , profunctors
                , containers
