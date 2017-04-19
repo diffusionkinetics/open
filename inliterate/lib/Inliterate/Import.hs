@@ -4,8 +4,6 @@ module Inliterate.Import where
 
 import Data.Time
 import qualified Data.Text as T
-import Graphics.Plotly
-import Graphics.Plotly.Lucid ()
 import qualified Data.Text.Lazy.IO as TL
 import Lucid
 import Lucid.Bootstrap3
@@ -13,15 +11,16 @@ import Lucid.PreEscaped
 import Control.Monad (unless)
 import System.Environment
 
+data CodeType = Top | Eval | Do | Hide | Fake | Twocol | Noq deriving (Show, Eq, Read, Ord)
 
 class AskInliterate a where
-  askInliterate :: String -> a -> IO ()
-  default askInliterate :: Show a => String -> a -> IO ()
+  askInliterate :: String -> [CodeType] -> a -> IO ()
+  default askInliterate :: Show a => String -> [CodeType] -> a -> IO ()
   askInliterate = answerWith show
 
-answerWith :: (a -> String) -> String -> a -> IO ()
-answerWith f t x = do
-  putStrLn "<pre class=\"haskell\"><code>"
+answerWith :: (a -> String) -> String -> [CodeType] -> a -> IO ()
+answerWith f t cts x = do
+  putStr "<pre class=\"haskell\"><code>"
   putStrLn $ concat [t, " => \n", f x]
   putStrLn "</code></pre>"
 
@@ -41,12 +40,19 @@ instance AskInliterate T.Text where
 instance (Show a, Show b) => AskInliterate (a,b)
 
 instance AskInliterate (Html a) where
-  askInliterate _ html
-     = TL.putStrLn $ renderText html
-
-instance AskInliterate Plotly where
-  askInliterate _ plt
-     = TL.putStrLn $ renderText $ toHtml plt
+  askInliterate q cts html
+     | Twocol `elem` cts = do
+         putStrLn "<div class=\"row\">"
+         putStrLn "<div class=\"col-md-6\">"
+         putStr "<pre class=\"haskell\"><code>"
+         putStrLn $ q
+         putStrLn "</code></pre>"
+         putStrLn "</div>"
+         putStrLn "<div class=\"col-md-6\">"
+         TL.putStrLn $ renderText html
+         putStrLn "</div>"
+         putStrLn "</div>"
+     | otherwise = TL.putStrLn $ renderText html
 
 wrapMain :: String -> IO () -> IO ()
 wrapMain hdrTxt go = do
