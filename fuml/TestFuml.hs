@@ -1,3 +1,5 @@
+module Main where
+
 import Fuml.Supervised
 import Fuml.Unsupervised
 import Fuml.Core

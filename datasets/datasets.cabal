@@ -35,7 +35,7 @@ Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/filopodia/open/datasets
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Statistics, Machine Learning, Data Mining, Data
-Tested-With:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 extra-source-files:
                    changelog.md
                    datafiles/iris.data
@@ -81,7 +81,7 @@ Library
    Build-depends:
                    base                    >= 4.6 && < 5
                  , aeson
-                 , attoparsec >= 0.13.1.0
+                 , attoparsec >= 0.13
                  , bytestring
                  , cassava
                  , directory
