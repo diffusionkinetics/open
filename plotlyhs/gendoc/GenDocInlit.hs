@@ -73,12 +73,9 @@ value) and a list of traces.
 
 ### A simple plot
 
-We use these two basic datasets:
+We use these this basic dataset:
 
 ```haskell top
-hbarData :: [(Text, Double)]
-hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
-
 pointsData :: [(Double, Double)]
 pointsData = zip [1,2,3,4] [500,3000,700,200]
 ```
@@ -124,7 +121,7 @@ plotly "div4" [points (aes & x .~ fst
 
 ### Iris plots
 
-This plot uses the iris value from the datasets package
+This plot uses the `iris` value from the datasets package
 
 ```haskell eval twocol
 plotly "div6"
@@ -136,3 +133,19 @@ plotly "div6"
 ```
 
 ### Horizontal bar plots
+
+Using this simple dataset:
+
+```haskell top
+hbarData :: [(Text, Double)]
+hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
+```
+
+```haskell eval twocol
+plotly "div7" 
+    [hbars (aes & y .~ fst
+                & x .~ snd)
+           hbarData]
+    & layout . margin ?~ thinMargins
+    & layout . height ?~ 300    
+```
