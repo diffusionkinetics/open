@@ -1,3 +1,2 @@
 image foobar:
-  - key1: val1
-  - key2: val2
+   dockerFile: .

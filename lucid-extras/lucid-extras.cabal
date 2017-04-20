@@ -1,13 +1,13 @@
 Name:                lucid-extras
 Version:             0.1.0.0
 Synopsis:            Generate more HTML with Lucid
-Description:         Generate more HTML with Lucid
+Description:         Generate more HTML with Lucid - Bootstrap, Rdash and Email.
 License:             MIT
 License-file:        LICENSE
 Author:              Tom Nielsen <tanielsen@gmail.com>
 Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
-Cabal-Version: 	     >= 1.8
+Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/filopodia/open/lucid-extra
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Web
@@ -22,6 +22,8 @@ source-repository head
 Library
    ghc-options:       -Wall
    hs-source-dirs:    lib
+   default-language:  Haskell2010
+
    Exposed-modules:
                Lucid.Bootstrap3
                Lucid.PreEscaped

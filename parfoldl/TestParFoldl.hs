@@ -1,6 +1,7 @@
 {-# LANGUAGE StandaloneDeriving     #-}
 
 import Control.Parallel.Foldl
+import Control.Applicative
 import Numeric.Datasets.Iris
 import Numeric.Datasets.BostonHousing
 import Numeric.Datasets
@@ -13,6 +14,7 @@ irisApply f = Iris <$> premap sepalLength f
                    <*> premap petalWidth f
                    <*> premap irisClass mode
 
+main :: IO ()
 main = do print $ ("iris average seplen", fold (premap sepalLength average) iris)
           print $ ("iris variance seplen", fold (premap sepalLength variance) iris)
           print $ ("iris twopvar  seplen", twoPassVariance $ map sepalLength iris)
@@ -24,7 +26,7 @@ main = do print $ ("iris average seplen", fold (premap sepalLength average) iris
           print $ fold (premap tax average) bh
           print $ fold (premap tax variance) bh
           print $ twoPassVariance $ map tax bh
-          let manyNums = [1..100000000]
+          let manyNums = [1..10000]
           print $ twoPassVariance manyNums
           print $ fold variance manyNums
 

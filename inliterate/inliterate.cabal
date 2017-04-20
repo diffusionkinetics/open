@@ -2,7 +2,7 @@ Name:                inliterate
 Version:             0.1.0
 Synopsis:            Interactive literate programming
 Description:
-        Evaluate markdown code blocks
+        Evaluate markdown code blocks to show the results of running the code.
 
 
 License:             MIT
@@ -32,7 +32,7 @@ Library
                  , Inliterate.Inspect
 
    Build-depends:
-                 base                    >= 4.7
+                 base                    >= 4.6 && <5
                , text
                , containers
                , cheapskate
@@ -58,6 +58,7 @@ Test-suite test-inliterate
 
 Test-suite test-inliterate-pp
   type:       exitcode-stdio-1.0
+  buildable: False
   main-is: TestInliteratePreProc.hs
   build-depends:       base >=4.6 && <5
                      , inliterate

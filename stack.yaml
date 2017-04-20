@@ -1,0 +1,14 @@
+resolver: lts-8.5
+packages:
+  - ./datasets
+  - ./plotlyhs
+  - ./lucid-extras
+  - ./parfoldl
+  - ./dashdo
+  - ./fuml
+  - ./inliterate
+
+
+extra-deps: 
+- kmeans-vector-0.3.2
+- probable-0.1.2

@@ -22,7 +22,7 @@ instance Functor m => Functor (Supervisor m o p) where
 
 
 --oneVsRest :: Eq a => Supervisor Bool p -> Supervisor a (Multiclass a p)
-oneVsRest :: (Monad m, Eq a) => Supervisor m Bool p b -> Supervisor m a [(a,p)] [(a,b)]
+oneVsRest :: (Monad m, Eq a, Functor m) => Supervisor m Bool p b -> Supervisor m a [(a,p)] [(a,b)]
 oneVsRest subsuper  = Supervisor $ \_ theData -> do
   let classes = nub $ map snd theData
       boolize c (v, c1) = (v, c == c1)

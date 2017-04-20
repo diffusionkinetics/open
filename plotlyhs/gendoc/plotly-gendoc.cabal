@@ -13,7 +13,7 @@ build-type:          Simple
 Cabal-Version: 	     >= 1.8
 
 executable plotly-gendoc
-  main-is: GenDoc.hs
+  main-is: GenDocInlit.hs
   build-depends:       base >=4.6 && <5
                      , plotlyhs
                      , lucid
@@ -21,5 +21,20 @@ executable plotly-gendoc
                      , text
                      , microlens
                      , plotlyhs
+                     , inliterate
+                     , datasets
+                     , neat-interpolation
+
+executable test-plotly-gendoc
+  main-is: test.hs
+  buildable: False
+  build-depends:       base >=4.6 && <5
+                     , plotlyhs
+                     , lucid
+                     , aeson
+                     , text
+                     , microlens
+                     , plotlyhs
+                     , inliterate
                      , datasets
                      , neat-interpolation

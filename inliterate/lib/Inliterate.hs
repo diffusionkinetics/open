@@ -20,7 +20,7 @@ import Lucid
 import Data.Monoid ((<>))
 
 import Inliterate.Inspect
-
+import Inliterate.Import
 
 dumpDoc :: FilePath -> IO ()
 dumpDoc fp = do
@@ -29,7 +29,6 @@ dumpDoc fp = do
   print md
   mapM_ print $ codeBlocks md
 
-data CodeType = Top | Eval | Do | Hide | Fake deriving (Show, Eq, Read, Ord)
 
 parseCodeInfo :: Text -> Set CodeType
 parseCodeInfo = Set.fromList . map parse1 . T.words where
@@ -66,8 +65,9 @@ isHtmlHeader _ = False
 codeBlockBody (CodeBlock (CodeAttr "html_header" ci) t) = t
 
 printAsk :: Set CodeType -> Text -> [Text]
-printAsk _ t
-  = [T.concat ["askInliterate ", escape $ chomp t, " $ ", chomp t]]
+printAsk cts t
+  = [T.concat ["askInliterate ", escape $ chomp t, " ",
+               T.pack $ show (Set.toList cts) , " (", chomp t, ")"]]
 
 printAnyBlock :: Block -> [Text]
 printAnyBlock blk =
@@ -95,7 +95,9 @@ codeBlocks d =
 removeOptionsGhc :: [Block] -> [Block]
 removeOptionsGhc allBlks@(Para inls:blks)
     | [Str "{",Str "-",Str "#",Space,Str "OPTIONS",Str "_",Str "GHC"] `isPrefixOf` toList inls
-         = blks
+         = removeOptionsGhc blks
+    | [Str "{",Str "-",Str "#",Space,Str "LANGUAGE"] `isPrefixOf` toList inls
+         = removeOptionsGhc blks
     | otherwise = allBlks
 removeOptionsGhc blks = blks
 
