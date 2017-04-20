@@ -11,6 +11,9 @@ import Lucid.PreEscaped
 import Control.Monad (unless)
 import System.Environment
 
+import Graphics.Plotly
+import Graphics.Plotly.Lucid ()
+
 data CodeType = Top | Eval | Do | Hide | Fake | Twocol | Noq deriving (Show, Eq, Read, Ord)
 
 class AskInliterate a where
@@ -39,7 +42,7 @@ instance AskInliterate T.Text where
 
 instance (Show a, Show b) => AskInliterate (a,b)
 
-instance AskInliterate (Html a) where
+instance AskInliterate (Html ()) where
   askInliterate q cts html
      | Twocol `elem` cts = do
          putStrLn "<div class=\"row\">"
@@ -53,6 +56,10 @@ instance AskInliterate (Html a) where
          putStrLn "</div>"
          putStrLn "</div>"
      | otherwise = TL.putStrLn $ renderText html
+
+
+instance AskInliterate Plotly where
+  askInliterate q cts plt = askInliterate q cts $ (toHtml plt :: Html ())
 
 wrapMain :: String -> IO () -> IO ()
 wrapMain hdrTxt go = do

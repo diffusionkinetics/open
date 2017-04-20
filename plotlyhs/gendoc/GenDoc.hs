@@ -19,6 +19,18 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 
+
+hbarData :: [(Text, Double)]
+hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
+
+pointsData :: [(Double, Double)]
+pointsData = zip [1,2,3,4] [500,3000,700,200]
+
+myTrace
+  = points (aes & x .~ fst
+                & y .~ snd) pointsData
+
+
 main = T.writeFile "../docs/index.html" $ renderText $ doctypehtml_ $ do
   head_ $ do meta_ [charset_ "utf-8"]
              link_ [rel_ "stylesheet",
@@ -193,17 +205,8 @@ main = T.writeFile "../docs/index.html" $ renderText $ doctypehtml_ $ do
                              & x ?~ map (toJSON . snd) hbarData
                              & orientation ?~ Horizontal]
                        & layout . margin ?~ thinMargins
-                            & layout . height ?~ 300
+                            & layout . height ?~ 300 
 
              script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"] ""
              script_ [src_ "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"] ""
 
-
-hbarData :: [(Text, Double)]
-hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
-
-
-
-myTrace
-  = scatter & x ?~ (map toJSON [1,2,3,4])
-            & y ?~ (map toJSON [500,3000,700,200])
