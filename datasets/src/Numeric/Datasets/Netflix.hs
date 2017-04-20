@@ -89,8 +89,6 @@ newtype Test = Test { testRating :: RatingDate } deriving (Eq, Show)
 -- * Additional types and helper functions
 
 -- Every file in the training set corresponds to a distinct column. The whole dataset can therefore be seen as a (very sparse) users vs. movies matrix
--- data TrainCol = TrainC { tcMovieId :: MovieId,
---                          tcTrainSet :: [Train]} 
 
 data Col a = Col {cMovieId :: MovieId,
                   cSet :: [a]} deriving (Eq, Show)
