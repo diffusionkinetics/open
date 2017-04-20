@@ -13,7 +13,11 @@ We include in this repository a tiny subset of the original dataset for developm
 For further information, see <http://netflixprize.com/>.
 -}
 
-module Numeric.Datasets.Netflix where
+module Numeric.Datasets.Netflix (parseTrainingSet, parseTrainingSet',
+                                 RD(..),
+                                 UserId, MovieId,
+                                 Movie(..), Test(..),
+                                 RatingDate(..)) where
 
 import Prelude hiding (takeWhile)
 
@@ -32,7 +36,9 @@ import Data.Attoparsec.ByteString.Char8 hiding (takeWhile, inClass)
 
 
 
--- * Dataset files. The directories are scanned recursively and their contents are presented as (FilePath, ByteString) pairs
+-- * Dataset files
+
+-- The directories are scanned recursively and their contents are presented as (FilePath, ByteString) pairs
 
 trainingSet :: [(FilePath, ByteString)]
 trainingSet = $(embedDir "datafiles/netflix/training/")
@@ -50,14 +56,12 @@ movies = $(embedDir "datafiles/netflix/movies/")
 data RatingDate = RatingDate {userId :: UserId,
                               ratingDate :: Day} deriving (Eq, Show)
 
--- | Training set
 newtype UserId = UserId {unUserId :: Int} deriving Eq
 instance Show UserId where show = show . unUserId
 
 data Train = Train {trainRating :: RatingDate,
                     rating :: Int } deriving (Eq, Show)
 
--- | Movies file
 newtype MovieId = MovieId {unMovieId :: Int} deriving Eq
 instance Show MovieId where show = show . unMovieId
 
@@ -65,7 +69,6 @@ data Movie = Movie { movieId :: MovieId,
                      releaseYear :: Day,
                      movieTitle :: ByteString } deriving (Eq, Show)
 
--- | "Qualifying" file (test set)
 newtype Test = Test { testRating :: RatingDate } deriving (Eq, Show)
 
 
@@ -74,10 +77,22 @@ newtype Test = Test { testRating :: RatingDate } deriving (Eq, Show)
 -- * Additional types and helper functions
 
 -- Every file in the training set corresponds to a distinct column. The whole dataset can therefore be seen as a (very sparse) users vs. movies matrix
-data TrainCol = TrainC { tcMovieId :: MovieId,
-                         tcTrainSet :: [Train]} deriving (Eq, Show)
+-- data TrainCol = TrainC { tcMovieId :: MovieId,
+--                          tcTrainSet :: [Train]} 
 
--- A type for date-tagged ratings
+data Col a = Col {cMovieId :: MovieId,
+                  cSet :: [a]} deriving (Eq, Show)
+
+newtype TrainCol = TrainC { unTrC :: Col Train} deriving (Eq, Show)
+
+mkTrainCol mid cs = TrainC (Col mid cs)
+tcTrainSet = cSet . unTrC
+tcMovieId = cMovieId . unTrC
+
+
+
+
+-- | A type for date-tagged movie ratings
 data RD a = RD { rdRating :: a,
                  rdDate :: Day} deriving (Eq, Show)
 
@@ -92,49 +107,54 @@ toCoordsCol tc = map (f mid) tss where
     uid = userId $ trainRating ts
 
 
--- Parse the whole training set, convert to coordinate format and concatenate into a single list.
+-- | Parse the whole training set, convert to coordinate format and concatenate into a single list.
 parseTrainingSet :: Num a => Either String [(UserId, MovieId, RD a)]
 parseTrainingSet = mconcat <$> parseTrainingSet'
 
--- Parse the whole training set and convert to coordinate format
+-- | Parse the whole training set and convert to coordinate format (each dataset file is parsed into a distinct inner list)
 parseTrainingSet' :: Num a => Either String [[(UserId, MovieId, RD a)]]
 parseTrainingSet' = do
   d <- traverse (parseOnly trainingSetParser . snd) trainingSet
   pure $ map toCoordsCol d
+  
 
+
+parseTestSet' = do
+  d <- traverse (parseOnly testSetParser . snd) testSet
+  return d
 
 -- * Netflix dataset parsers
 
-{-The first line of each training set file contains the movie id followed by a
-colon.  Each subsequent line in the file corresponds to a rating from a customer
-and its date in the following format:
-
-CustomerID,Rating,Date
-
-- MovieIDs range from 1 to 17770 sequentially.
-- CustomerIDs range from 1 to 2649429, with gaps. There are 480189 users.
-- Ratings are on a five star (integral) scale from 1 to 5.
-- Dates have the format YYYY-MM-DD.-}
+-- | The first line of each training set file contains the movie id followed by a
+-- colon.  Each subsequent line in the file corresponds to a rating from a customer
+-- and its date in the following format:
+--
+-- CustomerID,Rating,Date
+--
+-- - MovieIDs range from 1 to 17770 sequentially.
+-- - CustomerIDs range from 1 to 2649429, with gaps. There are 480189 users.
+-- - Ratings are on a five star (integral) scale from 1 to 5.
+-- - Dates have the format YYYY-MM-DD.
 trainingSetParser :: PT.Parser ByteString TrainCol
 trainingSetParser = do
   (mid, tr) <- stanza trainRow
-  return $ TrainC mid tr
+  return $ mkTrainCol mid tr
 
-{-The test set ("qualifying") file consists of lines indicating a movie id, followed by a colon, and then customer ids and rating dates, one per line for that movie id.
-The movie and customer ids are contained in the training set.  Of course the
-ratings are withheld. There are no empty lines in the file.-}
+-- | The test set ("qualifying") file consists of lines indicating a movie id, followed by a colon, and then customer ids and rating dates, one per line for that movie id.
+-- The movie and customer ids are contained in the training set.  Of course the
+-- ratings are withheld. There are no empty lines in the file.
 testSetParser :: PT.Parser ByteString [(MovieId, [Test])]
 testSetParser = many1 (stanza testRow)
 
-{-Movie information is in the following format:
-
-MovieID,YearOfRelease,Title
-
-- MovieID do not correspond to actual Netflix movie ids or IMDB movie ids.
-- YearOfRelease can range from 1890 to 2005 and may correspond to the release of
-  corresponding DVD, not necessarily its theaterical release.
-- Title is the Netflix movie title and may not correspond to 
-  titles used on other sites.  Titles are in English.-}
+-- | Movie information is in the following format:
+--
+-- MovieID,YearOfRelease,Title
+--
+-- - MovieID do not correspond to actual Netflix movie ids or IMDB movie ids.
+-- - YearOfRelease can range from 1890 to 2005 and may correspond to the release of
+--   corresponding DVD, not necessarily its theaterical release.
+-- - Title is the Netflix movie title and may not correspond to 
+--   titles used on other sites.  Titles are in English.
 moviesParser :: PT.Parser ByteString [Movie]
 moviesParser = parseRows moviesRow
 
