@@ -96,7 +96,7 @@ mkMetaBox :: Monad m => [HtmlT m ()] -> HtmlT m ()
 mkMetaBox = div_ [class_ "meta pull-left"] . sequence_
 
 mkAlerts :: Monad m => [HtmlT m ()] -> HtmlT m ()
-mkAlerts l = rowEven XS [sequence_ l] -- We want a single column
+mkAlerts l = mkCol [(XS, 12)] (sequence_ l)
 
 mkAlert :: Monad m => T.Text -> HtmlT m () -> HtmlT m ()
 mkAlert alertType = div_ [class_ $ T.append "alert " alertType]

@@ -13,11 +13,19 @@ f $: x = f (toHtml x)
 
 data Breakpoint = XS | SM | MD | LG deriving Show
 
+mkColClass :: [(Breakpoint, Int)] -> Text
+mkColClass = T.unwords . map go
+  where
+    go (bp, spans) = T.concat [ "col-", T.pack $ map toLower (show bp)
+                              , "-", T.pack $ show spans]
+
+mkCol :: Monad m => [(Breakpoint, Int)] -> HtmlT m () -> HtmlT m ()
+mkCol bps = div_ [class_ (mkColClass bps)]
+
 rowEven :: Monad m => Breakpoint -> [HtmlT m ()] -> HtmlT m ()
-rowEven bp cols = mapM_ (div_ [class_ cls]) cols
+rowEven bp cols = mapM_ (div_ [class_ (mkColClass [(bp, spans)])]) cols
   where ncols = length cols
         spans = 12 `div` ncols
-        cls = pack $ concat ["col-", map toLower (show bp),"-",show spans]
 
 cdnCSS, cdnThemeCSS, cdnJqueryJS, cdnBootstrapJS, cdnFontAwesome ::  Monad m => HtmlT m ()
 cdnCSS
