@@ -99,7 +99,28 @@ mkAlerts :: Monad m => [HtmlT m ()] -> HtmlT m ()
 mkAlerts l = mkCol [(XS, 12)] (sequence_ l)
 
 mkAlert :: Monad m => T.Text -> HtmlT m () -> HtmlT m ()
-mkAlert alertType = div_ [class_ $ T.append "alert " alertType]
+mkAlert alertType = div_ [class_ $ T.unwords ["alert", alertType]]
+
+mkWidgetIcon :: Monad m => T.Text -> T.Text -> HtmlT m ()
+mkWidgetIcon color icon =
+  div_ [class_$ T.unwords ["widget-icon pull-left", color]] $ i_ [class_ icon] (return ())
+
+mkWidgetContent :: Monad m => HtmlT m () -> HtmlT m () -> HtmlT m ()
+mkWidgetContent title comment =
+  div_ [class_ "widget-content pull-left"] $ do
+  div_ [class_ "title"] title
+  div_ [class_ "comment"] comment
+
+mkWidget :: Monad m => HtmlT m () -> HtmlT m () -> HtmlT m ()
+mkWidget wIcon wContent =
+  div_ [class_ "widget"] $
+  div_ [class_ "widget-body"] $
+  wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
+
+mkWidgets :: Monad m => [HtmlT m ()] -> HtmlT m ()
+mkWidgets widgets =
+  div_ [class_ "row"] $
+  forM_ widgets $ \widget -> mkCol [(XS, 12), (MD, 6), (LG, 3)] widget
 
 indexPage :: (Monad m) => HtmlT m ()
 indexPage = do
@@ -128,8 +149,13 @@ indexPage = do
     -- Main Content
     alerts = mkAlerts [ mkAlert "alert-success" "Thanks for visiting! Feel free to create pull requests to improve the dashboard!"
                       , mkAlert "alert-danger" "Found a bug? Create an issue with as many details as you can."]
+    widgets = mkWidgets $
+      [ mkWidget (mkWidgetIcon "green" "fa fa-users") (mkWidgetContent (toHtml "80") (toHtml "Users"))
+      , mkWidget (mkWidgetIcon "red" "fa fa-tasks") (mkWidgetContent (toHtml "16") (toHtml "Servers"))
+      , mkWidget (mkWidgetIcon "orange" "fa fa-sitemap") (mkWidgetContent (toHtml "225") (toHtml "Documents"))
+      , mkWidget (mkWidgetIcon "blue" "fa fa-support") (mkWidgetContent (toHtml "62") (toHtml "Tickets"))]
 
-    pcw = mkPageContent (hb >> alerts)
+    pcw = mkPageContent (hb >> alerts >> widgets)
 
     pgw = mkPageWrapperOpen sbw pcw
 
