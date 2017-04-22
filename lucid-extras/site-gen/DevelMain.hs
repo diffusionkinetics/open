@@ -8,7 +8,7 @@ import Lucid.Rdash
 import Lucid
 
 html :: Html ()
-html = indexPage ["Dashboard", "Tables"]
+html = indexPage
 
 update :: IO ()
 update = do

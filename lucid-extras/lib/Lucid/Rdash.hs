@@ -3,6 +3,7 @@
 
 module Lucid.Rdash (indexPage) where
 
+import qualified Data.Text as T
 import Data.List
 
 import Control.Monad
@@ -15,6 +16,9 @@ rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 
 rdashCSS = link_ [rel_ "stylesheet",
                   href_  "http://cdn.filopodia.com/rdash-ui/1.0.1/css/rdash.css"]
+
+ariaHidden :: Term arg result => arg -> result
+ariaHidden = term "aria-hidden"
 
 sidebarTitle = span_ "NAVIGATION"
 sidebarMain  = a_ [href_ "#"] $ do
@@ -34,8 +38,9 @@ mkSidebar sbm sbt sbl = ul_ [class_ "sidebar"] $ do
   forM_ sbl $ \l -> do
     li_ [class_ "sidebar-list"] l
 
-mkSidebarLiContent :: (Monad m) => String -> HtmlT m ()
-mkSidebarLiContent s = a_ [href_ "#"] $ (toHtml s) >> span_ [class_ "menu-icon fa fa-tachometer"] (return ())
+mkSidebarItem :: (Monad m) => HtmlT m () -> T.Text -> HtmlT m ()
+mkSidebarItem s icon = a_ [href_ "#"] $ s >> do
+  span_ [class_ $ T.append icon " menu-icon"] (return ())
 
 mkSidebarFooter :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkSidebarFooter footerItems = div_ [class_ "sidebar-footer"] footerItems
@@ -58,16 +63,16 @@ mkPageContent :: Monad m => HtmlT m () -> HtmlT m ()
 mkPageContent = div_ [id_ "content-wrapper"] . div_ [class_ "page-content"]
 
 mkHeaderBar :: Monad m => [HtmlT m ()] -> HtmlT m ()
-mkHeaderBar cols = div_ [class_ "row header"] (rowEven XS [mkUserBox cols])
+mkHeaderBar cols = div_ [class_ "row header"] (rowEven XS cols)
 
 mkUserBox :: Monad m => [HtmlT m ()] -> HtmlT m ()
 mkUserBox xs = div_ [class_ "user pull-right"] $ sequence_ xs
 
-mkItemDropdown :: Monad m => HtmlT m () -> HtmlT m ()
-mkItemDropdown x = div_ [class_ "item dropdown"] $ do
+mkItemDropdown :: Monad m => T.Text -> HtmlT m () -> HtmlT m ()
+mkItemDropdown icon x = div_ [class_ "item dropdown"] $ do
   a_ [ class_ "dropdown-toggle"
      , term "data-toggle" $ "dropdown"
-     , href_ "#"] (p_ "Click Here!")
+     , href_ "#"] (i_ [class_ icon, ariaHidden "true"] (return ()))
   x
 
 mkDropdownMenu :: Monad m => HtmlT m () -> [[HtmlT m ()]] -> HtmlT m ()
@@ -81,25 +86,50 @@ mkDropdownMenu hdr xs = ul_ [class_ "dropdown-menu dropdown-menu-right"] $ seque
 mkIndexPage :: (Monad m) => HtmlT m () -> HtmlT m () -> HtmlT m ()
 mkIndexPage hd body = html_ [lang_ "en"] $ hd >> body
 
-indexPage :: (Monad m) => [String] -> HtmlT m ()
-indexPage navItems = do
+mkMetaTitle :: Monad m => HtmlT m () -> HtmlT m ()
+mkMetaTitle = div_ [class_ "page"]
+
+mkMetaBreadcrumbLinks :: Monad m => HtmlT m () -> HtmlT m ()
+mkMetaBreadcrumbLinks = div_ [class_ "breadcrumb-links"]
+
+mkMetaBox :: Monad m => [HtmlT m ()] -> HtmlT m ()
+mkMetaBox = div_ [class_ "meta pull-left"] . sequence_
+
+mkAlerts :: Monad m => [HtmlT m ()] -> HtmlT m ()
+mkAlerts l = rowEven XS [sequence_ l] -- We want a single column
+
+mkAlert :: Monad m => T.Text -> HtmlT m () -> HtmlT m ()
+mkAlert alertType = div_ [class_ $ T.append "alert " alertType]
+
+indexPage :: (Monad m) => HtmlT m ()
+indexPage = do
   mkIndexPage hd body
   where
-    sb = mkSidebar sidebarMain sidebarTitle (mkSidebarLiContent <$> navItems)
 
+    -- SIDEBAR
+    dashboardSI = mkSidebarItem (toHtml "Dashboard") "fa fa-tachometer"
+    tablesSI    = mkSidebarItem (toHtml "Tables") "fa fa-table"
+    sb = mkSidebar sidebarMain sidebarTitle [dashboardSI, tablesSI]
     footerContent =
       rowEven XS
       [ a_ [href_ "https://github.com/rdash/rdash-barebones", target_ "blank_"] "Github"
       , a_ [href_ "#", target_ "blank_"] "About"
       , a_ [href_ "#"] "Support"]
-
     sbf = mkSidebarFooter footerContent
     sbw = mkSidebarWrapper sb sbf
 
-    notifMenu = mkItemDropdown $ mkDropdownMenu "Joe Bloggs" [["Profile", "Menu Item"], ["Logout"]]
+    -- Header Bar
+    userMenu = mkItemDropdown "fa fa-user-o" $ mkDropdownMenu "Joe Bloggs" [["Profile", "Menu Item"], ["Logout"]]
+    bellMenu = mkItemDropdown "fa fa-bell-o" $ mkDropdownMenu "Notifications" [["Server Down!"]]
+    userBox = mkUserBox [userMenu, bellMenu]
+    metaBox = mkMetaBox [mkMetaTitle "Dashboard", mkMetaBreadcrumbLinks "Home / Dashboard"]
+    hb = mkHeaderBar [metaBox, userBox]
 
-    hb = mkHeaderBar [notifMenu]
-    pcw = mkPageContent hb
+    -- Main Content
+    alerts = mkAlerts [ mkAlert "alert-success" "Thanks for visiting! Feel free to create pull requests to improve the dashboard!"
+                      , mkAlert "alert-danger" "Found a bug? Create an issue with as many details as you can."]
+
+    pcw = mkPageContent (hb >> alerts)
 
     pgw = mkPageWrapperOpen sbw pcw
 
