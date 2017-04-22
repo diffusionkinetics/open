@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE ScopedTypeVariables#-}
 
@@ -10,7 +11,11 @@ import Control.Monad
 
 import Lucid.Bootstrap3
 
-import Lucid
+import Lucid hiding (toHtml)
+import qualified Lucid (toHtml)
+
+toHtml :: Monad m => T.Text -> HtmlT m ()
+toHtml = Lucid.toHtml
 
 rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 
@@ -45,7 +50,7 @@ mkSidebarItem s icon = a_ [href_ "#"] $ s >> do
 mkSidebarFooter :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkSidebarFooter footerItems = div_ [class_ "sidebar-footer"] footerItems
 
-mkHead :: (Monad m) => String -> HtmlT m ()
+mkHead :: (Monad m) => T.Text -> HtmlT m ()
 mkHead title = head_ $ do
   meta_ [charset_ "UTF-8"]
   meta_ [name_ "viewport", content_ "width=device-width"] -- TODO: add attribute initial-scale=1
@@ -117,10 +122,12 @@ mkWidget wIcon wContent =
   div_ [class_ "widget-body"] $
   wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
 
-mkWidgets :: Monad m => [HtmlT m ()] -> HtmlT m ()
+mkWidgets :: Monad m => [[HtmlT m ()]] -> HtmlT m ()
 mkWidgets widgets =
-  div_ [class_ "row"] $
-  forM_ widgets $ \widget -> mkCol [(XS, 12), (MD, 6), (LG, 3)] widget
+  div_ [class_ "row"] . sequence_ $ intersperse spacer (map go widgets)
+  where
+    spacer = div_ [class_ "spacer visible-xs"] $ return ()
+    go = mapM_ (mkCol [(XS, 12), (MD, 6), (LG, 3)])
 
 indexPage :: (Monad m) => HtmlT m ()
 indexPage = do
@@ -150,15 +157,14 @@ indexPage = do
     alerts = mkAlerts [ mkAlert "alert-success" "Thanks for visiting! Feel free to create pull requests to improve the dashboard!"
                       , mkAlert "alert-danger" "Found a bug? Create an issue with as many details as you can."]
     widgets = mkWidgets $
-      [ mkWidget (mkWidgetIcon "green" "fa fa-users") (mkWidgetContent (toHtml "80") (toHtml "Users"))
-      , mkWidget (mkWidgetIcon "red" "fa fa-tasks") (mkWidgetContent (toHtml "16") (toHtml "Servers"))
-      , mkWidget (mkWidgetIcon "orange" "fa fa-sitemap") (mkWidgetContent (toHtml "225") (toHtml "Documents"))
-      , mkWidget (mkWidgetIcon "blue" "fa fa-support") (mkWidgetContent (toHtml "62") (toHtml "Tickets"))]
+      [[ mkWidget (mkWidgetIcon "green" "fa fa-users") (mkWidgetContent (toHtml "80") (toHtml "Users"))
+       , mkWidget (mkWidgetIcon "red" "fa fa-tasks") (mkWidgetContent (toHtml "16") (toHtml "Servers"))
+       , mkWidget (mkWidgetIcon "orange" "fa fa-sitemap") (mkWidgetContent (toHtml "225") (toHtml "Documents"))]
+      , [mkWidget (mkWidgetIcon "blue" "fa fa-support") (mkWidgetContent (toHtml "62") (toHtml "Tickets"))]]
 
     pcw = mkPageContent (hb >> alerts >> widgets)
 
     pgw = mkPageWrapperOpen sbw pcw
 
     body = mkBody pgw
-
-    hd = mkHead ("Dashboard" :: String)
+    hd = mkHead "Dashboard"
