@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules #-}
-{-# LANGUAGE ScopedTypeVariables#-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Lucid.Rdash (indexPage) where
 
