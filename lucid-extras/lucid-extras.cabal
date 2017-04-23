@@ -41,6 +41,6 @@ Executable            site-gen
     main-is:          Main.hs
     other-modules:    DevelMain
     Build-Depends:    base                    >= 4.6 && < 5
-                    , directory               >= 1.3
+                    , directory               >= 1.2
                     , lucid-extras
                     , lucid
