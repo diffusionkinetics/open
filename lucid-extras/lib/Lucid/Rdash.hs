@@ -8,6 +8,7 @@ import Data.List
 import Control.Monad
 
 import Lucid.Bootstrap3
+import Lucid.PreEscaped (scriptSrc)
 
 import Lucid hiding (toHtml)
 import qualified Lucid (toHtml)
@@ -15,10 +16,12 @@ import qualified Lucid (toHtml)
 toHtml :: Monad m => T.Text -> HtmlT m ()
 toHtml = Lucid.toHtml
 
-rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
+rdashCSS, sidebarMain, sidebarTitle, mainJS :: Monad m => HtmlT m ()
 
 rdashCSS = link_ [rel_ "stylesheet",
                   href_  "http://cdn.filopodia.com/rdash-ui/1.0.1/css/rdash.css"]
+
+mainJS = scriptSrc "main.js"
 
 ariaHidden, tooltip_ :: Term arg result => arg -> result
 
@@ -66,6 +69,7 @@ mkHead title = head_ $ do
   rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
+  mainJS
 
 mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkBody pgw = body_ pgw
