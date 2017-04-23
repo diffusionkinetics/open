@@ -39,6 +39,7 @@ Executable            site-gen
     ghc-options:      -Wall
     hs-source-dirs:   site-gen
     main-is:          Main.hs
+    default-language:  Haskell2010
     other-modules:    DevelMain
     Build-Depends:    base                    >= 4.6 && < 5
                     , directory               >= 1.2
