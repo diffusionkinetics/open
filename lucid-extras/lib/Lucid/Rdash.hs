@@ -22,8 +22,16 @@ rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 rdashCSS = link_ [rel_ "stylesheet",
                   href_  "http://cdn.filopodia.com/rdash-ui/1.0.1/css/rdash.css"]
 
-ariaHidden :: Term arg result => arg -> result
+ariaHidden, tooltip_ :: Term arg result => arg -> result
+
 ariaHidden = term "aria-hidden"
+tooltip_ = term "tooltip"
+
+fa_ :: Monad m => T.Text -> HtmlT m ()
+fa_ x = i_ [class_ $ T.unwords ["fa", x]] (return ())
+
+aHash_ :: Monad m => HtmlT m () -> HtmlT m ()
+aHash_ = a_ [href_ "#"]
 
 sidebarTitle = span_ "NAVIGATION"
 sidebarMain  = a_ [href_ "#"] $ do
@@ -55,14 +63,14 @@ mkHead title = head_ $ do
   meta_ [charset_ "UTF-8"]
   meta_ [name_ "viewport", content_ "width=device-width"] -- TODO: add attribute initial-scale=1
   title_ (toHtml title)
-  rdashCSS
   cdnFontAwesome
   cdnCSS
+  rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
 
 mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
-mkBody pgw = body_ [class_ "hamburg"] pgw
+mkBody pgw = body_ pgw
 
 mkPageContent :: Monad m => HtmlT m () -> HtmlT m ()
 mkPageContent = div_ [id_ "content-wrapper"] . div_ [class_ "page-content"]
@@ -129,6 +137,16 @@ mkWidgets widgets =
     spacer = div_ [class_ "spacer visible-xs"] $ return ()
     go = mapM_ (mkCol [(XS, 12), (MD, 6), (LG, 3)])
 
+mkTable :: Monad m => HtmlT m () -> [[HtmlT m ()]] -> HtmlT m ()
+mkTable title content = mkCol [(LG, 6)] $ do
+  div_ [class_ "widget"] $ do
+    div_ [class_ "widget-header"] title
+    div_ [class_ "widget-body medium no-padding"] $
+      div_ [class_ "table-responsive"] $ table_ [class_ "table"] $ tbody_ (mapM_ (tr_ . (mapM_ td_)) content)
+
+mkTables :: Monad m => [HtmlT m ()] -> HtmlT m ()
+mkTables = div_ [class_ "row"] . sequence_
+
 indexPage :: (Monad m) => HtmlT m ()
 indexPage = do
   mkIndexPage hd body
@@ -162,9 +180,68 @@ indexPage = do
        , mkWidget (mkWidgetIcon "orange" "fa fa-sitemap") (mkWidgetContent (toHtml "225") (toHtml "Documents"))]
       , [mkWidget (mkWidgetIcon "blue" "fa fa-support") (mkWidgetContent (toHtml "62") (toHtml "Tickets"))]]
 
-    pcw = mkPageContent (hb >> alerts >> widgets)
+    tables = mkTables [serversTable, usersTable, extrasTable, loadingTable]
+
+    pcw = mkPageContent (hb >> alerts >> widgets >> tables)
 
     pgw = mkPageWrapperOpen sbw pcw
 
     body = mkBody pgw
     hd = mkHead "Dashboard"
+
+
+serversTable :: Monad m => HtmlT m ()
+serversTable = mkTable lhs d
+  where
+    checked = span_ [class_ "text-success"] $ i_ [class_ "fa fa-check"] $ return ()
+    warn = span_ [class_ "text-danger", tooltip_ "Server Down!"] $ i_ [class_ "fa fa-warning"] $ return ()
+
+    d = [ ["RDVMPC001", "10.0.0.1", checked]
+        , ["RDVMPC002", "10.1.0.1", warn]
+        , ["RDVMPC003", "10.0.1.1", checked]
+        , ["RDVMPC004", "10.1.1.1", checked]
+        , ["RDVMPC005", "10.1.1.0", warn]]
+    lhs = do
+      fa_ "fa-tasks"
+      " Servers "
+      div_ [class_ "pull-right"] $ aHash_ "Manage"
+
+
+usersTable :: Monad m => HtmlT m ()
+usersTable = mkTable lhs d
+  where
+  d = [["1", "Joe Bloggs", "Super Admin", "AZ23045"]]
+  lhs = do
+    fa_ "fa-users"
+    " Users "
+    div_ [class_ "pull-right"] $
+      input_ [type_ "text", placeholder_ "Search"]
+
+extrasTable :: Monad m => HtmlT m ()
+extrasTable = mkCol [(LG, 6)] $ do
+  div_ [class_ "widget"] $ do
+    div_ [class_ "widget-header"] lhs
+    div_ [class_ "widget-body"] . div_ [class_ "widget-content"] . sequence_ $
+      div_ [class_ "message"] <$> messages
+  where
+  lhs = do
+    fa_ "fa-plus"
+    " Extras "
+    div_ [class_ "pull-right"] $ button_ "Button"
+  messages =
+    [ div_ [class_ "message"] $ span_ [class_ "error"] "Error message!"]
+
+loadingTable :: Monad m => HtmlT m ()
+loadingTable = mkCol [(LG, 6)] $ do
+  div_ [class_ "widget"] $ do
+    div_ [class_ "widget-header"] lhs
+    div_ [class_ "widget-body"] loading
+  where
+    lhs = do
+      fa_ "fa-cog fa-spin"
+      " Loading Directive "
+      div_ [class_ "pull-right"] $ a_ [href_ "#" ] "SpinKit"
+    loading = div_ [class_ "loading"] $ do
+      div_ [class_ "double-bounce1"] (return ())
+      div_ [class_ "double-bounce2"] (return ())
+
