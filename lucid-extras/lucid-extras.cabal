@@ -11,7 +11,7 @@ Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/filopodia/open/lucid-extra
 bug-reports:         https://github.com/filopodia/open/issues
 category:            Web
-Tested-With:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 extra-source-files:
                    changelog.md
 
@@ -35,7 +35,8 @@ Library
                , blaze-builder
                , bytestring
 
-Executable            site-gen
+Test-suite            site-gen
+    type:       exitcode-stdio-1.0
     ghc-options:      -Wall
     hs-source-dirs:   site-gen
     main-is:          Main.hs
