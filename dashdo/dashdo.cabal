@@ -27,7 +27,7 @@ Library
                  , Dashdo.Types
                  , Dashdo.Elements
    Build-depends:
-                 base                    >= 4.6
+                 base                    >= 4.6 && <5
                , scotty
                , lucid
                , lucid-extras
