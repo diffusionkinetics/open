@@ -38,11 +38,11 @@ wrap hdr h =  doctypehtml_ $ do
     hdr
 
   body_ $ do
-    container_ $ form_ [action_ "/", method_ "post", id_ "shanyform"] $ do
+    container_ $ form_ [action_ "/", method_ "post", id_ "dashdoform"] $ do
       h
     cdnJqueryJS
     cdnBootstrapJS
-    script_ [src_ "/js/shany.js"] ""
+    script_ [src_ "/js/dashdo.js"] ""
 
 textInput :: Lens' a Text -> SHtml a ()
 textInput f = do

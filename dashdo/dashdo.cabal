@@ -13,7 +13,7 @@ build-type:          Simple
 category:            Statistics, Web
 Cabal-Version: 	     >= 1.10
 extra-source-files:
-        public/js/shany.js
+        public/js/dashdo.js
 
 Library
    ghc-options:       -Wall -fno-warn-type-defaults
@@ -42,15 +42,3 @@ Library
                , file-embed
                , hashable
 
-executable test-dashdo
-  main-is: TestDashdo.hs
-  default-language:  Haskell2010
-
-  build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , datasets
-                     , lucid
-                     , aeson
-                     , text
-                     , dashdo
-                     , microlens-platform

@@ -20,16 +20,16 @@ runDashdo :: Dashdo a -> IO ()
 runDashdo s = do
   uuid <- fromStrict . UUID.toText <$> randomIO
   -- this is obviously incorrect (if the form fields change dynamically)
-  (iniHtml, ff) <- shanyGenOut s (initial s)
+  (iniHtml, ff) <- dashdoGenOut s (initial s)
   print $ hash iniHtml
   scotty 3000 $ do
-    get "/js/shany.js" $ do
+    get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
-      raw $ BLS.fromStrict $(embedFile "public/js/shany.js")
+      raw $ BLS.fromStrict $(embedFile "public/js/dashdo.js")
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
     post "/" $ do
      pars <- params
      let newval = parseForm (initial s) ff pars
-     (thisHtml, _) <- liftIO $ shanyGenOut s newval
+     (thisHtml, _) <- liftIO $ dashdoGenOut s newval
      html $ thisHtml

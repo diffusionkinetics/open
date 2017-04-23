@@ -10,8 +10,8 @@ pureDashdo :: a -> (a -> SHtml a ()) -> Dashdo a
 pureDashdo ini f = Dashdo ini (const (return ())) (\x () -> f x)
 
 
-shanyGenOut :: Dashdo a -> a -> IO (TL.Text, FormFields a)
-shanyGenOut (Dashdo _ f r) x = do
+dashdoGenOut :: Dashdo a -> a -> IO (TL.Text, FormFields a)
+dashdoGenOut (Dashdo _ f r) x = do
   y <- f x
   let (formFs, htmlText) = runSHtml x $ r x y
   return (htmlText, formFs)

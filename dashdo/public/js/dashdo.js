@@ -1,10 +1,10 @@
 $(function(){
   var resubmit = function() {
     $("input").prop('readonly', true);
-    $('#shanyform').submit()
+    $('#dashdoform').submit()
   }
 
-  $('#shanyform input,select').each(function(i,e) {
+  $('#dashdoform input,select').each(function(i,e) {
     $(e).change(function() {
       if (!(manual_submit||false))
         resubmit();
