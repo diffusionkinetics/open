@@ -18,6 +18,7 @@ import qualified Data.Sequence as Seq
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Lucid
 import Data.Monoid ((<>))
+import Language.Haskell.Exts hiding (Do)
 
 import Inliterate.Inspect
 import Inliterate.Import
@@ -39,7 +40,11 @@ parseCodeInfo = Set.fromList . map parse1 . T.words where
 genHaskell :: Doc -> Text
 genHaskell doc =
   let cbs = codeBlocks doc
-      tops = map snd $ filter ((Top `Set.member`) . fst) cbs
+      toplns = map snd $ filter ((Top `Set.member`) . fst) cbs
+      mparsedTop = parseFileContents $ T.unpack $ T.unlines toplns
+      newTop = case mparsedTop of
+                 ParseFailed l s -> error $ "parse failure: "++s++" at "++show l
+                 ParseOk m -> T.pack $ prettyPrint $ addTheImport m
       inDoBody (cb, _) = Do `Set.member` cb
       printDoBody (_,t) = T.lines $ chomp t
 --      asks = map snd $ filter ((Eval `Set.member`) . fst) cbs
@@ -49,7 +54,18 @@ genHaskell doc =
                ["return ()"]
       hdr = unlines $ map (T.unpack . codeBlockBody) $ filter isHtmlHeader $ getBlocks doc
 
-  in T.unlines $ tops ++ ["main = wrapMain "<>T.pack (show hdr)<>" $ do"] ++ map ("  " `T.append`) doBody
+  in T.unlines $ [newTop, "main = Inliterate.Import.wrapMain "<>T.pack (show hdr)<>" $ do"] ++ map ("  " `T.append`) doBody
+
+addTheImport :: Module SrcSpanInfo -> Module SrcSpanInfo
+addTheImport (Module l v1 v2 v6 decls) = Module l v1 v2 (m:v6) decls
+  where m = ImportDecl {importAnn = l,
+                        importModule = ModuleName l "Inliterate.Import",
+                        importQualified = True,
+                        importSrc = False,
+                        importSafe = False,
+                        importPkg = Nothing,
+                        importAs = Just (ModuleName l "Inliterate.Import"),
+                        importSpecs = Nothing}
 
 printBlock :: Block -> [Text]
 printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
@@ -66,8 +82,9 @@ codeBlockBody (CodeBlock (CodeAttr "html_header" ci) t) = t
 
 printAsk :: Set CodeType -> Text -> [Text]
 printAsk cts t
-  = [T.concat ["askInliterate ", escape $ chomp t, " ",
-               T.pack $ show (Set.toList cts) , " (", chomp t, ")"]]
+  = let showCts = map (T.pack . ("Inliterate.Import."++) . show) (Set.toList cts)
+    in [T.concat ["Inliterate.Import.askInliterate ", escape $ chomp t, " ",
+               "[",T.intercalate "," showCts, "]"  , " (", chomp t, ")"]]
 
 printAnyBlock :: Block -> [Text]
 printAnyBlock blk =
