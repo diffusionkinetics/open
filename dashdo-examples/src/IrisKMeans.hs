@@ -23,16 +23,16 @@ import Control.Monad.Identity
 
 data IKM = IKM
  { _nclusters :: Int
- , _xaxis :: Tag (Iris -> Double)
- , _yaxis :: Tag (Iris -> Double)
+ , _xaxis :: Tag (Int, Iris -> Double)
+ , _yaxis :: Tag (Int, Iris -> Double)
  }
 
 makeLenses ''IKM
 
-axes = [tagOpt "sepal length" sepalLength,
-        tagOpt "sepal width" sepalWidth,
-        tagOpt "petal length" petalLength,
-        tagOpt "petal width" petalWidth]
+axes = [tagOpt "sepal length" (0, sepalLength),
+        tagOpt "sepal width" (1, sepalWidth),
+        tagOpt "petal length" (2, petalLength),
+        tagOpt "petal width" (3, petalWidth)]
 
 ikm0 = IKM 3 (snd $ axes!!0) (snd $ axes!!1)
 
@@ -46,17 +46,32 @@ main = runDashdo $ pureDashdo ikm0 dashdo
 dashdo ikm = wrap plotlyCDN $ do
     let ctrs :: [VS.Vector Double]
         ctrs = model $ runIdentity $ runSupervisor (kmeans $ ikm ^. nclusters) Nothing irisData
+        
     h2_ "Iris k-means clustering"    
     row_ $ do
-        mkCol [(MD,3)] $ do
-            numInput (Just 0) Nothing (Just 1) nclusters
+        mkCol [(MD,3)] $ div_ [class_ "well"] $ do
+            "X Variable"
+            br_ []
             select axes xaxis
+            br_ []
+            "y Variable"
+            br_ []
             select axes yaxis
+            br_ []
+            "Cluster count"
+            br_ []
+            numInput (Just 0) Nothing (Just 1) nclusters
+
         mkCol [(MD,9)] $ do
             let trace :: Trace
-                trace = points (aes & x .~ (ikm ^. xaxis . tagVal)
-                                    & y .~ (ikm ^. yaxis . tagVal)) 
+                trace = points (aes & x .~ (ikm ^. xaxis . tagVal . _2)
+                                    & y .~ (ikm ^. yaxis . tagVal . _2)) 
                                 iris
-            toHtml $ plotly "foo" [trace] & layout . title ?~  "my plot"
+                traceCtrs 
+                   = points (aes & x .~ (VS.! (ikm ^. xaxis . tagVal . _1))
+                                 & y .~ (VS.! (ikm ^. yaxis . tagVal . _1))) 
+                                ctrs
+            toHtml $ plotly "foo" [trace, traceCtrs] 
+                       & layout . margin ?~ thinMargins
         
     return ()
