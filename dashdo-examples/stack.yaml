@@ -40,6 +40,8 @@ packages:
 - '../../open/plotlyhs/'
 - '../../open/dashdo/'
 - '../../open/lucid-extras/'
+- '../../open/fuml/'
+
 #- location:
 #    git: git@github.com:glutamate/plotlyhs
 #    commit: 1739b231193107297c38021dd8bf1a7c3cb2e3f8
@@ -47,7 +49,10 @@ packages:
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+- kmeans-vector-0.3.2
+- probable-0.1.2
+
 
 # Override default flag values for local packages and extra-deps
 flags: {}

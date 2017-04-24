@@ -6,7 +6,7 @@ $(function(){
 
   $('#dashdoform input,select').each(function(i,e) {
     $(e).change(function() {
-      if (!(manual_submit||false))
+      if (typeof(manual_submit) == "undefined" || !manual_submit)
         resubmit();
     });
   });
