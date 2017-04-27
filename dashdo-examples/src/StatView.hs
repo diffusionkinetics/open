@@ -13,7 +13,7 @@ import Lucid
 import Data.Text (Text, unpack, pack)
 import Lens.Micro.Platform
 
-import Graphics.Plotly (plotly, layout, title, Trace)
+import Graphics.Plotly (plotly, layout, title, Trace, name)
 import Graphics.Plotly.Lucid
 import Graphics.Plotly.GoG
 import Graphics.Plotly.Histogram (histogram)
@@ -39,8 +39,8 @@ example _ stats = wrap plotlyCDN $ do
       mkLine f = line (aes & x .~ fst & y .~ (f . snd)) theData
       cpuLoad = mkLine statsLoad
       memUsage = mkLine (fromIntegral . statsMem)
-      diskRead = mkLine (fromIntegral . fst . statsDiskIO)
-      diskWrite = mkLine (fromIntegral . snd . statsDiskIO)
+      diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
+      diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
 
   h2_ "Dashdo Load Monitor"
   manualSubmit
