@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts #-}
 
 import System.Statgrab
 
@@ -8,7 +8,7 @@ import Dashdo.Serve
 import Dashdo.Elements
 import Control.Arrow ((&&&))
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.MVar (newMVar, readMVar, takeMVar, putMVar, MVar ())
+import Control.Concurrent.MVar
 import Lucid
 import Data.Text (Text, unpack, pack)
 import Lens.Micro.Platform
@@ -19,7 +19,7 @@ import Graphics.Plotly.GoG
 import Graphics.Plotly.Histogram (histogram)
 
 data SysStats = SysStats
- { statsLoad :: Float
+ { statsLoad :: Double
  , statsMem :: Integer
  , statsDiskIO :: (Integer, Integer)
  }
@@ -51,16 +51,16 @@ example _ stats = wrap plotlyCDN $ do
 initv = Example
 
 statGrab :: MVar [SysStats] -> IO ()
-statGrab mvStats =  do
-    drw <- (diskRead &&& diskWrite) <$> runStats (snapshot :: Stats DiskIO)
-    forever drw $ \(diskR', diskW') -> do
-        cpu <- (realToFrac . load1) <$> runStats (snapshot :: Stats Load)
-        mem <- memUsed <$> runStats (snapshot :: Stats Memory)
-        (diskR, diskW) <- (diskRead &&& diskWrite) <$> runStats (snapshot :: Stats DiskIO)
-        stats <- takeMVar mvStats
-        putMVar mvStats ((SysStats cpu mem (diskR - diskR', diskW - diskW')) : (take 59 stats))
-        return (diskR, diskW)
- where forever o f = do
-        n <- f o
-        threadDelay 1000000
-        forever n f
+statGrab mvStats = diskStats >>= forever
+ where diskStats = grab (diskRead &&& diskWrite)
+       grab f = f <$> runStats snapshot
+       forever o = do
+           n <- update o
+           threadDelay 1000000
+           forever n
+       update (r', w') = do
+           cpu <- grab load1
+           mem <- grab memUsed
+           (r, w) <- diskStats
+           modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
+           return (r, w)
