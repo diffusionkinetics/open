@@ -31,10 +31,10 @@ main = do
   forkIO (statGrab stats)
   runDashdo (theDashdo stats)
 
-theDashdo mvStats = Dashdo initv (const (readMVar mvStats)) (example mvStats)
+theDashdo mvStats = Dashdo initv (const (readMVar mvStats)) example
 
-example :: MVar [SysStats] -> Example -> [SysStats] -> SHtml Example ()
-example mvStats nm stats = wrap plotlyCDN $ do
+example :: Example -> [SysStats] -> SHtml Example ()
+example _ stats = wrap plotlyCDN $ do
   let theData = zip [1..] stats
       mkLine f = line (aes & x .~ fst & y .~ (f . snd)) theData
       cpuLoad = mkLine statsLoad
@@ -44,9 +44,9 @@ example mvStats nm stats = wrap plotlyCDN $ do
 
   h2_ "Dashdo Load Monitor"
   manualSubmit
-  toHtml  $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
-  toHtml  $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
-  toHtml  $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"
+  toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
+  toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
+  toHtml $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"
 
 initv = Example
 
