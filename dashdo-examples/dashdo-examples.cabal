@@ -57,3 +57,4 @@ executable statview-dashdo
                      , dashdo
                      , microlens-platform
                      , statgrab
+                     , unix
