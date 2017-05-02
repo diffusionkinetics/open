@@ -14,8 +14,10 @@ import Data.Text (Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8)
 import Lens.Micro.Platform
 import System.Posix.User (UserEntry, userName, userID, getAllUserEntries)
+import Lucid.Bootstrap3 (rowEven, Breakpoint( MD ))
+import Lucid.Bootstrap (row_)
 
-import Graphics.Plotly (plotly, layout, title, Trace, name)
+import Graphics.Plotly (plotly, layout, title, Trace, name, thinMargins, margin)
 import Graphics.Plotly.Lucid
 import Graphics.Plotly.GoG
 import Graphics.Plotly.Simple
@@ -44,18 +46,20 @@ example _ (stats, ps, us) = wrap plotlyCDN $ do
       memUsage = mkLine (fromIntegral . statsMem)
       diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
       diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
-      processes = hbarChart $ map (decodeUtf8 . procName &&& procCPUPercent) ps 
+      processes = hbarChart $ map (decodeUtf8 . procName &&& procCPUPercent) ps
       userCPU u = let uid = fromIntegral (userID u)
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
   h2_ "Dashdo Load Monitor"
   manualSubmit
-  toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
-  toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
-  toHtml $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"
-  toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
-  toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User"
+  row_ $ rowEven MD
+             [ toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
+             , toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
+             , toHtml $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"  ]
+  row_ $ rowEven MD
+             [ toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
+             , toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User" ]
 
 initv = Example
 
