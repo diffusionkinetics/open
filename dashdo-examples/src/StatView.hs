@@ -68,7 +68,8 @@ getStats mvStats = do
 
 statGrab :: MVar [SysStats] -> IO ()
 statGrab mvStats = diskStats >>= forever
- where diskStats = grab (diskRead &&& diskWrite)
+ where diskStats = ((sum . map fst &&& sum . map snd) . map (diskRead &&& diskWrite))
+           <$> runStats snapshots
        grab f = f <$> runStats snapshot
        forever o = do
            n <- update o
