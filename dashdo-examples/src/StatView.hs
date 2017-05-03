@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
 
 import System.Statgrab
 
@@ -28,6 +28,9 @@ data SysStats = SysStats
  }
 
 data Example = Example
+ { _hideInactive :: Bool }
+
+makeLenses ''Example
 
 main = do
   stats <- newMVar ([] :: [SysStats])
@@ -37,19 +40,21 @@ main = do
 theDashdo mvStats = Dashdo initv (const (getStats mvStats)) example
 
 example :: Example -> ([SysStats], [Process], [UserEntry]) -> SHtml Example ()
-example _ (stats, ps, us) = wrap plotlyCDN $ do
+example nm (stats, ps, us) = wrap plotlyCDN $ do
   let theData = zip [1..] stats
       mkLine f = line (aes & x .~ fst & y .~ (f . snd)) theData
       cpuLoad = mkLine statsLoad
       memUsage = mkLine (fromIntegral . statsMem)
       diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
       diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
-      processes = hbarChart $ map (decodeUtf8 . procName &&& procCPUPercent) ps 
+      processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
+        $ filter (if _hideInactive nm then (>0.1) . procCPUPercent else const True) ps 
       userCPU u = let uid = fromIntegral (userID u)
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
   h2_ "Dashdo Load Monitor"
+  checkbox "Hide inactive processes" hideInactive
   manualSubmit
   toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
   toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
@@ -57,7 +62,7 @@ example _ (stats, ps, us) = wrap plotlyCDN $ do
   toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
   toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User"
 
-initv = Example
+initv = Example False
 
 getStats :: MVar [SysStats] -> IO ([SysStats], [Process], [UserEntry])
 getStats mvStats = do
