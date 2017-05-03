@@ -8,6 +8,12 @@ resolver: lts-8.5
 packages:
 - '.'
 - ../datasets
+- location:
+    git: https://github.com/glutamate/random-fu.git
+    commit: 4274fc99b22610951853c03cf4bf23bab906a8c7
+  extra-dep: true
+  subdirs:
+  - random-fu
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
