@@ -84,14 +84,14 @@ manualSubmit = do
   input_ [type_ "submit", value_ "Submit"]
   script_ "var manual_submit = true;"
 
-checkbox :: Text -> Lens' a Bool -> SHtml a ()
-checkbox text f = do
+checkbox :: Eq b => Text -> b -> b -> Lens' a b -> SHtml a ()
+checkbox text vTrue vFalse f = do
   (val, n) <- freshAndValue
   let ft s t = case t of
-                "true" -> lensSetter f s True
-                _      -> lensSetter f s False
+                "true" -> lensSetter f s vTrue
+                _      -> lensSetter f s vFalse
       fid = "id" <> pack (show n)
-      checked = if val ^. f == True then [checked_] else []
+      checked = if val ^. f == vTrue then [checked_] else []
   putFormField(n, ft)
   input_ $ [type_ "checkbox", id_ fid, fieldName n, value_ "true"] ++ checked
   label_ [for_ fid] (toHtml text)
