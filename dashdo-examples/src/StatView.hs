@@ -32,9 +32,9 @@ data SysStats = SysStats
 data Example = Example
  { _processFilter :: Tag (Process -> Bool) }
 
-filterIdle, filterNone :: Tag (Process -> Bool)
-filterIdle = Tag "a" ((>0.1) . procCPUPercent)
-filterNone = Tag "b" (const True)
+psActive, psAll :: Tag (Process -> Bool)
+psActive = Tag "a" ((>0.1) . procCPUPercent)
+psAll = Tag "b" (const True)
 
 makeLenses ''Example
 
@@ -60,7 +60,8 @@ example nm (stats, ps, us) = wrap plotlyCDN $ do
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
   h2_ "Dashdo Load Monitor"
-  checkbox "Hide inactive processes" filterIdle filterNone processFilter
+  checkbox "Hide inactive processes" psActive psAll processFilter
+  br_ []
   manualSubmit
   row_ $ rowEven MD
              [ toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
@@ -70,7 +71,7 @@ example nm (stats, ps, us) = wrap plotlyCDN $ do
              [ toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
              , toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User" ]
 
-initv = Example filterNone
+initv = Example psAll
 
 getStats :: MVar [SysStats] -> IO ([SysStats], [Process], [UserEntry])
 getStats mvStats = do
