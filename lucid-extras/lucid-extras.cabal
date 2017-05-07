@@ -29,12 +29,16 @@ Library
                  , Lucid.PreEscaped
                  , Lucid.Rdash
                  , Lucid.Mjml
+                 , Lucid.Mjml.Component
+                 , Lucid.Mjml.Column
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid
                , text
                , blaze-builder
                , bytestring
+               , mtl
+               , parsec >= 3.1
                , unordered-containers >= 0.2
 
 Test-suite            site-gen
