@@ -58,11 +58,11 @@ renderAfter :: Builder
 renderAfter = Blaze.fromString "<!--[if mso | IE]></td></tr></table><![endif]-->"
 
 columnClass :: Int -> Maybe T.Text -> Builder
-columnClass sibling widthAttr = case (throwError w) of
+columnClass sib widthAttr = case (throwError w) of
   (WithUnit t PxUnit) -> Blaze.fromString "mj-column-px-" <> Blaze.fromShow t
   (WithUnit t PercentUnit) -> Blaze.fromString "mj-column-per-" <> Blaze.fromShow t
   where
-    w = parsedWidth sibling widthAttr
+    w = parsedWidth sib widthAttr
 
 renderChild :: Monad m => HM.HashMap T.Text T.Text -> ElementT m () -> (MjmlT (ReaderT ElementContext m)) ()
 renderChild _ (ElementT True r) = r

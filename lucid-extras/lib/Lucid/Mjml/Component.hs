@@ -36,7 +36,7 @@ data ElementContext =
   ElementContext
   {
     sibling :: Maybe Int
-  , containerWidth :: Maybe Float
+  , containerWidth :: Maybe T.Text
   }
 
 data ElementT m a =
