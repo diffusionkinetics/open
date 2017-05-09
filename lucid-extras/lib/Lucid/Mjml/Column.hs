@@ -1,7 +1,20 @@
-module Lucid.Mjml.Column where
+{-# LANGUAGE OverloadedStrings #-}
+
+module Lucid.Mjml.Column(
+  column_
+  ) where
+
+import Control.Monad
+
+import Lucid.Html5
+import Lucid.Base
 
 import Lucid.Mjml.Component
+import Lucid.Mjml.Unit
 import Lucid.Base
+
+import Control.Monad.Reader
+import Control.Monad.State
 
 import qualified Data.Text as T
 import Text.Parsec
@@ -11,16 +24,6 @@ import           Blaze.ByteString.Builder (Builder)
 import Data.Monoid
 
 import qualified Data.HashMap.Strict as HM
-
-data Unit = PercentUnit | PxUnit
-data WithUnit a = WithUnit a Unit
-
-instance Show Unit where
-  show PercentUnit = "%"
-  show PxUnit      = "px"
-
-instance Show a => Show (WithUnit a) where
-  show (WithUnit a u) = concat [show a, show u]
 
 -- Takes a width like '11.4px' and gives WithUnit Int
 widthParser ::  T.Text -> Either ParseError (WithUnit Int)
@@ -61,5 +64,27 @@ columnClass sibling widthAttr = case (throwError w) of
   where
     w = parsedWidth sibling widthAttr
 
---render' :: (Monad m, Element c) => [c] -> MjmlT m ()
---render' children = HtmlT $ return _
+renderChild :: Monad m => HM.HashMap T.Text T.Text -> ElementT m () -> (MjmlT (ReaderT ElementContext m)) ()
+renderChild _ (ElementT True r) = r
+renderChild _ (ElementT False r) = td_ $ tr_ r
+
+render :: Monad m => HM.HashMap T.Text T.Text -> [ElementT m ()] -> MjmlT (ReaderT ElementContext m) ()
+render attrs children = do
+  ec <- ask
+  let widthAttr = HM.lookup "width" attrs
+      sib = case (sibling ec) of
+        Nothing -> error "Needs sibling in context"
+        Just t -> t
+
+  -- addMediaQuery _
+  build (renderBefore sib widthAttr)
+
+  div_ [class_ "", class_ "", style_ ""] $
+    table_ [border_ "0", cellpadding_ "0", cellspacing_ "0", role_ "presentation", width_ "100%"] $
+    tbody_ $ forM_ children $ (\e -> local (\ec ->  ec {sibling = Just $ length children}) (renderChild attrs e))
+  build renderAfter
+
+column_ :: Monad m => [Attribute] -> [ElementT m ()] -> ElementT m ()
+column_ attrs children = ElementT False (render attrMap children)
+  where
+     attrMap = HM.fromListWith (<>) (map toPair attrs)
