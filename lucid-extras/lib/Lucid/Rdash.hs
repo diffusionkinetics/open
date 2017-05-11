@@ -1,6 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lucid.Rdash (indexPage) where
+module Lucid.Rdash (
+    indexPage
+  , mkBody
+  , mkHead
+  , mkIndexPage
+  , mkPageContent
+  , mkPageWrapperOpen
+  , mkSidebar
+  , mkSidebarItem
+  , mkSidebarWrapper
+  , sidebarMain
+  , sidebarTitle
+  ) where
 
 import qualified Data.Text as T
 import Data.List
@@ -68,7 +80,7 @@ mkHead title = head_ $ do
   rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
-  
+
 mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkBody pgw = body_ pgw
 

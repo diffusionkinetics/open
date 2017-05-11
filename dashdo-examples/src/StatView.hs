@@ -6,7 +6,8 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
-import Control.Arrow ((&&&))
+import Dashdo.Rdash
+import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Lucid
@@ -29,56 +30,64 @@ data SysStats = SysStats
  , statsDiskIO :: (Integer, Integer)
  }
 
-data Example = Example
+data PsCtl = PsCtl
  { _processFilter :: Tag (Process -> Bool) }
 
 psActive, psAll :: Tag (Process -> Bool)
 psActive = Tag "a" ((>0.1) . procCPUPercent)
 psAll = Tag "b" (const True)
 
-makeLenses ''Example
+makeLenses ''PsCtl
 
 main = do
   stats <- newMVar ([] :: [SysStats])
   forkIO (statGrab stats)
-  runDashdo (theDashdo stats)
+  let dashdos = [ ("System Load", RDashdo "load" $ loadDashdo stats)
+                , ("Processes",   RDashdo "process" psDashdo) ]
+  html <- rdash plotlyCDN dashdos
+  runRDashdo html $ map snd dashdos
 
-theDashdo mvStats = Dashdo initv (const (getStats mvStats)) example
+data Unused = Unused
 
-example :: Example -> ([SysStats], [Process], [UserEntry]) -> SHtml Example ()
-example nm (stats, ps, us) = wrap plotlyCDN $ do
+loadDashdo mvStats = Dashdo Unused (const (readMVar mvStats)) load
+
+load :: Unused -> [SysStats] -> SHtml Unused ()
+load _ stats = do
   let theData = zip [1..] stats
       mkLine f = line (aes & x .~ fst & y .~ (f . snd)) theData
       cpuLoad = mkLine statsLoad
       memUsage = mkLine (fromIntegral . statsMem)
       diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
       diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
-      processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (_tagVal $ _processFilter nm) ps 
-      userCPU u = let uid = fromIntegral (userID u)
-        in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
-      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
-  h2_ "Dashdo Load Monitor"
-  checkbox "Hide inactive processes" psActive psAll processFilter
-  br_ []
   manualSubmit
   row_ $ rowEven MD
              [ toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
              , toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
              , toHtml $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"  ]
+
+psDashdo = Dashdo (PsCtl psAll) (const getStats) process
+
+process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
+process ctl (ps, us) = do
+  let processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
+        $ filter (_tagVal $ _processFilter ctl) ps
+      userCPU u = let uid = fromIntegral (userID u)
+        in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
+      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
+
+  checkbox "Hide inactive processes" psActive psAll processFilter
+  br_ []
+  manualSubmit
   row_ $ rowEven MD
              [ toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
              , toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User" ]
 
-initv = Example psAll
-
-getStats :: MVar [SysStats] -> IO ([SysStats], [Process], [UserEntry])
-getStats mvStats = do
-  ss <- readMVar mvStats
+getStats :: IO ([Process], [UserEntry])
+getStats = do
   ps <- runStats snapshots
   us <- getAllUserEntries
-  return (ss, ps, us)
+  return (ps, us)
 
 statGrab :: MVar [SysStats] -> IO ()
 statGrab mvStats = diskStats >>= forever

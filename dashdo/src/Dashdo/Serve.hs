@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
 
 module Dashdo.Serve where
 
@@ -9,27 +9,42 @@ import Web.Scotty
 import Control.Monad.Trans (liftIO)
 import System.Random
 import qualified Data.UUID as UUID
-import Data.Text.Lazy (fromStrict)
+import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.ByteString.Lazy as BLS
 
 import Data.FileEmbed
 import Data.Hashable
 import Control.Applicative
+import Control.Arrow ((&&&))
+import Control.Monad (forM_)
+
+dashdoHandler :: Dashdo a -> IO ([Param] -> ActionM ())
+dashdoHandler d = do
+  (iniHtml, ff) <- dashdoGenOut d (initial d)
+  return $ \ps -> do
+         let newval = parseForm (initial d) ff ps
+         (thisHtml, _) <- liftIO $ dashdoGenOut d newval
+         html thisHtml
 
 runDashdo :: Dashdo a -> IO ()
-runDashdo s = do
+runDashdo d = do
+  (iniHtml, _) <- dashdoGenOut d (initial d)
+  h <- dashdoHandler d
+  serve iniHtml [("", h)]
+
+runRDashdo :: Text -> [RDashdo] -> IO ()
+runRDashdo html ds = do
+  handlers <- mapM (\(RDashdo _ d) -> dashdoHandler d) ds
+  serve html $ zip (map rdFid ds) handlers
+
+serve :: Text -> [(String, [Param] -> ActionM ())] -> IO ()
+serve iniHtml handlers = do
   uuid <- fromStrict . UUID.toText <$> randomIO
   -- this is obviously incorrect (if the form fields change dynamically)
-  (iniHtml, ff) <- dashdoGenOut s (initial s)
-  print $ hash iniHtml
   scotty 3000 $ do
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
       raw $ BLS.fromStrict $(embedFile "public/js/dashdo.js")
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
-    post "/" $ do
-     pars <- params
-     let newval = parseForm (initial s) ff pars
-     (thisHtml, _) <- liftIO $ dashdoGenOut s newval
-     html $ thisHtml
+    forM_ handlers $ \(fid, hdl) -> post (literal ('/':fid)) (params >>= hdl)

@@ -26,6 +26,7 @@ Library
                  , Dashdo.Serve
                  , Dashdo.Types
                  , Dashdo.Elements
+                 , Dashdo.Rdash
    Build-depends:
                  base                    >= 4.6 && <5
                , scotty
