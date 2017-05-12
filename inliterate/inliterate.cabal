@@ -19,7 +19,6 @@ Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 
 extra-source-files:
                    changelog.md
-                   example.ihs
 
 
 Library

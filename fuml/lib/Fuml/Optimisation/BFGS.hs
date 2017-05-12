@@ -17,6 +17,7 @@ where
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Devel
 import Data.Default
+import Debug.Trace
 
 
 -- Type synonyms mostly just for documentation purposes...
@@ -112,7 +113,7 @@ bfgsWith opt@(BFGSOpts _ _ maxiters) f df p0 h0 =
           else case bfgsStepWith opt f df b of
             Left err -> Left err
             Right (True, b') -> Right (p b', h b')
-            Right (False, b') -> go (iters+1) b'
+            Right (False, b') -> go (iters+1) $ trace (show $ (iters, fp b')) b'
         f0 = f p0 ; g0 = df p0
         b0 = BFGS p0 f0 g0 (-g0) h0 (maxStep p0)
 
