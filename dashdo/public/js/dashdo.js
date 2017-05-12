@@ -26,6 +26,12 @@ $(function(){
 
   uuidLoop();
 
+  var updateChangeHandlers = function(d) {
+    d.find('input,select').change(function() {
+      d.submit();
+    });
+  };
+
   // hide all dashdos except the first
   $('.dashdo').slice(1).hide();
 
@@ -38,8 +44,18 @@ $(function(){
       data: $(this).serialize(),
       success: function(r) {
         dashdo.html(r);
+        updateChangeHandlers(dashdo);
       }
     });
     e.preventDefault();
   });
+
+  // set up auto submit if no manual submit
+  $('.dashdo').each(function() {
+    var dashdo = $(this);
+    if ($(this).find(':submit').length == 0) {
+      updateChangeHandlers(dashdo);
+    }
+  });
+
 });

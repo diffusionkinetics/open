@@ -77,8 +77,6 @@ process ctl (ps, us) = do
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
   checkbox "Hide inactive processes" psActive psAll processFilter
-  br_ []
-  manualSubmit
   row_ $ rowEven MD
              [ toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
              , toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User" ]
