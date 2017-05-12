@@ -26,13 +26,23 @@ Library
 
    Exposed-modules:
                    Dampf
+                   Dampf.AppFile
+                   Dampf.Common
+                   Dampf.Postgres.Migrate
+                   Dampf.Postgres.Connect
+                   Dampf.Postgres
+
 
    Build-depends:
                  base                    >= 4.7
                , yaml
-               , aeson  
+               , aeson
                , unordered-containers
-               , text             
+               , text
+               , time
+               , directory
+               , filepath
+               , postgresql-simple
 
 executable dampf
   main-is: Main.hs
