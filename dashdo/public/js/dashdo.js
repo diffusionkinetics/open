@@ -26,4 +26,20 @@ $(function(){
 
   uuidLoop();
 
+  // hide all dashdos except the first
+  $('.dashdo').slice(1).hide();
+
+  // add submit handlers
+  $('.dashdo').submit(function(e) {
+    var dashdo = $(this);
+    $.ajax({
+      type: "POST",
+      url: $(this).attr('id'),
+      data: $(this).serialize(),
+      success: function(r) {
+        dashdo.html(r);
+      }
+    });
+    e.preventDefault();
+  });
 });

@@ -6,6 +6,7 @@ import Dashdo
 import Dashdo.Types
 
 import Web.Scotty
+import Network.Wai.Middleware.RequestLogger
 import Control.Monad.Trans (liftIO)
 import System.Random
 import qualified Data.UUID as UUID
@@ -42,6 +43,7 @@ serve iniHtml handlers = do
   uuid <- fromStrict . UUID.toText <$> randomIO
   -- this is obviously incorrect (if the form fields change dynamically)
   scotty 3000 $ do
+    middleware logStdout
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
       raw $ BLS.fromStrict $(embedFile "public/js/dashdo.js")

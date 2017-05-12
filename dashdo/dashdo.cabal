@@ -42,4 +42,5 @@ Library
                , random
                , file-embed
                , hashable
+               , wai-extra
 
