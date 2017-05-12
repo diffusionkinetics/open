@@ -47,7 +47,7 @@ Inliterate.Import.
 
 #### `hide`
 
-add this to `top` or `do` code to prevent it from being printed in the output document ( but it is still run)
+add this to `top` or `do` code to prevent it from being printed in the output document (but it is still run)
 
 ## How to run
 
@@ -82,5 +82,5 @@ stack runghc InliterateFile.hs
 ```
 if you want only the body HTML and not the headers, you can pass the argument `--no-inlit-wrap` to the executable
 ```
-stack runghc InliterateFile.hs -- --no-inlit-wrap"
+stack runghc InliterateFile.hs -- --no-inlit-wrap
 ```
