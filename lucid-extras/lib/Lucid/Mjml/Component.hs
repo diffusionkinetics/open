@@ -27,8 +27,12 @@ import qualified Data.HashMap.Strict as HM
 data MjmlState =
   MjmlState
   {
-    mediaQueries :: HM.HashMap T.Text Builder
+    mediaQueries :: HM.HashMap T.Text T.Text
+  , fonts :: HM.HashMap T.Text T.Text
   }
+
+emptyState :: MjmlState
+emptyState = MjmlState HM.empty HM.empty
 
 type MjmlT m = HtmlT (StateT MjmlState m)
 
@@ -49,12 +53,16 @@ data ElementT m a =
 addMediaQuery :: Monad m => T.Text -> WithUnit Int -> MjmlT m ()
 addMediaQuery className pw = do
   st <- get
-  let t = (Blaze.fromString "{ width:") <> Blaze.fromShow pw <> (Blaze.fromString "!important; }")
+  let t = T.concat ["{ width:", T.pack (show pw) , "!important; }"]
       st' = st {mediaQueries = HM.insert className t (mediaQueries st)}
+
   put st'
 
 generateStyles :: HM.HashMap T.Text T.Text -> T.Text
-generateStyles = T.concat . HM.foldlWithKey' (\acc n v -> n : ":" : v : acc ) []
+generateStyles = T.concat . HM.foldlWithKey' go []
+  where
+    go acc n v | v == T.empty = acc
+               | otherwise = n : ":" : v : ";" : acc
 
 build :: Monad m => Builder -> MjmlT m ()
 build b = HtmlT (return (const b, ()))
@@ -71,6 +79,13 @@ s = Blaze.fromString
 toPair :: Attribute -> (T.Text, T.Text)
 toPair (Attribute x y) = (x,y)
 
+lookupAttr :: T.Text -> HM.HashMap T.Text T.Text -> (T.Text, T.Text)
+lookupAttr k m = (k, HM.lookupDefault T.empty k m)
+
+-- conditionalTag :: 
+
+-- renderMjml :: Monad m => [Element T m] -> 
+
 border_ :: T.Text -> Attribute
 border_ = makeAttribute "border"
 
@@ -79,4 +94,13 @@ cellpadding_ = makeAttribute "cellpadding"
 
 cellspacing_ :: T.Text -> Attribute
 cellspacing_ = makeAttribute "cellspacing"
+
+backgroundColor_ :: T.Text -> Attribute
+backgroundColor_ = makeAttribute "background-color"
+
+background_ :: T.Text -> Attribute
+background_ = makeAttribute "background"
+
+align_ :: T.Text -> Attribute
+align_ = makeAttribute "align"
 

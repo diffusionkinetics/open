@@ -30,7 +30,11 @@ Library
                  , Lucid.Rdash
                  , Lucid.Mjml
                  , Lucid.Mjml.Component
+                 , Lucid.Mjml.Container
                  , Lucid.Mjml.Column
+                 , Lucid.Mjml.Unit
+                 , Lucid.Mjml.Section
+                 , Lucid.Mjml.Skeleton
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid
@@ -38,11 +42,11 @@ Library
                , blaze-builder
                , bytestring
                , mtl
+               , mmorph >= 1.0
                , parsec >= 3.1
                , unordered-containers >= 0.2
 
-Test-suite            site-gen
-    type:       exitcode-stdio-1.0
+Executable            site-gen
     ghc-options:      -Wall
     hs-source-dirs:   site-gen
     main-is:          Main.hs
