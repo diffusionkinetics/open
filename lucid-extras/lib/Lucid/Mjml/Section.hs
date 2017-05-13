@@ -22,6 +22,8 @@ import qualified Data.Text as T
 import qualified Blaze.ByteString.Builder.Html.Utf8 as Blaze
 import           Blaze.ByteString.Builder (Builder)
 
+import Lucid.Mjml.Attributes (align_, border_, cellpadding_, cellspacing_)
+
 renderBefore :: T.Text -> Builder
 renderBefore containerWidth = mempty
 

@@ -29,12 +29,14 @@ Library
                  , Lucid.PreEscaped
                  , Lucid.Rdash
                  , Lucid.Mjml
+                 , Lucid.Mjml.Attributes
                  , Lucid.Mjml.Component
                  , Lucid.Mjml.Container
                  , Lucid.Mjml.Column
                  , Lucid.Mjml.Unit
                  , Lucid.Mjml.Section
                  , Lucid.Mjml.Skeleton
+                 , Lucid.Mjml.Text
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid

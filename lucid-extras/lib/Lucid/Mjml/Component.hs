@@ -81,26 +81,3 @@ toPair (Attribute x y) = (x,y)
 
 lookupAttr :: T.Text -> HM.HashMap T.Text T.Text -> (T.Text, T.Text)
 lookupAttr k m = (k, HM.lookupDefault T.empty k m)
-
--- conditionalTag :: 
-
--- renderMjml :: Monad m => [Element T m] -> 
-
-border_ :: T.Text -> Attribute
-border_ = makeAttribute "border"
-
-cellpadding_ :: T.Text -> Attribute
-cellpadding_ = makeAttribute "cellpadding"
-
-cellspacing_ :: T.Text -> Attribute
-cellspacing_ = makeAttribute "cellspacing"
-
-backgroundColor_ :: T.Text -> Attribute
-backgroundColor_ = makeAttribute "background-color"
-
-background_ :: T.Text -> Attribute
-background_ = makeAttribute "background"
-
-align_ :: T.Text -> Attribute
-align_ = makeAttribute "align"
-

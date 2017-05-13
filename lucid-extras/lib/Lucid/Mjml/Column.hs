@@ -25,6 +25,8 @@ import Data.Monoid
 
 import qualified Data.HashMap.Strict as HM
 
+import Lucid.Mjml.Attributes
+
 -- Takes a width like '11.4px' and gives WithUnit Int
 widthParser ::  T.Text -> Either ParseError (WithUnit Int)
 widthParser = parse (WithUnit <$> ignoreDecimal <*> unitParser) "" where
@@ -77,7 +79,7 @@ renderChild attrs (ElementT False r) = tr_ $ td_
       , lookupAttr "padding-right" attrs
       , lookupAttr "padding-top" attrs
       , lookupAttr "padding-left" attrs
-      , ("word-break", "break-word")
+      , ("word-wrap", "break-word")
       ]
 
 render :: Monad m => HM.HashMap T.Text T.Text -> [ElementT m ()] -> MjmlT (ReaderT ElementContext m) ()

@@ -7,6 +7,7 @@ module Lucid.Mjml.Container
 
 import Lucid.Mjml.Component
 import Lucid.Mjml.Unit
+import Lucid.Mjml.Attributes (backgroundColor_)
 
 import Lucid.Base
 import Lucid.Html5 hiding (section_)
@@ -21,14 +22,15 @@ import qualified Data.Text as T
 
 render :: Monad m => HM.HashMap T.Text T.Text -> [ElementT m ()] -> MjmlT (ReaderT ElementContext m) ()
 render attrs children = do
-  div_ [style_ $ generateStyles fullAttrs, backgroundColor_ bgColor] $
+  div_ [style_ $ generateStyles style, backgroundColor_ $ snd bgColor] $
     forM_ children (\e -> local (\ec' ->  ec' {containerWidth = Just cw}) (renderer e))
 
   where
     defaultAttrs = HM.fromList [("width", "600px")]
     fullAttrs = HM.union attrs defaultAttrs
-    bgColor = snd $ lookupAttr "background-color" fullAttrs
+    bgColor = lookupAttr "background-color" fullAttrs
     cw  = snd $ lookupAttr "width" fullAttrs
+    style = HM.fromList [bgColor]
 
 container_ :: Monad m => [Attribute] -> [ElementT m ()] -> ElementT m ()
 container_ attrs children = ElementT False (render attrMap children)

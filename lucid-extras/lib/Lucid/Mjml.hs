@@ -1,6 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lucid.Mjml where
+module Lucid.Mjml (
+  mjml_
+  , renderMjmlT
+  , module E) where
+
+import Lucid.Mjml.Component as E
+import Lucid.Mjml.Container as E
+import Lucid.Mjml.Column as E
+import Lucid.Mjml.Section as E
+import Lucid.Mjml.Text as E
+import Lucid.Mjml.Attributes as E
+import Lucid.Mjml.Divider as E
+
+import Lucid.Html5 as E hiding (section_)
 
 import Lucid
 import Lucid.Mjml.Component
@@ -9,6 +22,7 @@ import Lucid.Mjml.Skeleton
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Morph
+
 
 renderMjmlT :: Monad m => MjmlT m a -> HtmlT m a
 renderMjmlT = hoist (flip evalStateT emptyState)
