@@ -14,6 +14,12 @@ ols = Supervisor $ \_ theData ->
               let beta = LR.ols theData
               in return $ linPredict beta
 
+olsWeighted :: Vector Double -> Supervisor Identity Double (Vector Double) Double
+olsWeighted wvs
+   = Supervisor $ \_ theData ->
+              let beta = LR.wols wvs theData
+              in return $ linPredict beta
+
 ridge :: Double -> Supervisor Identity Double (Vector Double) Double
 ridge gammac = Supervisor $ \_ xys ->
   let npars = size $ fst $ head xys

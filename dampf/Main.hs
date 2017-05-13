@@ -8,9 +8,16 @@ import Data.Maybe
 
 
 import Dampf
+import Dampf.Postgres
 
-data Cmd = DumpYaml (Maybe FilePath) 
-         | Dump (Maybe FilePath) 
+data Cmd = DumpYaml {appFile :: Maybe FilePath}
+         | Dump {appFile :: Maybe FilePath}
+         | RunMigrations { appFile :: Maybe FilePath
+                         , onlyDatabase :: Maybe String }
+         | NewMigration { appFile :: Maybe FilePath
+                        , database :: Maybe String
+                        , name :: String }
+
   deriving (Generic, Show)
 
 
@@ -24,3 +31,7 @@ main = do
 dispatch :: Cmd -> IO ()
 dispatch (DumpYaml mfp) = dumpYaml (fromMaybe "dampf.yaml" mfp)
 dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
+dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
+dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm
+dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
+

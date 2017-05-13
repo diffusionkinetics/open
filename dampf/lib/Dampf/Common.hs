@@ -1,0 +1,2 @@
+module Dampf.Common where
+
