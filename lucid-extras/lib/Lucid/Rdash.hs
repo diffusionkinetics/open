@@ -8,6 +8,7 @@ module Lucid.Rdash (
   , mkPageContent
   , mkPageWrapperOpen
   , mkSidebar
+  , mkSidebarFooter
   , mkSidebarItem
   , mkSidebarWrapper
   , sidebarMain

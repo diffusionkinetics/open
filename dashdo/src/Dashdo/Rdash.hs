@@ -42,7 +42,10 @@ rdash headExtra ds = do
         let form'_ = \(fid, txt) -> form_ [class_ "dashdo", id_ (pack fid)] $ (toHtmlRaw txt)
             sbl = map sidebarItem (map (rdFid . snd &&& fst) ds)
             sb  = RD.mkSidebar sidebarMain sidebarTitle sbl
-            sbf = mempty
+            sbf = RD.mkSidebarFooter (rowEven XS
+              [ a_ [href_ "https://github.com/filopodia/open"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
+              , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
+              ])
             sbw = RD.mkSidebarWrapper sb sbf
             cw  = RD.mkPageContent (mapM_ form'_ dashdos)
             pgw = RD.mkPageWrapperOpen sbw cw

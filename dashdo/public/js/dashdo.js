@@ -38,6 +38,7 @@ $(function(){
   // add submit handlers
   $('.dashdo').submit(function(e) {
     var dashdo = $(this);
+    $('#spinner').addClass('fa-spin');
     $.ajax({
       type: "POST",
       url: $(this).attr('id'),
@@ -45,6 +46,7 @@ $(function(){
       success: function(r) {
         dashdo.html(r);
         updateChangeHandlers(dashdo);
+        $('#spinner').removeClass('fa-spin');
       }
     });
     e.preventDefault();
