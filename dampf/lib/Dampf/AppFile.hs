@@ -39,14 +39,16 @@ instance FromJSON ContainerSpec
 
 data DomainSpec = DomainSpec
   { static :: Maybe T.Text
-  , proxy_container :: Maybe T.Text } deriving (Generic, Show)
+  , proxy_container :: Maybe T.Text
+  , generate :: Maybe T.Text } deriving (Generic, Show)
 
 instance FromJSON DomainSpec
 
 data DBSpec = DBSpec
   { migrations :: Maybe FilePath
   , db_user :: String
-  , db_password :: String } deriving (Generic, Show)
+  , db_password :: String
+  , db_extensions :: [String] } deriving (Generic, Show)
 
 instance FromJSON DBSpec
 

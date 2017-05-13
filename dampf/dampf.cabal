@@ -27,9 +27,11 @@ Library
    Exposed-modules:
                    Dampf
                    Dampf.AppFile
+                   Dampf.ConfigFile
                    Dampf.Common
                    Dampf.Postgres.Migrate
                    Dampf.Postgres.Connect
+                   Dampf.Postgres.Setup
                    Dampf.Postgres
 
 
