@@ -99,7 +99,9 @@ checkbox text vTrue vFalse f = do
       fid = "id" <> pack (show n)
       checked = if val ^. f == vTrue then [checked_] else []
   putFormField(n, ft)
-  input_ $ [type_ "checkbox", id_ fid, fieldName n, value_ "true"] ++ checked
-  label_ [for_ fid] (toHtml text)
+  div_ [class_ "checkbox"] $
+    label_ $ do
+      input_ $ [type_ "checkbox", id_ fid, fieldName n, value_ "true"] ++ checked
+      toHtml text
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
