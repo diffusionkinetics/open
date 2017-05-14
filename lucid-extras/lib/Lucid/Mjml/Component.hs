@@ -16,6 +16,7 @@ import qualified Blaze.ByteString.Builder.Html.Utf8 as Blaze
 import           Blaze.ByteString.Builder (Builder)
 
 import Lucid.Mjml.Unit
+import Lucid.Mjml.Attributes
 
 import Data.Monoid
 import Control.Monad.State
@@ -81,3 +82,22 @@ toPair (Attribute x y) = (x,y)
 
 lookupAttr :: T.Text -> HM.HashMap T.Text T.Text -> (T.Text, T.Text)
 lookupAttr k m = (k, HM.lookupDefault T.empty k m)
+
+rendererWrapper :: Monad m => HM.HashMap T.Text T.Text -> MjmlT m a -> MjmlT m a
+rendererWrapper attrs r = tr_ $ td_
+  [
+    align_ (snd $ lookupAttr "align" attrs)
+  , background_ . snd $ lookupAttr "container-background-color" attrs
+  , style_ $ generateStyles tdStyle] r
+  where
+    tdStyle = HM.fromList
+      [
+        ("background", snd $ lookupAttr "container-background-color" attrs)
+      , ("font-size", "0px")
+      , lookupAttr "padding" attrs
+      , lookupAttr "padding-bottom" attrs
+      , lookupAttr "padding-right" attrs
+      , lookupAttr "padding-top" attrs
+      , lookupAttr "padding-left" attrs
+      , ("word-wrap", "break-word")
+      ]

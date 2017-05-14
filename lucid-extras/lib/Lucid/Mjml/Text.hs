@@ -85,7 +85,7 @@ defaultAttrs = HM.fromList [
   ]
 
 render :: Monad m => HM.HashMap T.Text T.Text -> T.Text -> MjmlT m ()
-render attrs content = div_ [style_ $ generateStyles style] (toHtml content)
+render attrs content = rendererWrapper fullAttrs $ div_ [style_ $ generateStyles style] (toHtml content)
   where
     fullAttrs = HM.union attrs defaultAttrs
     style = HM.fromList $ map (flip lookupAttr fullAttrs)

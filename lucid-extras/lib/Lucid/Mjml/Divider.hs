@@ -17,7 +17,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 
 render :: Monad m => HM.HashMap T.Text T.Text ->  MjmlT m ()
-render attrs = p_ [style_ $ generateStyles style] (return ())
+render attrs = rendererWrapper fullAttrs $ p_ [style_ $ generateStyles style] (return ())
   where
     defaultAttrs = HM.fromList [("border-color", "#000000"), ("border-style", "solid")
                                , ("border-width", "4px"), ("padding", "10px 25px")

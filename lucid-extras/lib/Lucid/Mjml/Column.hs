@@ -64,23 +64,7 @@ columnClass w = T.concat $ case w of
 
 renderChild :: Monad m => HM.HashMap T.Text T.Text -> ElementT m () -> (MjmlT (ReaderT ElementContext m)) ()
 renderChild _ (ElementT True r) = r
-renderChild attrs (ElementT False r) = tr_ $ td_
-  [
-    align_ (snd $ lookupAttr "align" attrs)
-  , background_ . snd $ lookupAttr "container-background-color" attrs
-  , style_ $ generateStyles tdStyle] r
-  where
-    tdStyle = HM.fromList
-      [
-        ("background", snd $ lookupAttr "container-background-color" attrs)
-      , ("font-size", "0px")
-      , lookupAttr "padding" attrs
-      , lookupAttr "padding-bottom" attrs
-      , lookupAttr "padding-right" attrs
-      , lookupAttr "padding-top" attrs
-      , lookupAttr "padding-left" attrs
-      , ("word-wrap", "break-word")
-      ]
+renderChild attrs (ElementT False r) = _
 
 render :: Monad m => HM.HashMap T.Text T.Text -> [ElementT m ()] -> MjmlT (ReaderT ElementContext m) ()
 render attrs children = do
