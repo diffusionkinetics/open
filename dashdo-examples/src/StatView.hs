@@ -6,7 +6,7 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
-import Dashdo.Rdash
+import Dashdo.Rdash (rdash, charts, controls)
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
@@ -60,11 +60,13 @@ load _ stats = do
       diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
       diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
 
-  manualSubmit
-  row_ $ rowEven MD
-             [ toHtml $ plotly "foo" [cpuLoad] & layout . title ?~ "CPU load"
-             , toHtml $ plotly "bar" [memUsage] & layout . title ?~ "Memory Usage"
-             , toHtml $ plotly "baz" [diskRead, diskWrite] & layout . title ?~ "Disk IO"  ]
+  controls $
+    manualSubmit
+
+  charts
+     [ ("CPU Load",     toHtml $ plotly "foo" [cpuLoad] & layout . margin ?~ thinMargins)
+     , ("Memory Usage", toHtml $ plotly "bar" [memUsage] & layout . margin ?~ thinMargins)
+     , ("Disk IO",      toHtml $ plotly "baz" [diskRead, diskWrite] & layout . margin ?~ thinMargins)]
 
 psDashdo = Dashdo (PsCtl psAll) (const getStats) process
 
@@ -76,10 +78,12 @@ process ctl (ps, us) = do
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
-  checkbox "Hide inactive processes" psActive psAll processFilter
-  row_ $ rowEven MD
-             [ toHtml $ plotly "ps" [processes] & layout . title ?~ "CPU Usage by Process"
-             , toHtml $ plotly "us" [users] & layout . title ?~ "CPU Usage by User" ]
+  controls $
+    checkbox "Hide inactive processes" psActive psAll processFilter
+
+  charts
+     [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
+     , ("CPU Usage by User",    toHtml $ plotly "us" [users] & layout . margin ?~ thinMargins)]
 
 getStats :: IO ([Process], [UserEntry])
 getStats = do

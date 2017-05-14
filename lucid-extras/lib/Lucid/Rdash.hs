@@ -4,7 +4,10 @@ module Lucid.Rdash (
     indexPage
   , mkBody
   , mkHead
+  , mkHeaderBar
   , mkIndexPage
+  , mkMetaBox
+  , mkMetaTitle
   , mkPageContent
   , mkPageWrapperOpen
   , mkSidebar

@@ -26,14 +26,26 @@ $(function(){
 
   uuidLoop();
 
-  var updateChangeHandlers = function(d) {
-    d.find('input,select').change(function() {
-      d.submit();
-    });
+  var onLoad = function(d) {
+    // set up auto-submit if no manual submit
+    if ($(this).find(':submit').length == 0) {
+      d.find('input,select').change(function() {
+        d.submit();
+      });
+    }
   };
 
   // hide all dashdos except the first
   $('.dashdo').slice(1).hide();
+  $('.dashdo-title').slice(1).hide();
+
+  // add click handlers to sidebar links
+  $('.dashdo-link').click(function(e) {
+    $('.dashdo,.dashdo-title').hide();
+    $('#' + $(this).attr('href')).show();
+    $('#' + $(this).attr('href') + '-title').show();
+    e.preventDefault();
+  });
 
   // add submit handlers
   $('.dashdo').submit(function(e) {
@@ -45,19 +57,14 @@ $(function(){
       data: $(this).serialize(),
       success: function(r) {
         dashdo.html(r);
-        updateChangeHandlers(dashdo);
+        onLoad(dashdo);
         $('#spinner').removeClass('fa-spin');
       }
     });
     e.preventDefault();
   });
 
-  // set up auto submit if no manual submit
   $('.dashdo').each(function() {
-    var dashdo = $(this);
-    if ($(this).find(':submit').length == 0) {
-      updateChangeHandlers(dashdo);
-    }
+    onLoad($(this));
   });
-
 });

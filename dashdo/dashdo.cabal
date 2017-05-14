@@ -27,6 +27,9 @@ Library
                  , Dashdo.Types
                  , Dashdo.Elements
                  , Dashdo.Rdash
+
+   Other-modules: Dashdo.FileEmbed
+
    Build-depends:
                  base                    >= 4.6 && <5
                , scotty
@@ -43,4 +46,5 @@ Library
                , file-embed
                , hashable
                , wai-extra
+               , template-haskell
 

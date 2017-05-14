@@ -4,6 +4,7 @@ module Dashdo.Serve where
 
 import Dashdo
 import Dashdo.Types
+import Dashdo.FileEmbed
 
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
@@ -13,7 +14,6 @@ import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.ByteString.Lazy as BLS
 
-import Data.FileEmbed
 import Data.Hashable
 import Control.Applicative
 import Control.Arrow ((&&&))
