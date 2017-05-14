@@ -84,6 +84,12 @@ manualSubmit = do
   input_ [type_ "submit", value_ "Submit"]
   script_ "var manual_submit = true;"
 
+submitPeriodic :: Text -> Int -> SHtml a ()
+submitPeriodic formid delaySecs = do
+  let delayMs = pack $ show $ delaySecs*1000
+  script_
+    $ "$(function() {setTimeout(function(){$('#"<>formid<>"').submit()}, "<>delayMs<>")})"
+
 checkbox :: Eq b => Text -> b -> b -> Lens' a b -> SHtml a ()
 checkbox text vTrue vFalse f = do
   (val, n) <- freshAndValue
