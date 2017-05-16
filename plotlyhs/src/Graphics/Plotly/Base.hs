@@ -127,10 +127,10 @@ instance ToJSON Orientation where
   toJSON Vertical = "v"
 
 -- | Are we filling area plots from the zero line or to the next Y value?
-data Fill = ToZeroY | ToNextY deriving Show
+data Fill = FillNone | ToZeroY | ToNextY | ToZeroX | ToNextX | ToSelf | ToNext deriving Show
 
 instance ToJSON Fill where
-  toJSON = toJSON . map toLower . show
+  toJSON = toJSON . map toLower . dropInitial "Fill" . show
 
 -- | line specification
 data Line = Line
