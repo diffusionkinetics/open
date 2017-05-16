@@ -17,6 +17,8 @@ data Cmd = DumpYaml {appFile :: Maybe FilePath}
          | NewMigration { appFile :: Maybe FilePath
                         , database :: Maybe String
                         , name :: String }
+         | Build {appFile :: Maybe FilePath}
+         | Deploy {appFile :: Maybe FilePath}
 
   deriving (Generic, Show)
 
@@ -34,4 +36,6 @@ dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
 dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
 dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm
 dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
+dispatch (Build mfp) = goBuild mfp
+dispatch (Deploy mfp) = goDeploy mfp
 

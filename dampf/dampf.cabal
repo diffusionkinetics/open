@@ -29,6 +29,7 @@ Library
                    Dampf.AppFile
                    Dampf.ConfigFile
                    Dampf.Common
+                   Dampf.Docker
                    Dampf.Postgres.Migrate
                    Dampf.Postgres.Connect
                    Dampf.Postgres.Setup
@@ -44,6 +45,7 @@ Library
                , time
                , directory
                , filepath
+               , process
                , postgresql-simple
 
 executable dampf
