@@ -34,6 +34,12 @@ f (2+2)
 
 ```
 
+```haskell eval
+
+[100000::Int .. ]
+
+```
+
 and lets have another question
 
 ```haskell eval
