@@ -127,10 +127,10 @@ instance ToJSON Orientation where
   toJSON Vertical = "v"
 
 -- | Are we filling area plots from the zero line or to the next Y value?
-data Fill = ToZeroY | ToNextY deriving Show
+data Fill = FillNone | ToZeroY | ToNextY | ToZeroX | ToNextX | ToSelf | ToNext deriving Show
 
 instance ToJSON Fill where
-  toJSON = toJSON . map toLower . show
+  toJSON = toJSON . map toLower . dropInitial "Fill" . show
 
 -- | line specification
 data Line = Line
@@ -147,6 +147,21 @@ instance ToJSON Line where
 defLine :: Line
 defLine = Line Nothing Nothing Nothing
 
+data HoverElem = HoverX | HoverY | HoverZ | HoverText | HoverName
+  deriving (Generic, Show)
+
+data HoverInfo = HoverPlus [HoverElem] | HoverAll | HoverNone | HoverSkip
+  deriving (Generic, Show)
+
+instance ToJSON HoverInfo where
+  toJSON (HoverPlus elems) = toJSON . intercalate "+" $ (map toLower . dropInitial "Hover" . show) <$> elems
+  toJSON x                 = toJSON . map toLower . dropInitial "Hover" $ show x
+
+data HoverOn = HoverPoints | HoverFills deriving (Generic, Show)
+
+instance {-# OVERLAPS #-} ToJSON [HoverOn] where
+  toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Hover" . show)
+
 -- | A `Trace` is the component of a plot. Multiple traces can be superimposed.
 data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
@@ -159,21 +174,28 @@ data Trace = Trace
   , _line :: Maybe Line
   , _fill :: Maybe Fill
   , _orientation :: Maybe Orientation
+  , _visible :: Maybe Value
+  , _traceshowlegend :: Maybe Bool
+  , _legendgroup :: Maybe Text
+  , _hoverinfo :: Maybe HoverInfo
+  , _hovertext :: Maybe (ListOrElem Text)
+  , _hoveron :: Maybe [HoverOn]
   } deriving Generic
 
 makeLenses ''Trace
 
 -- |an empty scatter plot
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
+scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty bar plot
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
+bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 
 instance ToJSON Trace where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
+    where renamer = rename "tracetype" "type" . rename "traceshowlegend" "showlegend" . unLens
 
 -- |Options for axes
 data Axis = Axis
