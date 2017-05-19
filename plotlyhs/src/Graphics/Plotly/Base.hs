@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Bar deriving Show
+data TraceType = Scatter | Scatter3D | Bar deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -166,6 +166,7 @@ instance {-# OVERLAPS #-} ToJSON [HoverOn] where
 data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
   , _y :: Maybe [Value] -- ^ y values, as numbers
+  , _z :: Maybe [Value] -- ^ z values, as numbers
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
@@ -184,13 +185,20 @@ data Trace = Trace
 
 makeLenses ''Trace
 
+mkTrace :: TraceType -> Trace
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
 -- |an empty scatter plot
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+scatter = mkTrace Scatter
+
+-- |an empty bar plot
+scatter3d :: Trace
+scatter3d = mkTrace Scatter3D
 
 -- |an empty bar plot
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+bars = mkTrace Bar
 
 
 instance ToJSON Trace where
@@ -245,6 +253,7 @@ titleMargins = Margin 50 25 30 40 4
 data Layout = Layout
   { _xaxis :: Maybe Axis
   , _yaxis :: Maybe Axis
+  , _zaxis :: Maybe Axis
   , _title :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
@@ -257,7 +266,7 @@ makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
