@@ -46,9 +46,10 @@ data ContainerSpec = ContainerSpec
 instance FromJSON ContainerSpec
 
 data DomainSpec = DomainSpec
-  { static :: Maybe T.Text
+  { static :: Maybe FilePath
   , proxy_container :: Maybe T.Text
-  , generate :: Maybe T.Text } deriving (Generic, Show)
+  -- , generate :: Maybe T.Text
+  } deriving (Generic, Show)
 
 instance FromJSON DomainSpec
 

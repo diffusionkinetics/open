@@ -5,6 +5,8 @@ import Data.Yaml
 
 import Dampf.AppFile
 import Dampf.Docker
+import Dampf.Postgres
+import Dampf.Nginx
 
 dumpYaml :: FilePath -> IO ()
 dumpYaml fp = do
@@ -23,8 +25,9 @@ goBuild mfp = do
   withAppFile mfp $ \dampfs -> do
     buildDocker dampfs
 
-
 goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
   withAppFile mfp $ \dampfs -> do
     deployDocker dampfs
+    --runMigrations mfp Nothing
+    deployDomains dampfs
