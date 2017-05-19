@@ -106,7 +106,7 @@ data Marker = Marker
 makeLenses ''Marker
 
 instance ToJSON Marker where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "markercolor" "color" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "marker" . unLens}
 
 -- | default marker specification
 defMarker :: Marker
@@ -195,7 +195,7 @@ bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing
 
 instance ToJSON Trace where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
-    where renamer = rename "tracetype" "type" . rename "traceshowlegend" "showlegend" . unLens
+    where renamer = dropInitial "trace" . unLens
 
 -- |Options for axes
 data Axis = Axis
@@ -208,7 +208,7 @@ data Axis = Axis
 makeLenses ''Axis
 
 instance ToJSON Axis where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
 defAxis = Axis Nothing Nothing Nothing Nothing
