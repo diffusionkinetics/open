@@ -38,6 +38,7 @@ Library
                , filepath
                , process
                , containers
+               , microlens
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

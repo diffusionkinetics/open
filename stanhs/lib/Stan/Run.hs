@@ -4,12 +4,12 @@ import Stan.AST
 import System.Directory
 import System.FilePath
 import System.Environment
-import System.Directory
 import Data.Hashable
 import System.Process
 import Control.Monad (unless)
 import Data.List (transpose)
 import qualified Data.Map.Strict as Map
+import System.Exit (die)
 
 runStan :: [Stan] -> [String] -> IO (Map.Map String [Double])
 runStan ss dataLines = do
@@ -25,16 +25,27 @@ runStan ss dataLines = do
   ex <- doesFileExist (stTmpDir </> mdlNm)
   unless ex $ do
     writeFile stanFile $ ppStans ss
-    Just standir <- lookupEnv "STANDIR" -- TODO: Handle Nothing case
+    standir <- findStanDir
     withCurrentDirectory standir $ do
       let cmd = "make " ++ stTmpDir </> mdlNm
       _ <- system cmd
       return ()
   withCurrentDirectory stTmpDir $ do
-    let cmd = "./" ++ mdlNm ++ " sample data file=" ++ dataFile
+    let cmd = "./" ++ mdlNm ++ " sample data file=" ++ dataFile --TODO set output file
     _ <- system cmd
     readStanOutput "output.csv"
 
+-- |Try to find the CmdStan installation directory, or die
+findStanDir :: IO FilePath
+findStanDir = do
+    sdenv <- lookupEnv "CMDSTAN_HOME" -- TODO: Handle Nothing case
+    case sdenv of
+      Just sd -> return sd
+      Nothing -> do
+        ex <- doesDirectoryExist "/opt/stan"
+        if ex
+          then return "/opt/stan"
+          else die "Environment variable CMDSTAN_HOME or /opt/stan must point to Stan install directory"
 
 readStanOutput :: FilePath -> IO (Map.Map String [Double])
 readStanOutput fp = do

@@ -26,5 +26,6 @@ main = do
                   , dumpAs "sigma" sigma ]
   putStrLn $ ppStans schools
   putStrLn $ unlines dataLines
-  runStan schools dataLines
+  _ <- runStan schools dataLines
+  --print res
   return ()

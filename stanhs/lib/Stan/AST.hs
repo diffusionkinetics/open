@@ -5,6 +5,7 @@ module Stan.AST where
 import Text.PrettyPrint.HughesPJClass
 import Data.Hashable
 import GHC.Generics (Generic)
+import Data.String
 
 
 type Var = String
@@ -135,6 +136,9 @@ instance Floating Expr where
   sinh e = Apply "sinh" [e]
   cosh e = Apply "cosh" [e]
   tanh e = Apply "tanh" [e]
+
+instance IsString Expr where
+  fromString s = Var s
 
 instance Pretty Expr where
   pPrintPrec _ _ (Var v) = text v
