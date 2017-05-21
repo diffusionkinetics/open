@@ -25,7 +25,7 @@ runStan ss dataLines = do
   ex <- doesFileExist (stTmpDir </> mdlNm)
   unless ex $ do
     writeFile stanFile $ ppStans ss
-    Just envdir <- lookupEnv "STANDIR" -- TODO: Handle Nothing case
+    Just standir <- lookupEnv "STANDIR" -- TODO: Handle Nothing case
     withCurrentDirectory standir $ do
       let cmd = "make " ++ stTmpDir </> mdlNm
       _ <- system cmd
