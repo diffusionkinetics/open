@@ -39,9 +39,11 @@ Library
                , process
                , containers
                , microlens
+               , microlens-th
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0
     main-is:    test-stan.hs
     build-depends: base
                  , stanhs
+                 , microlens

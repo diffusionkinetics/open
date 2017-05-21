@@ -1,4 +1,16 @@
+{-# LANGUAGE TemplateHaskell, TypeFamilies #-}
+
 module Stan.Run where
+
+{- |
+
+Running stan models
+
+e.g.
+
+runStan myModel myData (sample & numSamples .~ 10000)
+
+-}
 
 import Stan.AST
 import System.Directory
@@ -10,18 +22,47 @@ import Control.Monad (unless)
 import Data.List (transpose)
 import qualified Data.Map.Strict as Map
 import System.Exit (die)
+import Lens.Micro.TH
 
-runStan :: [Stan] -> [String] -> IO (Map.Map String [Double])
-runStan ss dataLines = do
-  tmp <- getTemporaryDirectory
-  let stTmpDir = tmp </> "stanhs"
-      mdlNm = 's': (show $ abs $ hash ss)
-      dataNm = 'd': (show $ abs $ hash dataLines)
+data Sample = Sample {
+  _numSamples :: Int
+}
+
+data Optimize = Optimize {
+  _iterations :: Int
+}
+
+makeLenses ''Sample
+makeLenses ''Optimize
+
+sample :: Sample
+sample = Sample 1000
+
+optimize :: Optimize
+optimize = Optimize 2000
+
+class StanOption a where
+  type StanReturns a
+
+  runStan :: [Stan] -> [String] -> a -> IO (StanReturns a)
+
+instance StanOption Sample where
+  type StanReturns Sample = Map.Map String [Double]
+
+  runStan ss dataLines (Sample ns) = do
+    stTmpDir <- getStanTempDirectory
+    dataFile <- writeStanDataFile stTmpDir dataLines
+    mdlNm <- compileStanModel stTmpDir ss
+    withCurrentDirectory stTmpDir $ do
+      let cmd = concat ["./", mdlNm, " sample num_samples=", show ns, " data file=", dataFile ] --TODO set output file
+      putStrLn cmd
+      _ <- system cmd
+      readStanSampleOutput "output.csv"
+
+compileStanModel :: FilePath -> [Stan] ->  IO FilePath
+compileStanModel stTmpDir ss = do
+  let mdlNm = 's': (show $ abs $ hash ss)
       stanFile = stTmpDir </> mdlNm <.> "stan"
-      dataFile = stTmpDir </> dataNm <.> "data.R"
-  createDirectoryIfMissing False stTmpDir
-  writeFile dataFile $ unlines dataLines
-
   ex <- doesFileExist (stTmpDir </> mdlNm)
   unless ex $ do
     writeFile stanFile $ ppStans ss
@@ -30,15 +71,27 @@ runStan ss dataLines = do
       let cmd = "make " ++ stTmpDir </> mdlNm
       _ <- system cmd
       return ()
-  withCurrentDirectory stTmpDir $ do
-    let cmd = "./" ++ mdlNm ++ " sample data file=" ++ dataFile --TODO set output file
-    _ <- system cmd
-    readStanOutput "output.csv"
+  return mdlNm
+
+getStanTempDirectory :: IO FilePath
+getStanTempDirectory = do
+  tmp <- getTemporaryDirectory
+  let stTmpDir = tmp </> "stanhs"
+  createDirectoryIfMissing False stTmpDir
+  return stTmpDir
+
+writeStanDataFile :: FilePath -> [String] -> IO FilePath
+writeStanDataFile dir dataLines = do
+  let dataNm = 'd': (show $ abs $ hash dataLines)
+      dataFile = dir </> dataNm <.> "data.R"
+  writeFile dataFile $ unlines dataLines
+  return $ dataNm <.> "data.R"
+
 
 -- |Try to find the CmdStan installation directory, or die
 findStanDir :: IO FilePath
 findStanDir = do
-    sdenv <- lookupEnv "CMDSTAN_HOME" -- TODO: Handle Nothing case
+    sdenv <- lookupEnv "CMDSTAN_HOME"
     case sdenv of
       Just sd -> return sd
       Nothing -> do
@@ -47,8 +100,8 @@ findStanDir = do
           then return "/opt/stan"
           else die "Environment variable CMDSTAN_HOME or /opt/stan must point to Stan install directory"
 
-readStanOutput :: FilePath -> IO (Map.Map String [Double])
-readStanOutput fp = do
+readStanSampleOutput :: FilePath -> IO (Map.Map String [Double])
+readStanSampleOutput fp = do
   let noHash ('#':_) = False
       noHash _ = True
   (hdrLn:lns) <- fmap (filter noHash . lines) $ readFile fp
