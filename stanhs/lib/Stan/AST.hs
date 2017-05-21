@@ -10,9 +10,11 @@ import GHC.Generics (Generic)
 type Var = String
 
 data Stan = Data [Decl]
+          | TransformedData [Decl]
           | Parameters [Decl]
           | TransformedParameters [Decl]
           | Model [Decl]
+          | GeneratedQuantities [Decl]
             deriving (Eq, Show, Generic, Hashable)
 
 data Decl = TypeDecl Type Var [Expr]
@@ -34,6 +36,14 @@ instance Pretty Stan where
                       $$ nest 2 (ppDecls ds)
                       $$ char '}'
   pPrint (Data ds) = text "data {"
+                      $$ nest 2 (ppDecls ds)
+                      $$ char '}'
+  pPrint (TransformedData ds)
+                    = text "transformed data {"
+                      $$ nest 2 (ppDecls ds)
+                      $$ char '}'
+  pPrint (GeneratedQuantities ds)
+                    = text "generated quantities {"
                       $$ nest 2 (ppDecls ds)
                       $$ char '}'
 
