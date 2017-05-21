@@ -29,5 +29,5 @@ goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
   withAppFile mfp $ \dampfs -> do
     deployDocker dampfs
-    --runMigrations mfp Nothing
+    runMigrations mfp Nothing
     deployDomains dampfs

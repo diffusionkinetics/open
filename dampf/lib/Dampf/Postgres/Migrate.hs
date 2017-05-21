@@ -20,23 +20,28 @@ digits = "0123456789"
 migrate :: String -> DBSpec -> IO ()
 migrate dbnm dbspec = do
   let Just migrationsPath = migrations dbspec
-  conn   <- createConn dbnm dbspec
+  ex <- doesDirectoryExist migrationsPath
+  when ex $ do
+    fileNames <- getDirectoryContents migrationsPath
+    let possibles = sortBy (\(a,_) (b,_) -> compare a b)
+                    . filter ((".sql" `isSuffixOf`) . snd)
+                    . map (\n -> (takeWhile (`elem` digits) n, migrationsPath </> n))
+                    $ fileNames
 
-  alreadyMigratedTimestamps <- getAlreadyMigratedTimestamps conn
+    when (not $ null possibles) $ do
 
-  fileNames <- getDirectoryContents migrationsPath
+      conn   <- createConn dbnm dbspec
 
-  let toMigrate = sortBy (\(a,_) (b,_) -> compare a b)
-                . filter ((".sql" `isSuffixOf`) . snd)
-                . filter ((`notElem` alreadyMigratedTimestamps) . fst)
-                . map (\n -> (takeWhile (`elem` digits) n, migrationsPath </> n))
-                $ fileNames
+      alreadyMigratedTimestamps <- getAlreadyMigratedTimestamps conn
 
-  forM_ toMigrate $ \(t,p) -> do
-    content <- readFile p
-    let qStr = content ++ "; INSERT INTO migrations ( timestamp ) VALUES ('" ++ t ++ "')"
-        q    = fromString qStr
-    execute_ conn q
+
+      let toMigrate = filter ((`notElem` alreadyMigratedTimestamps) . fst) possibles
+
+      forM_ toMigrate $ \(t,p) -> do
+        content <- readFile p
+        let qStr = content ++ "; INSERT INTO migrations ( timestamp ) VALUES ('" ++ t ++ "')"
+            q    = fromString qStr
+        execute_ conn q
 
 getAlreadyMigratedTimestamps :: Connection -> IO [String]
 getAlreadyMigratedTimestamps conn = do
