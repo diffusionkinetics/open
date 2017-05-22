@@ -2,7 +2,7 @@ name:                postgresql-simple-expr
 version:             0.1.0.0
 synopsis:            Simple composable queries for postgresql-simple
 description:         Avoid some boilerplate in some postgresql-simple queries
-homepage:            https://github.com/filopodia/open/tree/master/postgresql-simple-expr
+homepage:            https://github.com/diffusionkinetics/open/tree/master/postgresql-simple-expr
 license:             MIT
 license-file:        LICENSE
 author:              Tom Nielsen
@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 source-repository head
   type:     git
-  location: https://github.com/filopodia/open
+  location: https://github.com/diffusionkinetics/open
 
 library
   hs-source-dirs:    lib

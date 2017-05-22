@@ -10,7 +10,7 @@ annotations can be treated in particular ways: as Haskell code that must be incl
 generating program (at the top level or in a do block) and as code that must be evaluated with the results
 inserted into the HTML document.
 
-For an example document, see https://github.com/filopodia/open/blob/master/plotlyhs/gendoc/GenDocInlit.hs which 
+For an example document, see https://github.com/diffusionkinetics/open/blob/master/plotlyhs/gendoc/GenDocInlit.hs which 
 ccompiles into https://glutamate.github.io/plotlyhs/.
 
 ## The inliterate document
@@ -55,7 +55,7 @@ add this to `top` or `do` code to prevent it from being printed in the output do
 
 if you only have a few documents, you can put them in your cabal file as an executable, with `inliterate` as a build dependency.
 
-here's the example from the plotlyhs [documentation generator](https://github.com/filopodia/open/blob/bf3e3211f936d1c66ee5f4828a6e26d4a2d5df76/plotlyhs/gendoc/plotly-gendoc.cabal#L15-L26):
+here's the example from the plotlyhs [documentation generator](https://github.com/diffusionkinetics/open/blob/bf3e3211f936d1c66ee5f4828a6e26d4a2d5df76/plotlyhs/gendoc/plotly-gendoc.cabal#L15-L26):
 
 ```
 executable plotly-gendoc

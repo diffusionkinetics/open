@@ -11,8 +11,8 @@ Author:              Tom Nielsen
 Maintainer:          tanielsen@gmail.com
 build-type:          Simple
 Cabal-Version: 	     >= 1.8
-homepage:            https://github.com/filopodia/open/inliterate
-bug-reports:         https://github.com/filopodia/open/issues
+homepage:            https://github.com/diffusionkinetics/open/inliterate
+bug-reports:         https://github.com/diffusionkinetics/open/issues
 category:            Statistics
 Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 
