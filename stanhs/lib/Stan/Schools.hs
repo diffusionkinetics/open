@@ -3,6 +3,9 @@
 module Stan.Schools where
 
 import Stan.AST
+import Stan.Data
+import Data.Monoid ((<>))
+
 
 schools :: [Stan]
 schools = [
@@ -33,3 +36,8 @@ y = [28,  8, -3,  7, -1,  1, 18, 12]
 
 sigma :: [Double]
 sigma = [15, 10, 16, 11,  9, 11, 10, 18]
+
+schoolData :: StanData
+schoolData =   "J" <~ j <>
+               "y" <~ y <>
+               "sigma" <~ sigma

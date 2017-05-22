@@ -1,6 +1,8 @@
 module Stan.Data where
 
 import Data.List
+import qualified Data.Sequence as Seq
+import Data.Monoid
 
 class Dump1 a where
   dump1 :: a -> ([String], [Int])
@@ -26,8 +28,18 @@ dumpAll (ss, [_]) = concat $ "c(" : intersperse "," ss ++[")"]
 dumpAll (ss, ns) = concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c("]
                              ++intersperse "," (map show ns)++[")"]
 
-dumpAs :: Dump1 a => String -> a -> String
-dumpAs nm x = nm++"<-"++(dumpAll $ dump1 x)
+dumpAs :: Dump1 a => String -> a -> StanData
+dumpAs nm x = StanData $ Seq.singleton $ nm++"<-"++(dumpAll $ dump1 x)
+
+(<~) :: Dump1 a => String -> a -> StanData
+(<~) = dumpAs
+
+newtype StanData = StanData { unStanData :: Seq.Seq String }
+
+instance Monoid StanData where
+  StanData s1 `mappend` StanData s2 = StanData $ s1 <> s2
+  mempty = StanData mempty
+
 
 --class ToStanData a where
 --  toStanData :: a -> String
