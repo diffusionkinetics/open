@@ -1,24 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Stan.Schools where
 
 import Stan.AST
 
 schools :: [Stan]
 schools = [
-  Data [ TypeDecl (Bounded (Just 0) Nothing Int) "J" []
-       , TypeDecl Real "y" [Var "J"]
-       , TypeDecl (Bounded (Just 0) Nothing Real) "sigma" [Var "J"]
+  Data [ Type (lower 0 Int) "J" []
+       , Type Real "y" ["J"]
+       , Type (lower 0 Real) "sigma" ["J"]
        ],
-  Parameters [ TypeDecl Real "mu" []
-             , TypeDecl (Bounded (Just 0) Nothing Real) "tau" []
-             , TypeDecl Real "eta" [Var "J"]
+  Parameters [ Type Real "mu" []
+             , Type (lower 0 Real) "tau" []
+             , Type Real "eta" ["J"]
              ],
-  TransformedParameters [ TypeDecl Real "theta" [Var "J"]
-                        , For "j" 1 (Var "J")
-                             [Assign ("theta",[Var "j"]) (Var "mu" + Var "tau" * (Ix (Var "eta") [Var "j"]))]
+  TransformedParameters [ Type Real "theta" ["J"]
+                        , For "j" 1 "J" [
+                            ("theta",["j"]) := "mu" + "tau" * "eta"!["j"]
+                            ]
 
                         ],
-  Model [ Distribute ("eta",[]) "normal" [0,1]
-        , Distribute ("y",[]) "normal" [Var "theta",Var "sigma"]
+  Model [ "eta" :~ normal (0,1)
+        , "y" :~ normal ("theta","sigma")
         ]
   ]
 

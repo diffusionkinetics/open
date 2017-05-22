@@ -14,8 +14,8 @@ myExpr1 = 2*(1+3)
 
 myModel :: Stan
 myModel = Model [
-  TypeDecl Real "foo" [],
-  Assign ("foo", []) myExpr
+  Type Real "foo" [],
+  ("foo", []) := myExpr
   ]
 
 main :: IO ()

@@ -29,5 +29,5 @@ dumpAll (ss, ns) = concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c(
 dumpAs :: Dump1 a => String -> a -> String
 dumpAs nm x = nm++"<-"++(dumpAll $ dump1 x)
 
-class ToStanData a where
-  toStanData :: a -> String
+--class ToStanData a where
+--  toStanData :: a -> String

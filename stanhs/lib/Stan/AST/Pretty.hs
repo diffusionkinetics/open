@@ -35,13 +35,11 @@ ppStans = render . vcat . map pPrint
 ppDecls :: [Decl] -> Doc
 ppDecls = vcat . map ((<>(char ';')) . pPrint)
 
-
-
 instance Pretty Decl where
-  pPrint (TypeDecl t nm ixs) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
-  pPrint (Assign (nm,ixes) e) = (text nm <> mcommasepBrackets (map pPrint ixes))
+  pPrint (Type t nm ixs) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
+  pPrint ((nm,ixes) := e) = (text nm <> mcommasepBrackets (map pPrint ixes))
                                   <+> text "=" <+> pPrint e
-  pPrint (Distribute (nm,ixes) dnm es) = (text nm <> mcommasepBrackets (map pPrint ixes))
+  pPrint ((nm,ixes) :~ (dnm, es)) = (text nm <> mcommasepBrackets (map pPrint ixes))
                                   <+> text "~" <+> text dnm <> parens (commasep (map pPrint es))
   pPrint (For vnm elo ehi ds) = let range = pPrint elo <> char ':' <> pPrint ehi
                                 in text "for" <+> parens (text vnm <+> text "in" <+> range) <+> char '{'

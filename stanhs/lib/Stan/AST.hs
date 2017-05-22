@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass, DeriveGeneric, FlexibleInstances #-}
 
 module Stan.AST where
 
@@ -16,9 +16,9 @@ data Stan = Data [Decl]
           | GeneratedQuantities [Decl]
             deriving (Eq, Show, Generic, Hashable)
 
-data Decl = TypeDecl Type Var [Expr]
-          | Assign (Var,[Expr]) Expr
-          | Distribute (Var,[Expr]) String [Expr]
+data Decl = Type Type Var [Expr]
+          | (Var,[Expr]) := Expr
+          | (Var,[Expr]) :~ (String, [Expr])
           | For Var Expr Expr [Decl]
             deriving (Eq, Show, Generic, Hashable)
 
@@ -37,6 +37,10 @@ data Expr = LitInt Int
           | Var Var
             deriving (Eq, Show, Generic, Hashable)
 
+infixl 1 :=
+
+(!) :: Expr -> [Expr] -> Expr
+(!) = Ix
 
 instance Num Expr where
   e1 + e2 = BinOp "+" e1 e2
@@ -72,3 +76,11 @@ instance Floating Expr where
 instance IsString Expr where
   fromString s = Var s
 
+instance IsString (Var,[Expr]) where
+  fromString s = (s, [])
+
+normal :: (Expr , Expr) -> (String, [Expr])
+normal (mn, sd) = ("normal", [mn,sd])
+
+lower :: Expr -> Type -> Type
+lower lo ty = Bounded (Just lo) Nothing ty
