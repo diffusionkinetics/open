@@ -1,0 +1,26 @@
+name:                postgresql-simple-expr
+version:             0.1.0.0
+synopsis:            Simple composable queries for postgresql-simple
+description:         Avoid some boilerplate in some postgresql-simple queries
+homepage:            https://github.com/filopodia/open/tree/master/postgresql-simple-expr
+license:             MIT
+license-file:        LICENSE
+author:              Tom Nielsen
+maintainer:          tanielsen@gmail.com
+copyright:           Tom Nielsen
+category:            Statistics
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/filopodia/open
+
+library
+  hs-source-dirs:    lib
+  ghc-options:       -fwarn-unused-imports -fno-warn-unused-do-bind -fno-warn-type-defaults
+  default-language:  Haskell2010
+  exposed-modules:   Database.PostgreSQL.Simple.Expr
+  build-depends:       base >= 4.6 && < 5
+                     , postgresql-simple

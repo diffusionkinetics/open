@@ -1,7 +1,8 @@
 module Main where
 
 import Stan.AST
-import Stan.IO
+import Stan.AST.Pretty
+import Stan.Data
 import Stan.Run
 import Stan.Schools
 
@@ -17,6 +18,7 @@ myModel = Model [
   Assign ("foo", []) myExpr
   ]
 
+main :: IO ()
 main = do
   putStrLn ""
 --  putStrLn $ pp myExpr
@@ -26,5 +28,8 @@ main = do
                   , dumpAs "sigma" sigma ]
   putStrLn $ ppStans schools
   putStrLn $ unlines dataLines
-  runStan schools dataLines
+  res <- runStan schools dataLines sample {numSamples = 1000}
+  putStrLn $ take 400 $ show res
+  res1 <- runStan schools dataLines optimize
+  putStrLn $ take 400 $ show res1
   return ()

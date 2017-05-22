@@ -10,6 +10,7 @@ import Lucid.Bootstrap3
 import Lucid.PreEscaped
 import Control.Monad (unless)
 import System.Environment
+import Data.List (intercalate)
 
 import Graphics.Plotly
 import Graphics.Plotly.Lucid ()
@@ -60,6 +61,17 @@ instance AskInliterate (Html ()) where
 
 instance AskInliterate Plotly where
   askInliterate q cts plt = askInliterate q cts $ (toHtml plt :: Html ())
+
+instance (Show a, AskInliterate a) => AskInliterate [a] where
+  askInliterate = answerWith lshow where
+    lshow xs = let (first5, rest) = splitAt 5 xs
+                   sfirst5 = map show first5
+                   (first15, rest15 ) = splitAt 15 xs
+                   avgLen = realToFrac (sum $ map length sfirst5) / realToFrac (length (first5))
+                   withMore ws ys = if not $ null ws then ys++["..."] else ys
+               in if avgLen > (8.0::Double)
+                     then "[ " ++ intercalate "\n, " (withMore rest sfirst5) ++ "]"
+                     else "[" ++ intercalate "," (withMore rest15 (map show first15)) ++ "]"
 
 wrapMain :: String -> IO () -> IO ()
 wrapMain hdrTxt go = do

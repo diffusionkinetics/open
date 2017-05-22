@@ -9,10 +9,10 @@ import Control.Monad
 import qualified Data.Text as T
 import Data.Maybe (fromMaybe)
 
-data Dampf = Image T.Text ImageSpec
-           | Domain T.Text DomainSpec
-           | PostgresDB T.Text DBSpec
-           | Container T.Text ContainerSpec
+data Dampf = Image String ImageSpec
+           | Domain String DomainSpec
+           | PostgresDB String DBSpec
+           | Container String ContainerSpec
 
            deriving Show
 
@@ -24,7 +24,13 @@ instance FromJSON Dampfs where
       case T.words k of
         ["image", imname] -> do
           imspec <- parseJSON v
-          return $ Image imname imspec
+          return $ Image (T.unpack imname) imspec
+        ["container", cname] ->
+          Container <$> return (T.unpack cname) <*> parseJSON v
+        ["postgresdb", dbname] ->
+          PostgresDB <$> return (T.unpack dbname) <*> parseJSON v
+        ["domain", dname] ->
+          Domain <$> return (T.unpack dname) <*> parseJSON v
         _ -> fail $ "unknown dampf spec: "++ T.unpack k
 
 data ImageSpec = ImageSpec
@@ -33,20 +39,25 @@ data ImageSpec = ImageSpec
 instance FromJSON ImageSpec
 
 data ContainerSpec = ContainerSpec
-  { image :: T.Text } deriving (Generic, Show)
+  { image :: String,
+    expose :: Maybe Int
+  } deriving (Generic, Show)
 
 instance FromJSON ContainerSpec
 
 data DomainSpec = DomainSpec
-  { static :: Maybe T.Text
-  , proxy_container :: Maybe T.Text } deriving (Generic, Show)
+  { static :: Maybe FilePath
+  , proxy_container :: Maybe T.Text
+  -- , generate :: Maybe T.Text
+  } deriving (Generic, Show)
 
 instance FromJSON DomainSpec
 
 data DBSpec = DBSpec
   { migrations :: Maybe FilePath
   , db_user :: String
-  , db_password :: String } deriving (Generic, Show)
+  , db_password :: String
+  , db_extensions :: [String] } deriving (Generic, Show)
 
 instance FromJSON DBSpec
 

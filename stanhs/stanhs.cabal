@@ -26,7 +26,8 @@ Library
 
    Exposed-modules:
                    Stan.AST
-                 , Stan.IO
+                 , Stan.AST.Pretty
+                 , Stan.Data
                  , Stan.Schools
                  , Stan.Run
 
@@ -38,6 +39,7 @@ Library
                , filepath
                , process
                , containers
+               , random
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

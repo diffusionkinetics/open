@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Bar deriving Show
+data TraceType = Scatter | Scatter3D | Bar deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -106,7 +106,7 @@ data Marker = Marker
 makeLenses ''Marker
 
 instance ToJSON Marker where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "markercolor" "color" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "marker" . unLens}
 
 -- | default marker specification
 defMarker :: Marker
@@ -127,10 +127,10 @@ instance ToJSON Orientation where
   toJSON Vertical = "v"
 
 -- | Are we filling area plots from the zero line or to the next Y value?
-data Fill = ToZeroY | ToNextY deriving Show
+data Fill = FillNone | ToZeroY | ToNextY | ToZeroX | ToNextX | ToSelf | ToNext deriving Show
 
 instance ToJSON Fill where
-  toJSON = toJSON . map toLower . show
+  toJSON = toJSON . map toLower . dropInitial "Fill" . show
 
 -- | line specification
 data Line = Line
@@ -147,10 +147,26 @@ instance ToJSON Line where
 defLine :: Line
 defLine = Line Nothing Nothing Nothing
 
+data HoverElem = HoverX | HoverY | HoverZ | HoverText | HoverName
+  deriving (Generic, Show)
+
+data HoverInfo = HoverPlus [HoverElem] | HoverAll | HoverNone | HoverSkip
+  deriving (Generic, Show)
+
+instance ToJSON HoverInfo where
+  toJSON (HoverPlus elems) = toJSON . intercalate "+" $ (map toLower . dropInitial "Hover" . show) <$> elems
+  toJSON x                 = toJSON . map toLower . dropInitial "Hover" $ show x
+
+data HoverOn = HoverPoints | HoverFills deriving (Generic, Show)
+
+instance {-# OVERLAPS #-} ToJSON [HoverOn] where
+  toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Hover" . show)
+
 -- | A `Trace` is the component of a plot. Multiple traces can be superimposed.
 data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
   , _y :: Maybe [Value] -- ^ y values, as numbers
+  , _z :: Maybe [Value] -- ^ z values, as numbers
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
@@ -159,21 +175,35 @@ data Trace = Trace
   , _line :: Maybe Line
   , _fill :: Maybe Fill
   , _orientation :: Maybe Orientation
+  , _visible :: Maybe Value
+  , _traceshowlegend :: Maybe Bool
+  , _legendgroup :: Maybe Text
+  , _hoverinfo :: Maybe HoverInfo
+  , _hovertext :: Maybe (ListOrElem Text)
+  , _hoveron :: Maybe [HoverOn]
   } deriving Generic
 
 makeLenses ''Trace
 
+mkTrace :: TraceType -> Trace
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
 -- |an empty scatter plot
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
+scatter = mkTrace Scatter
+
+-- |an empty bar plot
+scatter3d :: Trace
+scatter3d = mkTrace Scatter3D
 
 -- |an empty bar plot
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
+bars = mkTrace Bar
 
 
 instance ToJSON Trace where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
+    where renamer = dropInitial "trace" . unLens
 
 -- |Options for axes
 data Axis = Axis
@@ -181,15 +211,16 @@ data Axis = Axis
   , _axistitle :: Maybe Text
   , _showgrid :: Maybe Bool
   , _zeroline :: Maybe Bool
+  , _axisvisible :: Maybe Bool
   } deriving Generic
 
 makeLenses ''Axis
 
 instance ToJSON Axis where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
@@ -223,6 +254,7 @@ titleMargins = Margin 50 25 30 40 4
 data Layout = Layout
   { _xaxis :: Maybe Axis
   , _yaxis :: Maybe Axis
+  , _zaxis :: Maybe Axis
   , _title :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
@@ -235,7 +267,7 @@ makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions

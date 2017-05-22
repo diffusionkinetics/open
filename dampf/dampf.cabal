@@ -27,9 +27,14 @@ Library
    Exposed-modules:
                    Dampf
                    Dampf.AppFile
+                   Dampf.ConfigFile
                    Dampf.Common
+                   Dampf.Docker
+                   Dampf.Nginx
+                   Dampf.Nginx.Config
                    Dampf.Postgres.Migrate
                    Dampf.Postgres.Connect
+                   Dampf.Postgres.Setup
                    Dampf.Postgres
 
 
@@ -42,7 +47,10 @@ Library
                , time
                , directory
                , filepath
+               , process
                , postgresql-simple
+               , pretty
+               , unix
 
 executable dampf
   main-is: Main.hs
