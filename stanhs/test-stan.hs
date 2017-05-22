@@ -4,7 +4,6 @@ import Stan.AST
 import Stan.IO
 import Stan.Run
 import Stan.Schools
-import Lens.Micro
 
 myExpr :: Expr
 myExpr = sin $ Ix (Var "xs") [2+1*3]
@@ -28,6 +27,8 @@ main = do
                   , dumpAs "sigma" sigma ]
   putStrLn $ ppStans schools
   putStrLn $ unlines dataLines
-  _ <- runStan schools dataLines (sample & numSamples .~ 1000)
-  --print res
+  res <- runStan schools dataLines sample {numSamples = 1000}
+  putStrLn $ take 400 $ show res
+  res1 <- runStan schools dataLines optimize
+  putStrLn $ take 400 $ show res1
   return ()
