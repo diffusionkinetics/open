@@ -36,6 +36,7 @@ runStan myModel myData optimize {method = Newton}
 module Stan.Run (runStan, Sample (..), Optimize (..), sample, optimize, StanMethod (..), OptMethod (..)) where
 
 import Stan.AST
+import Stan.AST.Pretty
 import System.Directory
 import System.FilePath
 import System.Environment
@@ -57,7 +58,7 @@ data Sample = Sample
   , thin :: Int
   }
 
--- | Parameters for the variational method.
+-- | Parameters for the optimise method.
 -- runStan called with this method will return @Map.Map String Double@
 data Optimize = Optimize
   { iterations :: Int

@@ -26,7 +26,8 @@ Library
 
    Exposed-modules:
                    Stan.AST
-                 , Stan.IO
+                 , Stan.AST.Pretty
+                 , Stan.Data
                  , Stan.Schools
                  , Stan.Run
 

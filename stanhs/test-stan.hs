@@ -1,7 +1,7 @@
 module Main where
 
 import Stan.AST
-import Stan.IO
+import Stan.Data
 import Stan.Run
 import Stan.Schools
 

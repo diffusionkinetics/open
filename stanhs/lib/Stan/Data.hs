@@ -1,4 +1,4 @@
-module Stan.IO where
+module Stan.Data where
 
 import Data.List
 
