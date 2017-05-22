@@ -7,7 +7,6 @@ module Dashdo.FileEmbed (embedFile) where
 import qualified Data.FileEmbed as DFE
 
 import Language.Haskell.TH.Syntax
-import Language.Haskell.TH.Lib
 
 embedFile :: FilePath -> Q Exp
 embedFile path = do

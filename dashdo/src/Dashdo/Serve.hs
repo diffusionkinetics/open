@@ -14,9 +14,6 @@ import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.ByteString.Lazy as BLS
 
-import Data.Hashable
-import Control.Applicative
-import Control.Arrow ((&&&))
 import Control.Monad (forM_)
 
 dashdoHandler :: Dashdo a -> IO ([Param] -> ActionM ())
