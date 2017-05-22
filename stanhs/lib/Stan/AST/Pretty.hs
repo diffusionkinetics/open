@@ -36,7 +36,7 @@ ppDecls :: [Decl] -> Doc
 ppDecls = vcat . map ((<>(char ';')) . pPrint)
 
 instance Pretty Decl where
-  pPrint (Type t nm ixs) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
+  pPrint (t ::: (nm, ixs)) = pPrint t <+> text nm <> mcommasepBrackets (map pPrint ixs)
   pPrint ((nm,ixes) := e) = (text nm <> mcommasepBrackets (map pPrint ixes))
                                   <+> text "=" <+> pPrint e
   pPrint ((nm,ixes) :~ (dnm, es)) = (text nm <> mcommasepBrackets (map pPrint ixes))

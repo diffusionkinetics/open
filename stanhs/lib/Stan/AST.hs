@@ -16,7 +16,7 @@ data Stan = Data [Decl]
           | GeneratedQuantities [Decl]
             deriving (Eq, Show, Generic, Hashable)
 
-data Decl = Type Type Var [Expr]
+data Decl = Type ::: (Var,[Expr])
           | (Var,[Expr]) := Expr
           | (Var,[Expr]) :~ (String, [Expr])
           | For Var Expr Expr [Decl]
@@ -38,9 +38,15 @@ data Expr = LitInt Int
             deriving (Eq, Show, Generic, Hashable)
 
 infixl 1 :=
+infixl 1 :::
+class Indexable a where
+  (!) :: a -> [Expr] -> a
 
-(!) :: Expr -> [Expr] -> Expr
-(!) = Ix
+instance Indexable Expr where
+  (!) = Ix
+
+instance Indexable (Var,[Expr]) where
+  (v,exprs) ! es = (v,exprs++es)
 
 instance Num Expr where
   e1 + e2 = BinOp "+" e1 e2

@@ -9,17 +9,17 @@ import Data.Monoid ((<>))
 
 schools :: [Stan]
 schools = [
-  Data [ Type (lower 0 Int) "J" []
-       , Type Real "y" ["J"]
-       , Type (lower 0 Real) "sigma" ["J"]
+  Data [ lower 0 Int ::: "J"
+       , Real ::: "y"!["J"]
+       , lower 0 Real ::: "sigma"!["J"]
        ],
-  Parameters [ Type Real "mu" []
-             , Type (lower 0 Real) "tau" []
-             , Type Real "eta" ["J"]
+  Parameters [ Real ::: "mu"
+             , lower 0 Real ::: "tau"
+             , Real ::: "eta"!["J"]
              ],
-  TransformedParameters [ Type Real "theta" ["J"]
+  TransformedParameters [ Real ::: "theta"!["J"]
                         , For "j" 1 "J" [
-                            ("theta",["j"]) := "mu" + "tau" * "eta"!["j"]
+                            "theta"!["j"] := "mu" + "tau" * "eta"!["j"]
                             ]
 
                         ],

@@ -13,7 +13,7 @@ myExpr1 = 2*(1+3)
 
 myModel :: Stan
 myModel = Model [
-  Type Real "foo" [],
+   Real ::: ("foo",[]),
   ("foo", []) := myExpr
   ]
 
