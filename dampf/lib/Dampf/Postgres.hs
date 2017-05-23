@@ -2,6 +2,8 @@ module Dampf.Postgres where
 
 import Dampf.Postgres.Migrate
 import Dampf.AppFile
+import Dampf.ConfigFile
+import Dampf.Postgres.Setup
 import Control.Monad (forM_, when)
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
@@ -22,3 +24,11 @@ newMigrationCmd mfp mdbnm mignm = do
                           Just dbspec -> newMigration mignm dbspec
                           Nothing -> fail "cannot find database in appfile"
       _ -> fail $ "newmigration: database not specified"
+
+setupDB :: Maybe FilePath -> IO ()
+setupDB mfp = do
+  withAppFile mfp $ \dampfs -> do
+    withConfigFile Nothing $ \cfg -> do
+      createUsers dampfs cfg
+      createDatabases dampfs cfg
+      createExtensions dampfs cfg

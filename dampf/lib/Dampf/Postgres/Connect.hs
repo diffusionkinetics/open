@@ -21,10 +21,13 @@ createConn dbnm dbspec = do
                                     threadDelay $ 10 * 1000 * 1000
                                     createConn' dbnm dbspec)
 
-createSuperUserConn :: DampfConfig -> DBSpec -> IO Connection
-createSuperUserConn cfg dbspec' = do
-   let dbnm = "postgres"
-       dbspec = dbspec' { db_user = "postgres", db_password = postgres_password cfg}
+createSuperUserConn :: DampfConfig -> String -> IO Connection
+createSuperUserConn cfg dbnm = do
+   let dbspec = DBSpec { db_user = "postgres",
+                         db_password = postgres_password cfg,
+                         migrations = Nothing,
+                         db_extensions = []
+                       }
 
    catch (createConn' dbnm dbspec)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
