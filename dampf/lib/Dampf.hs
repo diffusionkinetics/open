@@ -4,8 +4,10 @@ module Dampf where
 import Data.Yaml
 
 import Dampf.AppFile
+import Dampf.ConfigFile
 import Dampf.Docker
 import Dampf.Postgres
+import Dampf.Postgres.Setup
 import Dampf.Nginx
 
 dumpYaml :: FilePath -> IO ()
@@ -19,15 +21,26 @@ dumpCfg fp = do
   case ev of
     Right (Dampfs v) -> mapM_ print v
     Left e -> fail $ show e
+  withConfigFile Nothing $ \cfg -> do
+    print cfg
 
 goBuild :: Maybe FilePath -> IO ()
 goBuild mfp = do
+  setupDB mfp
   withAppFile mfp $ \dampfs -> do
-    buildDocker dampfs
+    withConfigFile Nothing $ \cfg -> do
+      buildDocker dampfs
+      createUsers dampfs cfg
+      createDatabases dampfs cfg
+      createExtensions dampfs cfg
+
+
 
 goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
+  goBuild mfp
   withAppFile mfp $ \dampfs -> do
-    deployDocker dampfs
-    runMigrations mfp Nothing
-    deployDomains dampfs
+    withConfigFile Nothing $ \_ -> do
+      deployDocker dampfs
+      runMigrations mfp Nothing
+      deployDomains dampfs

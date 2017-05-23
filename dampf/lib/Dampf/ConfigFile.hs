@@ -6,10 +6,12 @@ import Data.Yaml
 import Data.Maybe (fromMaybe)
 import System.Directory
 import System.FilePath
-
+import Data.Map.Strict (Map)
 
 data DampfConfig = DampfConfig
-  { postgres_password :: String } deriving (Generic, Show)
+  { postgres_password :: String
+  , db_passwords :: Map String String
+  } deriving (Generic, Show)
 
 instance FromJSON DampfConfig
 

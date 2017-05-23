@@ -56,7 +56,6 @@ instance FromJSON DomainSpec
 data DBSpec = DBSpec
   { migrations :: Maybe FilePath
   , db_user :: String
-  , db_password :: String
   , db_extensions :: [String] } deriving (Generic, Show)
 
 instance FromJSON DBSpec

@@ -35,6 +35,7 @@ runStan myModel myData optimize {method = Newton}
 
 module Stan.Run (runStan, Sample (..), Optimize (..), sample, optimize, StanMethod (..), OptMethod (..)) where
 
+import Stan.Data
 import Stan.AST
 import Stan.AST.Pretty
 import System.Directory
@@ -48,7 +49,7 @@ import Data.Char (toLower)
 import qualified Data.Map.Strict as Map
 import System.Exit
 import System.Random (randomRIO)
-
+import Data.Foldable (toList)
 -- | Parameters for the sample method.
 --   runStan called with this method will return @Map.Map String [Double]@,
 --   with one element in each list per sample from the MCMC chain
@@ -113,12 +114,12 @@ toArgs = unwords . map f where
 -- | Run a stan model
 runStan :: StanMethod a
            => [Stan] -- ^ The Stan model
-           -> [String] -- ^ The data file, written using dumpAs
+           -> StanData -- ^ The data file, written using Stan.Data
            -> a -- ^ the method to run with
            -> IO (StanReturns a) -- ^ the output from that method
-runStan stans dataLines meth = do
+runStan stans sData meth = do
     stTmpDir <- getStanTempDirectory
-    dataFile <- writeStanDataFile stTmpDir dataLines
+    dataFile <- writeStanDataFile stTmpDir sData
     mdlNm <- compileStanModel stTmpDir stans
     withCurrentDirectory stTmpDir $ do
       runStanFiles mdlNm dataFile meth
@@ -144,8 +145,9 @@ getStanTempDirectory = do
   createDirectoryIfMissing False stTmpDir
   return stTmpDir
 
-writeStanDataFile :: FilePath -> [String] -> IO FilePath
-writeStanDataFile dir dataLines = do
+writeStanDataFile :: FilePath -> StanData -> IO FilePath
+writeStanDataFile dir sData = do
+  let dataLines = toList $ unStanData sData
   let dataNm = 'd': (show $ abs $ hash dataLines)
       dataFile = dir </> dataNm <.> "data.R"
   writeFile dataFile $ unlines dataLines

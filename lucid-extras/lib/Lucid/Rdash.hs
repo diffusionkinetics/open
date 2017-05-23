@@ -34,7 +34,7 @@ toHtml = Lucid.toHtml
 rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 
 rdashCSS = link_ [rel_ "stylesheet",
-                  href_  "http://cdn.filopodia.com/rdash-ui/1.0.1/css/rdash.css"]
+                  href_  "http://cdn.diffusionkinetics.com/rdash-ui/1.0.1/css/rdash.css"]
 
 ariaHidden, tooltip_ :: Term arg result => arg -> result
 
