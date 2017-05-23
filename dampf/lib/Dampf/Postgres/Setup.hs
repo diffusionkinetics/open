@@ -5,10 +5,6 @@ module Dampf.Postgres.Setup where
 import Control.Monad
 
 import Data.List
-import Data.String
-import Data.Time
-import System.Directory
-import System.FilePath
 import Dampf.AppFile
 import Dampf.ConfigFile
 import Dampf.Postgres.Connect
@@ -20,13 +16,14 @@ import Database.PostgreSQL.Simple.Types
 createUsers :: Dampfs -> DampfConfig -> IO ()
 createUsers (Dampfs dampfs) cfg = do
   conn <- createSuperUserConn cfg "postgres"
-  let dbs = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs ]
-  forM_ dbs $ \(dbnm, dbspec) -> do
+  let dbs = [ dbspec | PostgresDB _ dbspec <- dampfs ]
+  forM_ dbs $ \dbspec -> do
+    let passwd = lookupPassword (db_user dbspec) cfg
     rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
        (Only $ db_user dbspec)
     case rls :: [Only String] of
       [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                    (Identifier $ T.pack $ db_user dbspec, db_password dbspec)
+                    (Identifier $ T.pack $ db_user dbspec,passwd)
       _ -> return ()
 
     return ()
@@ -46,8 +43,8 @@ createExtensions (Dampfs dampfs) cfg = do
 createDatabases :: Dampfs -> DampfConfig -> IO ()
 createDatabases (Dampfs dampfs) cfg = do
   conn <- createSuperUserConn cfg "postgres"
-  let dbs = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs ]
-  forM_ dbs $ \(dbnm, dbspec) -> do
+  let dbs' = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs ]
+  forM_ dbs' $ \(dbnm, dbspec) -> do
     dbs <- query conn "SELECT datname FROM pg_database where datname = ?"
        (Only $ dbnm)
     case dbs :: [Only String] of

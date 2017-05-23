@@ -8,11 +8,12 @@ import Control.Monad (forM_, when)
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
 runMigrations mfp mdbnm = do
-  withAppFile mfp $ \(Dampfs dampfs) -> do
-    forM_ [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs]
-           $ \(dbnm, dbspec) -> do
-      when (maybe True (==dbnm) mdbnm) $
-        migrate dbnm dbspec
+  withConfigFile Nothing $ \cfg -> do
+    withAppFile mfp $ \(Dampfs dampfs) -> do
+      forM_ [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs]
+            $ \(dbnm, dbspec) -> do
+        when (maybe True (==dbnm) mdbnm) $
+          migrate cfg dbnm dbspec
 
 newMigrationCmd :: Maybe FilePath -> Maybe String -> String -> IO ()
 newMigrationCmd mfp mdbnm mignm = do

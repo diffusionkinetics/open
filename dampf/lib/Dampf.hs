@@ -21,6 +21,8 @@ dumpCfg fp = do
   case ev of
     Right (Dampfs v) -> mapM_ print v
     Left e -> fail $ show e
+  withConfigFile Nothing $ \cfg -> do
+    print cfg
 
 goBuild :: Maybe FilePath -> IO ()
 goBuild mfp = do
@@ -38,7 +40,7 @@ goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
   goBuild mfp
   withAppFile mfp $ \dampfs -> do
-    withConfigFile Nothing $ \cfg -> do
+    withConfigFile Nothing $ \_ -> do
       deployDocker dampfs
       runMigrations mfp Nothing
       deployDomains dampfs

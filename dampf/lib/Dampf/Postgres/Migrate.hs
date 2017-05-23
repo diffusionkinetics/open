@@ -9,6 +9,7 @@ import Data.String
 import Data.Time
 import System.Directory
 import System.FilePath
+import Dampf.ConfigFile
 import Dampf.AppFile
 import Dampf.Postgres.Connect
 
@@ -17,8 +18,8 @@ import Database.PostgreSQL.Simple
 digits :: String
 digits = "0123456789"
 
-migrate :: String -> DBSpec -> IO ()
-migrate dbnm dbspec = do
+migrate :: DampfConfig -> String -> DBSpec -> IO ()
+migrate cfg dbnm dbspec = do
   let Just migrationsPath = migrations dbspec
   ex <- doesDirectoryExist migrationsPath
   when ex $ do
@@ -30,7 +31,7 @@ migrate dbnm dbspec = do
 
     when (not $ null possibles) $ do
 
-      conn   <- createConn dbnm dbspec
+      conn   <- createConn dbnm dbspec cfg
 
       alreadyMigratedTimestamps <- getAlreadyMigratedTimestamps conn
 

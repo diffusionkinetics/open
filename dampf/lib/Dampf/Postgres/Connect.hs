@@ -4,6 +4,7 @@ module Dampf.Postgres.Connect
   ( createConn
   , destroyConn
   , createSuperUserConn
+  , lookupPassword
   ) where
 
 import           Control.Exception
@@ -13,34 +14,44 @@ import Dampf.AppFile
 import Dampf.ConfigFile
 
 import Database.PostgreSQL.Simple
+import qualified Data.Map.Strict as Map
 
-createConn :: String -> DBSpec -> IO Connection
-createConn dbnm dbspec = do
-   catch (createConn' dbnm dbspec)
+
+lookupPassword :: String -> DampfConfig -> String
+lookupPassword nm cfg =
+  case Map.lookup nm $ db_passwords cfg of
+    Nothing -> error $ "no password for user "++nm++" in .dampf.cfg"
+    Just pw -> pw
+
+createConn :: String -> DBSpec -> DampfConfig-> IO Connection
+createConn dbnm dbspec cfg = do
+   catch (createConn' dbnm dbspec cfg)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
                                     threadDelay $ 10 * 1000 * 1000
-                                    createConn' dbnm dbspec)
+                                    createConn' dbnm dbspec cfg)
 
 createSuperUserConn :: DampfConfig -> String -> IO Connection
 createSuperUserConn cfg dbnm = do
    let dbspec = DBSpec { db_user = "postgres",
-                         db_password = postgres_password cfg,
                          migrations = Nothing,
                          db_extensions = []
                        }
 
-   catch (createConn' dbnm dbspec)
+   catch (createConn' dbnm dbspec cfg)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
                                     threadDelay $ 10 * 1000 * 1000
-                                    createConn' dbnm dbspec)
+                                    createConn' dbnm dbspec cfg)
 
 
-createConn' :: String -> DBSpec -> IO Connection
-createConn' dbnm dbspec = do
+createConn' :: String -> DBSpec -> DampfConfig-> IO Connection
+createConn' dbnm dbspec cfg = do
+  let userNm = db_user dbspec
   connect ConnectInfo
     { connectHost     = "localhost"
-    , connectUser     = db_user dbspec
-    , connectPassword = db_password dbspec
+    , connectUser     = userNm
+    , connectPassword = if userNm == "postgres"
+                          then postgres_password cfg
+                          else lookupPassword (db_user dbspec) cfg
     , connectDatabase = dbnm
     , connectPort     = 5432
     }

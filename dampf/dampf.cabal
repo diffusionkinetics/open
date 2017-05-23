@@ -50,6 +50,7 @@ Library
                , process
                , postgresql-simple
                , pretty
+               , containers
                , unix
 
 executable dampf
