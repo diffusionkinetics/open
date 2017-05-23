@@ -1,0 +1,41 @@
+name:                youido
+version:             0.1.0.0
+synopsis:            Web application constructor kit
+description:         Web application constructor kit.
+homepage:            https://github.com/diffusionkinetics/open/tree/master/youido
+license:             MIT
+license-file:        LICENSE
+author:              Tom Nielsen
+maintainer:          tomn@diffusionkinetics.com
+copyright:           Tom Nielsen
+category:            Web
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/diffusionkinetics/open
+
+library
+  hs-source-dirs:    lib
+  ghc-options:       -fwarn-unused-imports -fno-warn-unused-do-bind -fno-warn-type-defaults
+  default-language:  Haskell2010
+  exposed-modules:   Youido
+                     Youido.Database
+                     Youido.Types
+                     Youido.Serve
+  build-depends:       base >= 4.6 && < 5
+                     , text
+                     , lucid
+                     , lucid-extras
+                     , microlens
+                     , mtl
+                     , random-fu
+                     , Spock
+                     , postgresql-simple
+                     , wai-middleware-static
+                     , wai-extra
+                     , aeson
+                     , bytestring
+
