@@ -98,7 +98,7 @@ checkbox text vTrue vFalse f = do
                 _      -> lensSetter f s vFalse
       fid = "id" <> pack (show n)
       checked = if val ^. f == vTrue then [checked_] else []
-  putFormField(n, ft)
+  putFormField (n, ft)
   div_ [class_ "checkbox"] $
     label_ $ do
       input_ $ [type_ "checkbox", id_ fid, fieldName n, value_ "true"] ++ checked

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dashdo.Rdash (rdash, charts, controls) where
+module Dashdo.Rdash (rdash, charts, controls, inSidebar) where
 
 import Dashdo
 import Dashdo.Types
@@ -10,10 +10,7 @@ import qualified Lucid.Rdash as RD
 import qualified Data.Text.Lazy as TL
 import Data.Text hiding (map, intersperse, length)
 import Data.Monoid
-import Data.List (intersperse)
 import Control.Applicative ((<$>))
-import Control.Arrow ((&&&))
-import Control.Monad (forM_)
 
 sidebarMain, sidebarTitle :: (Monad m) => HtmlT m ()
 sidebarTitle = span_ "Dashboards"
@@ -21,20 +18,13 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
-sidebarItem :: Monad m => (String, Text) -> HtmlT m ()
-sidebarItem (fid, title) = do
-  a_ [class_ "dashdo-link", href_ (pack fid)] $ do
-    toHtml title
-    span_ [class_ "fa fa-tachometer menu-icon"] (return ())
-
 dashdo :: RDashdo -> IO (String, TL.Text)
-dashdo (RDashdo fid d) = do
+dashdo (RDashdo fid _ d) = do
   t <- fst <$> dashdoGenOut d (initial d)
   return (fid, t)
 
-rdash :: Html () -> [(Text, RDashdo)] -> IO TL.Text
-rdash headExtra ds = do
-  dashdos <- mapM (dashdo . snd) ds
+rdash :: Html () -> IO TL.Text
+rdash headExtra = do
   return $ renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
@@ -42,21 +32,18 @@ rdash headExtra ds = do
         cdnThemeCSS
         headExtra
       body_ $ do
-        let form'_ = \(fid, txt) -> form_ [class_ "dashdo", id_ (pack fid)] $ (toHtmlRaw txt)
-            titles = (map (rdFid . snd &&& fst) ds)
-            sbl = map sidebarItem titles
-            sb  = RD.mkSidebar sidebarMain sidebarTitle sbl
+        let sb  = do RD.mkSidebar sidebarMain sidebarTitle [
+                       div_ [id_ "dashdo-sidebar"] mempty
+                       ]
             sbf = RD.mkSidebarFooter (rowEven XS
               [ a_ [href_ "https://github.com/filopodia/open"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
               , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
               ])
             sbw = RD.mkSidebarWrapper sb sbf
-            hdr ts = RD.mkHeaderBar [RD.mkMetaBox [RD.mkMetaTitle
-              (mapM_ (\(f, t) -> span_ [class_ "dashdo-title", id_ (pack f <> "-title")] (toHtml t)) ts)]]
             cw  = RD.mkPageContent $ do
-              hdr titles
-              (mapM_ form'_ dashdos)
-            pgw = RD.mkPageWrapperOpen sbw cw
+              RD.mkHeaderBar [RD.mkMetaBox [RD.mkMetaTitle (span_ [id_ "dashdo-title"] mempty)]]
+              div_ [id_ "dashdo-main"] mempty
+            pgw = form_ [id_ "dashdo-form", method_ "post"] $ RD.mkPageWrapperOpen sbw cw
         RD.mkIndexPage (RD.mkHead "Dashdo") (RD.mkBody pgw)
         cdnJqueryJS
         cdnBootstrapJS
@@ -84,3 +71,6 @@ charts cs = do
           div_ [class_ "widget-body no-padding"] $
             div_ [class_ "widget-content"] $
               content
+
+inSidebar :: SHtml a () -> SHtml a ()
+inSidebar = div_ [class_ "dashdo-sidebar"]

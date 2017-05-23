@@ -16,6 +16,7 @@ type SHtml t a = HtmlT (State (Int,t,FormFields t)) a
 
 data RDashdo = forall t. RDashdo
   { rdFid    :: String
+  , rdTitle  :: Text
   , rdDashdo :: Dashdo t }
 
 data Dashdo t = forall b. Dashdo

@@ -6,7 +6,7 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
-import Dashdo.Rdash (rdash, charts, controls)
+import Dashdo.Rdash (rdash, charts, controls, inSidebar)
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
@@ -42,10 +42,10 @@ makeLenses ''PsCtl
 main = do
   stats <- newMVar ([] :: [SysStats])
   forkIO (statGrab stats)
-  let dashdos = [ ("System Load", RDashdo "load" $ loadDashdo stats)
-                , ("Processes",   RDashdo "process" psDashdo) ]
-  html <- rdash plotlyCDN dashdos
-  runRDashdo html $ map snd dashdos
+  let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
+                , RDashdo "process" "Processes" psDashdo ]
+  html <- rdash plotlyCDN
+  runRDashdo html $ dashdos
 
 data Unused = Unused
 
@@ -76,7 +76,7 @@ process ctl (ps, us) = do
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
-  controls $
+  inSidebar $
     checkbox "Hide inactive processes" psActive psAll processFilter
 
   charts

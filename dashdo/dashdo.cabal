@@ -47,4 +47,5 @@ Library
                , hashable
                , wai-extra
                , template-haskell
+               , aeson
 
