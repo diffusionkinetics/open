@@ -36,6 +36,7 @@ library
                      , postgresql-simple
                      , wai-middleware-static
                      , wai-extra
+                     , wai
                      , aeson
                      , bytestring
 
