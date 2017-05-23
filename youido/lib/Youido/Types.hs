@@ -5,6 +5,7 @@ module Youido.Types where
 
 import Network.Wai hiding (Response)
 import Data.Text (Text, pack)
+import qualified Data.Text.Lazy as TL
 import Data.Monoid
 import GHC.TypeLits
 import Data.Proxy
@@ -12,8 +13,13 @@ import Lucid
 import Data.Aeson
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
+import Network.HTTP.Types
 
-data Response = Response { code :: Int, headers :: [(Text, Text)], contents:: LBS.ByteString}
+data Response = Response
+  { code :: Status
+  , headers :: [(TL.Text, TL.Text)]
+  , contents:: LBS.ByteString
+  }
 
 class ToResponse a where
   toResponse :: a -> Response
@@ -22,10 +28,10 @@ instance ToResponse Response where
   toResponse = id
 
 instance ToResponse (Html ()) where
-  toResponse h = Response 200 [("Content-Type", "text/html; charset=utf-8")] (renderBS h)
+  toResponse h = Response ok200 [("Content-Type", "text/html; charset=utf-8")] (renderBS h)
 
 instance ToResponse Value where
-  toResponse v = Response 200 [("Content-Type", "application/json; charset=utf-8")] (encode v)
+  toResponse v = Response ok200 [("Content-Type", "application/json; charset=utf-8")] (encode v)
 
 class FromRequest a where
   fromRequest :: Request -> Maybe a
@@ -65,10 +71,10 @@ instance FromRequest () where
 data Handler m where
   H :: (FromRequest a, ToResponse b) => (a -> m b) -> Handler m
 
-run :: Monad m => [Handler m] -> Request -> Html () -> m Response
-run [] _ notFound = return $ (toResponse notFound) { code = 404 }
-run (H f : hs) rq notFound = do
+run :: Monad m => [Handler m] -> Html () -> Request -> m Response
+run [] notFound _ = return $ (toResponse notFound) { code = notFound404  }
+run (H f : hs) notFound rq = do
   case fromRequest rq of
-    Nothing -> run hs rq notFound
+    Nothing -> run hs notFound rq
     Just x -> toResponse <$> f x
 

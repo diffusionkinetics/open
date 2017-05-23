@@ -2,8 +2,6 @@
 
 module Youido.Database where
 
-import Web.Spock.Config
-
 import System.Exit (die)
 import GHC.Generics
 import GHC.Conc
@@ -46,13 +44,13 @@ createConn' config = do
     , connectPort     = fromInteger $ port config
     }
 
-getPool :: DatabaseConfig -> PoolOrConn Connection
+{-getPool :: DatabaseConfig -> PoolOrConn Connection
 getPool dbconfig=
  let poolCfg    = PoolCfg (fromMaybe 2 $ num_stripes dbconfig)
                           (fromMaybe 20 $ res_per_stripe dbconfig)
                           $ 24*60*60
      pool       = PCConn $ ConnBuilder (createConn dbconfig) close poolCfg
- in pool
+ in pool -}
 
 readJSON :: FromJSON a => FilePath -> IO a
 readJSON path = do

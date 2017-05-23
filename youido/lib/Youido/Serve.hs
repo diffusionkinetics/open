@@ -3,21 +3,26 @@
 module Youido.Serve where
 
 import Youido.Database
-import Web.Spock
-import Web.Spock.Config
+import Youido.Types
+import Web.Scotty
 import Network.Wai.Middleware.RequestLogger (logStdout)
 
 import Database.PostgreSQL.Simple
+import Control.Monad.IO.Class
+import Control.Monad.Reader
 
 type Session = ()
 
-serve :: [String] -> IO ()
-serve (cfgNm:_) = do
-  pool <-  getPool <$> readJSON cfgNm
-  spockCfg <- defaultSpockCfg () pool ()
-  putStrLn "serving..."
-  runSpock 3000 $ spock spockCfg app
+--conn <-  createConn <$> readJSON "youido.json"
 
-app :: SpockM Connection Session () ()
-app = do
+serve :: a -> [Handler (ReaderT a IO)] -> IO ()
+serve x hs = do
+  scotty 3000 $ do
    middleware $ logStdout
+   matchAny "*" $ do
+     rq <- request
+     Response stat hdrs conts <- liftIO $ runReaderT (run hs "Not Found!" rq) x
+     status stat
+     mapM_ (uncurry setHeader) hdrs
+     raw conts
+
