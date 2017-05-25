@@ -1,6 +1,7 @@
 $(function(){
   var uuid = null;
   var dashdos = {};
+  var submitTimer = null;
 
   var uuidLoop = function() {
     $.get("/uuid").done(function(data) {
@@ -48,6 +49,19 @@ $(function(){
       $('#dashdo-sidebar').replaceWith(dashdos[did].sidebar);
       $('#dashdo-form').attr('href', did);
       $('#dashdo-title').text($('.dashdo-link[href="'+did+'"]').text());
+
+      // set up periodic submit
+      clearTimeout(submitTimer);
+      var timeout = Math.min(
+          $(dashdos[did].main).find('.dashdo-periodic-submit')
+          .map(function() { return $(this).attr('value'); }).get());
+      if (timeout > 0) {
+        submitTimer = setTimeout(function() {
+          if ($('#dashdo-form').attr('href') == did) {
+            loadDashdo(did, $('#dashdo-form').serialize());
+          }
+        }, timeout);
+      }
       if (dashdos[did].needsReload) {
         loadDashdo(did, $('#dashdo-form').serialize());
       }
@@ -65,9 +79,9 @@ $(function(){
       success: function(r) {
         dashdos[did] = {};
         dashdos[did].main = $('<div id="dashdo-main"></div>')
-                            .append($.parseHTML(r, document, true));
+          .append($.parseHTML(r, document, true));
         dashdos[did].sidebar = $('<div id="dashdo-sidebar"></div>')
-                            .append($(dashdos[did].main).find('.dashdo-sidebar').remove());
+          .append($(dashdos[did].main).find('.dashdo-sidebar').remove());
         $('#spinner').removeClass('fa-spin');
         switchDashdo(did);
       }

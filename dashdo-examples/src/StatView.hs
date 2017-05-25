@@ -60,7 +60,7 @@ load _ stats = do
       diskRead = mkLine (fromIntegral . fst . statsDiskIO) & name ?~ "Read"
       diskWrite = mkLine (fromIntegral . snd . statsDiskIO) & name ?~ "Write"
 
-  submitPeriodic "load" 3
+  submitPeriodic 3
   charts
      [ ("CPU Load",     toHtml $ plotly "foo" [cpuLoad] & layout . margin ?~ thinMargins)
      , ("Memory Usage", toHtml $ plotly "bar" [memUsage] & layout . margin ?~ thinMargins)

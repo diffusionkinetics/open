@@ -84,11 +84,10 @@ manualSubmit = do
   input_ [type_ "submit", value_ "Submit"]
   script_ "var manual_submit = true;"
 
-submitPeriodic :: Text -> Int -> SHtml a ()
-submitPeriodic formid delaySecs = do
+submitPeriodic :: Int -> SHtml a ()
+submitPeriodic delaySecs = do
   let delayMs = pack $ show $ delaySecs*1000
-  script_
-    $ "$(function() {setTimeout(function(){$('#"<>formid<>"').submit()}, "<>delayMs<>")})"
+  input_ [type_ "hidden", class_ "dashdo-periodic-submit", value_ delayMs]
 
 checkbox :: Eq b => Text -> b -> b -> Lens' a b -> SHtml a ()
 checkbox text vTrue vFalse f = do
