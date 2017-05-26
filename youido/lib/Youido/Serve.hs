@@ -17,11 +17,13 @@ type Session = ()
 
 serve :: a -> [Handler (ReaderT a IO)] -> IO ()
 serve x hs = do
+
   scotty 3000 $ do
    middleware $ logStdout
-   matchAny "*" $ do
+   matchAny (regex "/*") $ do
      rq <- request
-     Response stat hdrs conts <- liftIO $ runReaderT (run hs "Not Found!" rq) x
+     liftIO $ print ("got request", rq)
+     Response stat hdrs conts <- liftIO $ runReaderT (run hs "Youido - Not Found!" rq) x
      status stat
      mapM_ (uncurry setHeader) hdrs
      raw conts
