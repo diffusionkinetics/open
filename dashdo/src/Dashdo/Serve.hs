@@ -14,7 +14,6 @@ import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as BLS
-import Data.Monoid ((<>))
 import Data.Aeson hiding (json)
 
 import Control.Monad (forM_)

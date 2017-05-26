@@ -31,7 +31,9 @@ data SysStats = SysStats
  }
 
 data PsCtl = PsCtl
- { _processFilter :: Tag (Process -> Bool) }
+ { _processFilter :: Tag (Process -> Bool)
+ , _processUser :: Text
+ }
 
 psActive, psAll :: Tag (Process -> Bool)
 psActive = Tag "a" ((>0.1) . procCPUPercent)
@@ -66,12 +68,15 @@ load _ stats = do
      , ("Memory Usage", toHtml $ plotly "bar" [memUsage] & layout . margin ?~ thinMargins)
      , ("Disk IO",      toHtml $ plotly "baz" [diskRead, diskWrite] & layout . margin ?~ thinMargins)]
 
-psDashdo = Dashdo (PsCtl psAll) (const getStats) process
+psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
-  let processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (_tagVal $ _processFilter ctl) ps
+  let user = map (fromIntegral . userID) $ filter ((== _processUser ctl) . pack . userName) us
+      userFilter (uid:_) = ((== uid) . procUid)
+      userFilter _ = const True
+      processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
+        $ filter (_tagVal $ _processFilter ctl) $ filter (userFilter user) ps
       userCPU u = let uid = fromIntegral (userID u)
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
@@ -81,7 +86,7 @@ process ctl (ps, us) = do
 
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
-     , ("CPU Usage by User",    toHtml $ plotly "us" [users] & layout . margin ?~ thinMargins)]
+     , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) "y" processUser)]
 
 getStats :: IO ([Process], [UserEntry])
 getStats = do

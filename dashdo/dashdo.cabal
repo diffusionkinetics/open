@@ -48,4 +48,5 @@ Library
                , wai-extra
                , template-haskell
                , aeson
+               , plotlyhs
 

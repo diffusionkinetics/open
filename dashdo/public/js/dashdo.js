@@ -50,6 +50,34 @@ $(function(){
       $('#dashdo-form').attr('href', did);
       $('#dashdo-title').text($('.dashdo-link[href="'+did+'"]').text());
 
+      // add click handler for the plotly select controls
+      $('.dashdo-plotly-select .js-plotly-plot').each(function() {
+        var graph = $(this).get(0);
+        var attr = $(this).siblings('.dashdo-plotly-select-attr').attr('value');
+        var input = $(this).siblings('input').first();
+        var restyle = function() {
+          var value = input.attr('value');
+          if (value == "") {
+            Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
+          } else {
+            var os = graph.data[0][attr].map(function(p) {
+              return p == value ? '#1F77B4' : '#A5C8E1';
+            });
+            Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
+          }
+        };
+        restyle();
+        $(this).get(0).on('plotly_click', function(data) {
+          if (input.attr('value') == data.points[0][attr]) {
+            input.attr('value', "");
+          } else {
+            input.attr('value', data.points[0][attr]);
+          }
+          restyle();
+          input.change();
+        });
+      });
+
       // set up periodic submit
       clearTimeout(submitTimer);
       var timeout = Math.min(
@@ -79,9 +107,9 @@ $(function(){
       success: function(r) {
         dashdos[did] = {};
         dashdos[did].main = $('<div id="dashdo-main"></div>')
-          .append($.parseHTML(r, document, true));
+          .append($.parseHTML(r, null, true));
         dashdos[did].sidebar = $('<div id="dashdo-sidebar"></div>')
-          .append($(dashdos[did].main).find('.dashdo-sidebar').remove());
+          .append(dashdos[did].main.find('.dashdo-sidebar').remove());
         $('#spinner').removeClass('fa-spin');
         switchDashdo(did);
       }

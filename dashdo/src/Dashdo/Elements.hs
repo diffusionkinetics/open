@@ -7,11 +7,16 @@ import Dashdo.Types
 import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
-import Data.Text (Text, unpack, pack)
+import Graphics.Plotly (Plotly)
+import Graphics.Plotly.Lucid
+import Data.Text (Text, unpack, pack, breakOn, tail)
 import Control.Monad.RWS.Strict
 import Text.Read (readMaybe)
 import Lens.Micro
 import Lens.Micro.TH
+import Data.Monoid ((<>))
+import Prelude hiding (tail)
+import Data.Aeson
 
 data Tag a = Tag { _tagText :: Text, _tagVal :: a }
 
@@ -104,3 +109,12 @@ checkbox text vTrue vFalse f = do
       toHtml text
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
+
+plotlySelect :: Plotly -> Text -> Lens' a Text -> SHtml a ()
+plotlySelect plot attr f = do
+  (val, n) <- freshAndValue
+  putFormField (n, lensSetter f)
+  div_ [class_ "dashdo-plotly-select"] $ do
+    toHtml plot
+    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
+    input_ [type_ "hidden", class_ "dashdo-plotly-select-attr", value_ attr]
