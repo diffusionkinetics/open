@@ -25,6 +25,7 @@ library
                      Youido.Database
                      Youido.Types
                      Youido.Serve
+                     Youido.Dashdo
   build-depends:       base >= 4.6 && < 5
                      , text
                      , lucid
@@ -40,6 +41,8 @@ library
                      , aeson
                      , bytestring
                      , http-types
+                     , dashdo
+                     , void
 
 executable test-youido
   main-is: TestYouido.hs
