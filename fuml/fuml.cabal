@@ -9,7 +9,7 @@ license-file:        LICENSE
 author:              Tom Nielsen
 maintainer:          tomn@diffusionkinetics.com
 copyright:           Tom Nielsen
-category:            Database
+category:            Statistics
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
