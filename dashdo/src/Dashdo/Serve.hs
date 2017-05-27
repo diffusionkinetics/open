@@ -31,6 +31,12 @@ dashdoHandler d = do
          (thisHtml, _) <- liftIO $ dashdoGenOut d newval
          html thisHtml
 
+getRandomUUID :: IO Text
+getRandomUUID = fromStrict . UUID.toText <$> randomIO
+
+dashdoJS :: BLS.ByteString
+dashdoJS = BLS.fromStrict $(embedFile "public/js/dashdo.js")
+
 runDashdo :: Dashdo a -> IO ()
 runDashdo d = do
   (iniHtml, _) <- dashdoGenOut d (initial d)
@@ -44,14 +50,14 @@ runRDashdo html ds = do
 
 serve :: Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
 serve iniHtml handlers = do
-  uuid <- fromStrict . UUID.toText <$> randomIO
+  uuid <- getRandomUUID
   -- this is obviously incorrect (if the form fields change dynamically)
   let titles = map (\(did, title, _) -> DashdoLink did title) handlers
   scotty 3000 $ do
     middleware logStdout
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
-      raw $ BLS.fromStrict $(embedFile "public/js/dashdo.js")
+      raw dashdoJS
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
     get "/titles" $ json titles
