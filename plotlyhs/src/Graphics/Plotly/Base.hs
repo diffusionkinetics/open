@@ -212,6 +212,8 @@ data Axis = Axis
   , _showgrid :: Maybe Bool
   , _zeroline :: Maybe Bool
   , _axisvisible :: Maybe Bool
+  , _tickvals :: Maybe [Value]
+  , _ticktext :: Maybe [Text]
   } deriving Generic
 
 makeLenses ''Axis
@@ -220,7 +222,7 @@ instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
