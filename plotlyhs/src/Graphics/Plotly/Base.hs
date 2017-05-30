@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Scatter3D | Bar deriving Show
+data TraceType = Scatter | Scatter3D | Bar | Mesh3D deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -181,24 +181,35 @@ data Trace = Trace
   , _hoverinfo :: Maybe HoverInfo
   , _hovertext :: Maybe (ListOrElem Text)
   , _hoveron :: Maybe [HoverOn]
+
+  -- 3D mesh
+  , _i :: Maybe [Int] -- ^ i values, as ints
+  , _j :: Maybe [Int] -- ^ j values, as ints
+  , _k :: Maybe [Int] -- ^ k values, as ints
+  , _tracecolor :: Maybe Color
+  , _traceopacity :: Maybe Double
   } deriving Generic
 
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
 scatter = mkTrace Scatter
 
--- |an empty bar plot
+-- |an empty 3D scatter plot
 scatter3d :: Trace
 scatter3d = mkTrace Scatter3D
 
 -- |an empty bar plot
 bars :: Trace
 bars = mkTrace Bar
+
+-- |an empty 3D mesh plot
+mesh3d :: Trace
+mesh3d = mkTrace Mesh3D
 
 
 instance ToJSON Trace where
