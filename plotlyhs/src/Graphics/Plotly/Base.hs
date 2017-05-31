@@ -181,6 +181,7 @@ data Trace = Trace
   , _hoverinfo :: Maybe HoverInfo
   , _hovertext :: Maybe (ListOrElem Text)
   , _hoveron :: Maybe [HoverOn]
+  , _selectValue :: Maybe [Value]
 
   -- 3D mesh
   , _i :: Maybe [Int] -- ^ i values, as ints
@@ -193,7 +194,7 @@ data Trace = Trace
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace

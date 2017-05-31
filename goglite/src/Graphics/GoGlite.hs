@@ -80,9 +80,10 @@ hbarSelect :: forall book a b c.
            Gettable "select" book (a->s),
            ToJSON b,
            ToJSON c,
+           ToJSON s,
            Num c,
            AxisValue b)
-       => Book' book -> [a] -> Lens' t (Maybe s) -> SHtml t ()
+       => Book' book -> [a] -> Trace
 hbarSelect a xs l = ?????
 
 usage:
@@ -95,7 +96,11 @@ persons :: [Person]
 
 hbarSelect (aes & #x =: age
                 & #y =: name
-                & #select =: name) persons blessedPerson
+                & #select =: name) persons
+
+plotlySelect :: FromJSON b => Plotly -> Lens a b -> SHtml a ()
+
+
 
 ALTERNATIVE (BETTER)
 ====================
