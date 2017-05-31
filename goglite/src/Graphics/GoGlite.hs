@@ -73,8 +73,8 @@ hbars a xs = Plot.bars & Plot.x ?~ map (toJSON @b. get #x a) xs
                  & Plot.y ?~ map (toJSON @c. get #y a) xs
                  & Plot.orientation ?~ Plot.Horizontal
 
-{-
-hbarSelect :: forall book a b c.
+
+hbarSelect :: forall book a b c s.
           (Gettable "x" book (a->b),
            Gettable "y" book (a->c),
            Gettable "select" book (a->s),
@@ -83,9 +83,12 @@ hbarSelect :: forall book a b c.
            ToJSON s,
            Num c,
            AxisValue b)
-       => Book' book -> [a] -> Trace
-hbarSelect a xs l = ?????
-
+       => Book' book -> [a] -> Plot.Trace
+hbarSelect a xs = Plot.bars & Plot.x ?~ map (toJSON @b. get #x a) xs
+                            & Plot.y ?~ map (toJSON @c. get #y a) xs
+                            & Plot.selectValue ?~ map (toJSON @s. get #select a) xs
+                            & Plot.orientation ?~ Plot.Horizontal
+                 {-
 usage:
 
 data PTable = PTable { _blessedPerson :: Maybe String } -- our form control
@@ -98,7 +101,7 @@ hbarSelect (aes & #x =: age
                 & #y =: name
                 & #select =: name) persons
 
-plotlySelect :: FromJSON b => Plotly -> Lens a b -> SHtml a ()
+plotlySelect :: FromJSON b => Plotly -> Lens a (Maybe b) -> SHtml a ()
 
 
 -}
