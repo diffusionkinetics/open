@@ -18,7 +18,7 @@ toHtml = Lucid.toHtml
 rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 
 rdashCSS = link_ [rel_ "stylesheet",
-                  href_  "http://cdn.diffusionkinetics.com/rdash-ui/1.0.1/css/rdash.css"]
+                  href_  "https://cdn.diffusionkinetics.com/rdash-ui/1.0.1/css/rdash.css"]
 
 ariaHidden, tooltip_ :: Term arg result => arg -> result
 
@@ -68,7 +68,7 @@ mkHead title = head_ $ do
   rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
-  
+
 mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkBody pgw = body_ pgw
 
