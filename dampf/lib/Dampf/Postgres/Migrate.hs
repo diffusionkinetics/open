@@ -40,6 +40,7 @@ migrate cfg dbnm dbspec = do
 
       forM_ toMigrate $ \(t,p) -> do
         content <- readFile p
+        putStrLn $ "Migrating: "++t
         let qStr = content ++ "; INSERT INTO migrations ( timestamp ) VALUES ('" ++ t ++ "')"
             q    = fromString qStr
         execute_ conn q
