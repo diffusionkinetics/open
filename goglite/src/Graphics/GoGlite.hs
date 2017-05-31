@@ -31,31 +31,32 @@ import Data.Aeson
 import Bookkeeper
 import Bookkeeper.Internal
 
-aes = emptyBook
+aes ::  Book '[ "size" :=> Maybe (a->b) ]
+aes = emptyBook & #size =: Nothing
 
 myPts :: [(Double, Double)]
 myPts = [(1,2), (1.2, 3), (1.4,3.5)]
 
---type Person = Book '[ "name" :=> String , "age" :=> Int ]
---let julian :: Person = emptyBook & #age =: 28 & #name =: "Julian K. Arni"
-
---myTrace :: Plot.Trace
-{-myTrace = points (aes & #x =: fst
-                      & #y =: snd)
-                 myPts -}
-points :: forall book a b c.
+myTrace :: Plot.Trace
+myTrace = points (aes & #x =: fst
+                      & #y =: snd
+                      & #size =: Just fst)
+                 myPts
+points :: forall book a b c sz.
           (Gettable "x" book (a->b),
            Gettable "y" book (a->c),
+           Gettable "size" book (Maybe (a->sz)),
            ToJSON b,
-           ToJSON c)
+           ToJSON c,
+           ToJSON sz,
+           Num b,
+           Num c)
        => Book' book -> [a] -> Plot.Trace
-points a xs =  Plot.scatter
+points a xs =  setSize (get #size a) $ Plot.scatter
                  & Plot.x ?~ map (toJSON @b . get #x a) xs
                  & Plot.y ?~ map (toJSON @c . get #y a) xs
                  & Plot.mode ?~ [Plot.Markers]
-pts :: forall a book b. (Gettable "x" book (a->b), ToJSON b) => Book' book -> [a] -> [Value]
-pts a xs = map (toJSON @b . get #x  a) xs
+  where setSize Nothing p = p
+        setSize (Just setS) p
+          = p & Plot.marker . non Plot.defMarker . Plot.size ?~ Plot.List (map (toJSON @sz. setS) xs)
 
-myvs = pts (aes & #x =: fst) myPts
-
---ptsVs a xs = map toJSON $ pts a xs

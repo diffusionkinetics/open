@@ -47,6 +47,8 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - bookkeeper-0.2.4
+- type-level-sets-0.8.0.0
+
 
 # Override default flag values for local packages and extra-deps
 flags: {}
