@@ -28,7 +28,7 @@ instance Pretty Server where
 
 instance Pretty ServerDecl where
   pPrint (Listen p ss)
-    = text "listen" <+> int p <> vcat (map text ss) <> char ';'
+    = text "listen" <+> int p <+> vcat (map text ss) <> char ';'
   pPrint (ServerName nms)
     = text "server_name" <+> hsep (map ttext nms)<> char ';'
   pPrint (Location path kvs)
@@ -51,13 +51,6 @@ encryptDecls cfg = maybe [] f $ live_certificate cfg where
                , SSLCertificateKey $ liveCert</>"privkey.pem"
                , Include "/etc/letsencrypt/options-ssl-nginx.conf"
                ]
-{-
-   listen 443 ssl; # managed by Certbot
-ssl_certificate /etc/letsencrypt/live/antoniahamilton.com/fullchain.pem; # managed by Certbot
-ssl_certificate_key /etc/letsencrypt/live/antoniahamilton.com/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-
--}
 
 ttext :: Text -> Doc
 ttext = text . T.unpack
@@ -79,7 +72,7 @@ staticAttrs nm = [ ("root",  "/var/www/" `T.append` nm)
                  , ("index", "index.html" )]
 
 toEncrypt :: DomainSpec -> Bool
-toEncrypt ds = fromMaybe False $ letsentrypt ds
+toEncrypt ds = fromMaybe False $ letsencrypt ds
 
 proxyAttrs cname
   = let port = last $ T.splitOn ":" cname in
