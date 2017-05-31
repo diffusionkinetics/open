@@ -1,0 +1,45 @@
+Name:                goglite
+Version:             0.2
+Synopsis:            Lightweight grammar of graphics
+Description:
+            Generate web-based plots with the Plotly.js library.
+            For examples, see <https://glutamate.github.io/plotlyhs/>
+
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen
+Maintainer:          tanielsen@gmail.com
+build-type:          Simple
+Cabal-Version: 	     >= 1.10
+homepage:            https://github.com/diffusionkinetics/open/goglite
+bug-reports:         https://github.com/diffusionkinetics/open/issues
+category:            Graphics, Charts
+Tested-With:         GHC == 8.0.1
+
+
+extra-source-files:
+                   changelog.md
+
+
+Library
+   ghc-options:       -Wall -fno-warn-type-defaults
+   hs-source-dirs:    src
+   default-language:  Haskell2010
+
+
+   Exposed-modules:
+                   Graphics.GoGlite
+
+   Build-depends:
+                 base                    >= 4.6 && <5
+               , aeson
+               , lucid
+               , blaze-html
+               , blaze-markup
+               , text
+               , bytestring
+               , microlens-th
+               , microlens
+               , plotlyhs
+               , bookkeeper
