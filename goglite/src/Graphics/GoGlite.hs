@@ -101,35 +101,4 @@ hbarSelect (aes & #x =: age
 plotlySelect :: FromJSON b => Plotly -> Lens a b -> SHtml a ()
 
 
-
-ALTERNATIVE (BETTER)
-====================
-
-this version always selects the entire record - not sure how feasible it
-is with the js/forms?
-
-hbarSelect :: forall book a b c.
-          (Gettable "x" book (a->b),
-           Gettable "y" book (a->c),
-           ToJSON b,
-           ToJSON c,
-           Num c,
-           AxisValue b)
-       => Book' book -> [a] -> Lens' t (Maybe a) -> SHtml t ()
-hbarSelect a xs l = ?????
-
-usage:
-
-data PTable = PTable { _blessedPerson :: Maybe Person } -- our form control
-
-data Person = Person { name:: String, age :: Int }
-
-persons :: [Person]
-
-hbarSelect (aes & #x =: age
-                & #y =: name) persons blessedPerson
-
-
-
-
 -}
