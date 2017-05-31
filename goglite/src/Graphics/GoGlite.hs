@@ -25,6 +25,7 @@ myTrace = points (aes & x .~ fst
 -}
 
 import qualified Graphics.Plotly.Base as Plot
+import Graphics.Plotly.GoG (AxisValue, IsColor, RGB (..),RGBA (..))
 import Data.Text (Text)
 import Lens.Micro
 import Data.Aeson
@@ -60,3 +61,70 @@ points a xs =  setSize (get #size a) $ Plot.scatter
         setSize (Just setS) p
           = p & Plot.marker . non Plot.defMarker . Plot.size ?~ Plot.List (map (toJSON @sz. setS) xs)
 
+hbars :: forall book a b c.
+          (Gettable "x" book (a->b),
+           Gettable "y" book (a->c),
+           ToJSON b,
+           ToJSON c,
+           Num b,
+           AxisValue c)
+       => Book' book -> [a] -> Plot.Trace
+hbars a xs = Plot.bars & Plot.x ?~ map (toJSON @b. get #x a) xs
+                 & Plot.y ?~ map (toJSON @c. get #y a) xs
+                 & Plot.orientation ?~ Plot.Horizontal
+
+{-
+hbarSelect :: forall book a b c.
+          (Gettable "x" book (a->b),
+           Gettable "y" book (a->c),
+           Gettable "select" book (a->s),
+           ToJSON b,
+           ToJSON c,
+           Num c,
+           AxisValue b)
+       => Book' book -> [a] -> Lens' t (Maybe s) -> SHtml t ()
+hbarSelect a xs l = ?????
+
+usage:
+
+data PTable = PTable { _blessedPerson :: Maybe String } -- our form control
+
+data Person = Person { name:: String, age :: Int }
+
+persons :: [Person]
+
+hbarSelect (aes & #x =: age
+                & #y =: name
+                & #select =: name) persons blessedPerson
+
+ALTERNATIVE (BETTER)
+====================
+
+this version always selects the entire record - not sure how feasible it
+is with the js/forms?
+
+hbarSelect :: forall book a b c.
+          (Gettable "x" book (a->b),
+           Gettable "y" book (a->c),
+           ToJSON b,
+           ToJSON c,
+           Num c,
+           AxisValue b)
+       => Book' book -> [a] -> Lens' t (Maybe a) -> SHtml t ()
+hbarSelect a xs l = ?????
+
+usage:
+
+data PTable = PTable { _blessedPerson :: Maybe Person } -- our form control
+
+data Person = Person { name:: String, age :: Int }
+
+persons :: [Person]
+
+hbarSelect (aes & #x =: age
+                & #y =: name) persons blessedPerson
+
+
+
+
+-}
