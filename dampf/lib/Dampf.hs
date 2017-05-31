@@ -40,7 +40,7 @@ goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
   goBuild mfp
   withAppFile mfp $ \dampfs -> do
-    withConfigFile Nothing $ \_ -> do
+    withConfigFile Nothing $ \cfg -> do
       deployDocker dampfs
       runMigrations mfp Nothing
-      deployDomains dampfs
+      deployDomains cfg dampfs

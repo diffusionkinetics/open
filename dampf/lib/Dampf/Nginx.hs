@@ -3,6 +3,7 @@
 module Dampf.Nginx where
 
 import Dampf.AppFile
+import Dampf.ConfigFile
 import System.Process
 import Control.Monad
 import System.Exit
@@ -14,8 +15,8 @@ import qualified Data.Text.IO as T
 import Dampf.Nginx.Config
 import System.Posix.Files
 
-deployDomains :: Dampfs -> IO ()
-deployDomains (Dampfs dampfs) = do
+deployDomains :: DampfConfig -> Dampfs -> IO ()
+deployDomains cfg (Dampfs dampfs) = do
   forM_ [(nm,dspec) | Domain nm dspec <- dampfs] $ \(nm,dspec) -> do
     --move static items
     case static dspec of
@@ -29,7 +30,7 @@ deployDomains (Dampfs dampfs) = do
         return ()
 
     --create file
-    let fl = domainConfig (T.pack nm) dspec
+    let fl = domainConfig cfg (T.pack nm) dspec
     T.writeFile ("/etc/nginx/sites-available"</>nm) fl
 
     removeIfExists ("/etc/nginx/sites-enabled"</>nm)
