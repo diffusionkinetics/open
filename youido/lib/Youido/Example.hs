@@ -28,7 +28,7 @@ data Countries = Countries
                | Country Text
 
 instance FromRequest Countries where
-  fromRequest rq = case pathInfo rq of
+  fromRequest (rq,_) = case pathInfo rq of
     "countries":_ -> Just Countries
     "country":cnm:_ -> Just $ Country cnm
     _ -> Nothing
@@ -47,7 +47,7 @@ countryH gapM (Country c) = do
     li_ $ "year: " <> toHtml (show $ year e) <> "  population: "<> toHtml (show $ pop e)
 
 
-data BubblesDD = BubblesDD { _selYear :: Int}
+data BubblesDD = BubblesDD { _selYear :: Int} deriving Show
 makeLenses ''BubblesDD
 
 bubblesDD gapM b = do

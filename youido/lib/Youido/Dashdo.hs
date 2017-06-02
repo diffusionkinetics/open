@@ -43,7 +43,7 @@ instance FromRequest DashdoReq where
 instance ToURL DashdoReq where
   toURL _ = ""
 
-dashdoHandler :: forall s m t. (KnownSymbol s, MonadIO m) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m (Html ()))
+dashdoHandler :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m (Html ()))
 dashdoHandler _ d = do
   (iniHtml, ff) <- dashdoGenOut d (initial d)
   let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
