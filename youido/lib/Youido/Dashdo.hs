@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ScopedTypeVariables,
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
-   OverloadedLabels, TypeOperators, DataKinds #-}
+   OverloadedLabels, TypeOperators, DataKinds, KindSignatures #-}
 
 module Youido.Dashdo where
 
@@ -16,9 +16,13 @@ import Data.Text (Text, pack)
 import Data.Monoid
 import qualified Data.Text.Lazy as TL
 import Lucid
+import GHC.OverloadedLabels
+import GHC.TypeLits
+
+
 
 -- | include this once to get global JS and app UUID routes
-dashdoGlobal :: forall m. MonadIO m => IO (Handler m)
+dashdoGlobal :: Monad m => IO (Handler m)
 dashdoGlobal = do
   uuid <- getRandomUUID
   let h1 = H $ \(_ :: "uuid" :/ () ) -> return $ toStrict uuid
@@ -34,12 +38,14 @@ instance FromRequest DashdoReq where
     Just (Post (FormFields ffs)) -> Just $ Submit ffs
     Nothing -> Nothing
 
+instance ToURL DashdoReq where
+  toURL _ = ""
 
-dashdoHandler :: MonadIO m => Dashdo t -> IO (DashdoReq -> m AsHtml)
-dashdoHandler d = do
+dashdoHandler :: (KnownSymbol s, MonadIO m) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m AsHtml)
+dashdoHandler s d = do
   (iniHtml, ff) <- dashdoGenOut d (initial d)
-  let dispatch Initial = return $ AsHtml iniHtml
-      dispatch (Submit ffs) = do
+  let dispatch (_ :/ Initial) = return $ AsHtml iniHtml
+      dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
         (thisHtml, _) <- liftIO $ dashdoGenOut d newval
         return $ AsHtml thisHtml

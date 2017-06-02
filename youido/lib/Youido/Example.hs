@@ -30,12 +30,11 @@ runIt :: IO ()
 runIt = do
   ddH <- dashdoGlobal
   gapM <- getDataset gapminder
-  dd <- dashdoHandler $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
-  serve () (ddH:H dd: hs gapM)
-
-hs gapM =
-     [ H (countryH gapM)
-     ]
+  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
+  serve () [ ddH
+           , H dd
+           , H (countryH gapM)
+           ]
 
 data Countries = Countries
                | Country Text
@@ -63,4 +62,5 @@ countryH gapM (Country c) = do
 bubblesDD gapM b = do
   let years = nub $ map year gapM
   select (map showOpt years) selYear
-  p_ "hello world"
+  h2_ "hello world"
+  p_ (toHtml $ show $ _selYear b)
