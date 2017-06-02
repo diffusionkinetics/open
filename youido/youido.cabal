@@ -26,6 +26,7 @@ library
                      Youido.Types
                      Youido.Serve
                      Youido.Dashdo
+                     Youido.Example
   build-depends:       base >= 4.6 && < 5
                      , text
                      , lucid
@@ -43,6 +44,8 @@ library
                      , http-types
                      , dashdo
                      , void
+                     , datasets
+                     , microlens-platform
 
 executable test-youido
   main-is: TestYouido.hs
