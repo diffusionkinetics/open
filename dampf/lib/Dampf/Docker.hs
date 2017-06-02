@@ -20,5 +20,5 @@ deployDocker (Dampfs dampfs) = do
         port = maybe " " (\p -> " -p "++show p++":"++show p++" ") $ expose cspec
     system $ "docker stop "++cnm
     system $ "docker rm "++cnm
-    system $ "docker run -d --restart=always --name="++cnm++port++imnm
+    system $ "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm
 

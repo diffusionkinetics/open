@@ -11,6 +11,7 @@ import Data.Map.Strict (Map)
 data DampfConfig = DampfConfig
   { postgres_password :: String
   , db_passwords :: Map String String
+  , live_certificate :: Maybe FilePath
   } deriving (Generic, Show)
 
 instance FromJSON DampfConfig

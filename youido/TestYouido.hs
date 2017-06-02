@@ -2,14 +2,6 @@
 
 module Main (main) where
 
-import Youido.Serve
-import Youido.Types
-import Youido.Dashdo
-import Lucid
-
+import Youido.Example
 main :: IO ()
-main = do
-  ddH <- dashdoGlobal
-  serve () (ddH:hs)
-
-hs = [] -- [H $ \()-> return ("you hit the default!"::Html ())]
+main = runIt

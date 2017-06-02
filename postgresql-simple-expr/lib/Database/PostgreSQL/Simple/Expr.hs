@@ -14,6 +14,7 @@ import Data.Proxy
 import Data.String
 import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
+import Data.Maybe (listToMaybe)
 
 data MyRec = MyRec {
   name :: String,
@@ -38,7 +39,9 @@ class HasFieldNames a => HasTable a where
 
 selectWhere :: forall r q. (ToRow q, FromRow r, HasTable r) => Connection -> Query -> q -> IO [r]
 selectWhere conn q1 args = do
-  let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) ) <> " from " <> fromString (tableName (Proxy :: Proxy r)) <> " where " <> q1
+  let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) )
+                        <> " from " <> fromString (tableName (Proxy :: Proxy r))
+                        <> " where " <> q1
   query conn fullq args
 
 --insert all fields
@@ -95,6 +98,25 @@ insert conn val = do
              [] -> fail $ "no key returned from "++show tblName
              Only k : _ -> return k
 
+conjunction :: [Query] -> Query
+conjunction [] = "true"
+conjunction (q1:q2:[]) = "("<>q1<>") and ("<>q2<>")"
+conjunction (q1:qs) = "("<>q1<>") and "<>conjunction qs
+
+keyRestrict :: (HasKey a, KeyField (Key a)) => Proxy a -> Key a -> (Query, [Action])
+keyRestrict px key
+  = let nms = getKeyFieldNames px
+        q1 nm = fromString nm <> " = ? "
+        q = conjunction $ map q1 nms
+    in (q, toFields key)
+
+-- |Fetch a row by its primary key
+
+getByKey :: forall a . (HasKey a, KeyField (Key a), FromRow a) => Connection -> Key a -> IO (Maybe a)
+getByKey conn key = do
+  let (q, as) = keyRestrict (Proxy :: Proxy a) key
+  ress <- selectWhere conn q as
+  return $ listToMaybe ress
 
 newtype Serial a = Serial { unSerial :: a }
   deriving (Num, Ord, Show, Read, Eq, Generic, ToField, FromField)
