@@ -18,8 +18,10 @@ import qualified Data.Text.Lazy as TL
 import Lucid
 import GHC.OverloadedLabels
 import GHC.TypeLits
-
-
+import Data.Proxy
+import Lucid.Bootstrap
+import Lucid.Bootstrap3
+import Lucid.PreEscaped
 
 -- | include this once to get global JS and app UUID routes
 dashdoGlobal :: Monad m => IO (Handler m)
@@ -41,12 +43,17 @@ instance FromRequest DashdoReq where
 instance ToURL DashdoReq where
   toURL _ = ""
 
-dashdoHandler :: (KnownSymbol s, MonadIO m) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m AsHtml)
-dashdoHandler s d = do
+dashdoHandler :: forall s m t. (KnownSymbol s, MonadIO m) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m (Html ()))
+dashdoHandler _ d = do
   (iniHtml, ff) <- dashdoGenOut d (initial d)
-  let dispatch (_ :/ Initial) = return $ AsHtml iniHtml
+  let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
+      wrapper :: TL.Text -> Html ()
+      wrapper h = container_ $ form_ [ action_ submitPath,
+                                       method_ "post", id_ "dashdoform"]
+                                     $ preEscaped $ TL.toStrict h
+      dispatch (_ :/ Initial) = return $ wrapper iniHtml
       dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
         (thisHtml, _) <- liftIO $ dashdoGenOut d newval
-        return $ AsHtml thisHtml
+        return $ wrapper thisHtml
   return dispatch

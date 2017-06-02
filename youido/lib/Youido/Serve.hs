@@ -22,7 +22,7 @@ serve x hs = do
    middleware $ logStdout
    matchAny (regex "/*") $ do
      rq <- request
-     liftIO $ print ("got request", rq)
+     --liftIO $ print ("got request", rq)
      Response stat hdrs conts <- liftIO $ runReaderT (run hs "Youido - Not Found!" rq) x
      status stat
      mapM_ (uncurry setHeader) hdrs

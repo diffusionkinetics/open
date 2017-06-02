@@ -8,6 +8,8 @@ import Youido.Serve
 import Youido.Types
 import Youido.Dashdo
 import Lucid
+import Lucid.Bootstrap
+import Lucid.Bootstrap3
 import Numeric.Datasets.Gapminder
 import Numeric.Datasets
 import Control.Monad.Reader
@@ -16,25 +18,11 @@ import Network.Wai
 import Data.Text (Text, pack)
 import Data.Monoid
 import Lens.Micro.Platform
+--import Graphics.Plotly.Lucid.hs
 
 import Dashdo
 import Dashdo.Types
 import Dashdo.Elements
-
-data BubblesDD = BubblesDD { _selYear :: Int}
-
-makeLenses ''BubblesDD
-
-
-runIt :: IO ()
-runIt = do
-  ddH <- dashdoGlobal
-  gapM <- getDataset gapminder
-  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
-  serve () [ ddH
-           , H dd
-           , H (countryH gapM)
-           ]
 
 data Countries = Countries
                | Country Text
@@ -59,8 +47,39 @@ countryH gapM (Country c) = do
     li_ $ "year: " <> toHtml (show $ year e) <> "  population: "<> toHtml (show $ pop e)
 
 
+data BubblesDD = BubblesDD { _selYear :: Int}
+makeLenses ''BubblesDD
+
 bubblesDD gapM b = do
   let years = nub $ map year gapM
   select (map showOpt years) selYear
   h2_ "hello world"
   p_ (toHtml $ show $ _selYear b)
+
+
+wrapIt :: Monad m => (a -> m (Html ())) -> (a -> m (Html ()))
+wrapIt f x = do
+  h <- f x
+  return $ doctypehtml_ $ do
+    head_ $ do
+      meta_ [charset_ "utf-8"]
+      cdnCSS
+      cdnThemeCSS
+      --plotlyCDN
+
+    body_ $ do
+      container_ h
+      cdnJqueryJS
+      cdnBootstrapJS
+      script_ [src_ "/js/dashdo.js"] ""
+
+runIt :: IO ()
+runIt = do
+  ddH <- dashdoGlobal
+  gapM <- getDataset gapminder
+  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
+  serve () [ ddH
+           , H $ wrapIt dd
+           , H $ wrapIt $ countryH gapM
+           ]
+
