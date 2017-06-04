@@ -29,6 +29,8 @@ data Response = Response
 -- types that can be converted to a response: e.g. HTML and JSON
 class ToResponse a where
   toResponse :: a -> Response
+  wrapHtml :: (Html () -> Html ()) -> a -> a
+  wrapHtml = flip const
 
 instance ToResponse Response where
   toResponse = id
@@ -37,13 +39,7 @@ instance ToResponse (Html ()) where
   toResponse h = Response ok200
                           [("Content-Type", "text/html; charset=utf-8")]
                           (renderBS h)
-
-newtype AsHtml = AsHtml TL.Text
-
-instance ToResponse AsHtml where
-  toResponse (AsHtml t) =Response ok200
-                          [("Content-Type", "text/html; charset=utf-8")]
-                          (LBS.fromStrict $ T.encodeUtf8 $ TL.toStrict t)
+  wrapHtml wrapper x = wrapper x
 
 instance ToResponse Value where
   toResponse v = Response ok200
@@ -142,11 +138,12 @@ instance Monad m => Monoid (Handler m) where
 run :: Monad m
     => [Handler m] -- ^ list of handlers
     -> Html () -- ^ default, if nothing found
+    -> (Html () -> Html ())
     -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run [] notFound _ = return $ (toResponse notFound) { code = notFound404  }
-run (H f : hs) notFound rq = do
+run [] notFound _ _ = return $ (toResponse notFound) { code = notFound404  }
+run (H f : hs) notFound wrapper rq = do
   case fromRequest rq of
-    Nothing -> run hs notFound rq
-    Just x -> toResponse <$> f x
+    Nothing -> run hs notFound wrapper rq
+    Just x -> toResponse . wrapHtml wrapper <$> f x
 

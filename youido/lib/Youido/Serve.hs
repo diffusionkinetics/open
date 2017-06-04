@@ -6,6 +6,7 @@ import Youido.Database
 import Youido.Types
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger (logStdout)
+import Lucid
 
 import Database.PostgreSQL.Simple
 import Control.Monad.IO.Class
@@ -15,8 +16,8 @@ type Session = ()
 
 --conn <-  createConn <$> readJSON "youido.json"
 
-serve :: a -> [Handler (ReaderT a IO)] -> IO ()
-serve x hs = do
+serve :: a -> (Html () -> Html ()) -> [Handler (ReaderT a IO)] -> IO ()
+serve x wrapper hs = do
 
   scotty 3000 $ do
    middleware $ logStdout
@@ -24,7 +25,7 @@ serve x hs = do
      rq <- request
      pars <- params
      --liftIO $ print ("got request", rq)
-     Response stat hdrs conts <- liftIO $ runReaderT (run hs "Youido - Not Found!" (rq, pars)) x
+     Response stat hdrs conts <- liftIO $ runReaderT (run hs "Youido - Not Found!" wrapper (rq, pars)) x
      status stat
      mapM_ (uncurry setHeader) hdrs
      raw conts
