@@ -56,28 +56,22 @@ bubblesDD gapM b = do
   h2_ "hello world"
   p_ (toHtml $ show $ _selYear b)
 
-wrapper :: Html () -> Html ()
-wrapper h = doctypehtml_ $ do
-  head_ $ do
-    meta_ [charset_ "utf-8"]
-    cdnCSS
-    cdnThemeCSS
-    --plotlyCDN
 
-  body_ $ do
-    container_ h
-    cdnJqueryJS
-    cdnBootstrapJS
-    script_ [src_ "/js/dashdo.js"] ""
+
+sidebar = mkSidebar
+    [ "Bubbles"  *~ #bubbles :/ Initial
+    , "Counties" *~ Countries
+    ]
 
 runIt :: IO ()
 runIt = do
   ddH <- dashdoGlobal
   gapM <- getDataset gapminder
   dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
-  serve () wrapper
-           [ ddH
-           , H dd
-           , H $ countryH gapM
-           ]
-
+  serve () $ Youido
+              [ ddH
+              , H dd
+              , H $ countryH gapM
+              ]
+              "Not found!"
+              $ stdWrapper (mempty) sidebar

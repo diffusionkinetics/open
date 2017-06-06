@@ -134,16 +134,20 @@ instance Monad m => Monoid (Handler m) where
     Left x -> fmap Left $ f1 x
     Right y -> fmap Right $ f2 y
 
+data Youido m = Youido
+  { handlers :: [Handler m] -- ^ list of handlers
+  , notFoundHtml :: Html () -- ^ default, if nothing found
+  , wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
+  }
+
 -- | get a response from a request, given a list of handlers
 run :: Monad m
-    => [Handler m] -- ^ list of handlers
-    -> Html () -- ^ default, if nothing found
-    -> (Html () -> Html ())
+    => Youido m
     -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run [] notFound _ _ = return $ (toResponse notFound) { code = notFound404  }
-run (H f : hs) notFound wrapper rq = do
+run (Youido [] notFound _) _ = return $ (toResponse notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf) rq = do
   case fromRequest rq of
-    Nothing -> run hs notFound wrapper rq
-    Just x -> toResponse . wrapHtml wrapper <$> f x
+    Nothing -> run (Youido hs notFound wrapperf) rq
+    Just x -> toResponse . wrapHtml wrapperf <$> f x
 
