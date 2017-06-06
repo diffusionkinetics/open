@@ -34,8 +34,8 @@ instance FromRequest Countries where
     _ -> Nothing
 
 instance ToURL Countries where
-  toURL Countries = "countries"
-  toURL (Country cnm) = "country/"<>cnm
+  toURL Countries = "/countries"
+  toURL (Country cnm) = "/country/"<>cnm
 
 countryH :: [Gapminder] -> Countries -> ReaderT a IO (Html ())
 countryH gapM Countries = do
@@ -74,4 +74,5 @@ runIt = do
               , H $ countryH gapM
               ]
               "Not found!"
-              $ stdWrapper (mempty) sidebar
+              (stdWrapper (mempty) sidebar)
+              [("tomn", "secret")]

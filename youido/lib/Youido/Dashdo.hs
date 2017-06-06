@@ -41,7 +41,7 @@ instance FromRequest DashdoReq where
     Nothing -> Nothing
 
 instance ToURL DashdoReq where
-  toURL _ = ""
+  toURL _ = "/"
 
 dashdoHandler :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo t -> IO (s :/ DashdoReq -> m (Html ()))
 dashdoHandler _ d = do

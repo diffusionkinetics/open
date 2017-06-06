@@ -14,6 +14,7 @@ import Lucid
 import Data.Aeson
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
+import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
 import System.IO.Unsafe (unsafePerformIO)
@@ -84,7 +85,7 @@ data (s::Symbol) :/ a where
   (:/) :: Key s -> a -> s :/ a
 
 instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
-  toURL (_ :/ a) = (pack $ symbolVal (Proxy::Proxy s)) <> "/" <> toURL a
+  toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
 
 instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
   fromRequest (rq,pars) = case pathInfo rq of
@@ -95,7 +96,7 @@ instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
                 else Nothing
       [] -> Nothing
 
-instance ToURL () where toURL _ = ""
+instance ToURL () where toURL _ = "/"
 
 instance FromRequest () where
   fromRequest (rq,_) = case pathInfo rq of
@@ -138,6 +139,7 @@ data Youido m = Youido
   { handlers :: [Handler m] -- ^ list of handlers
   , notFoundHtml :: Html () -- ^ default, if nothing found
   , wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
+  , basicAuthUsers :: [(ByteString, ByteString)]
   }
 
 -- | get a response from a request, given a list of handlers
@@ -145,9 +147,9 @@ run :: Monad m
     => Youido m
     -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run (Youido [] notFound _) _ = return $ (toResponse notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf) rq = do
+run (Youido [] notFound _ _) _ = return $ (toResponse notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf users) rq = do
   case fromRequest rq of
-    Nothing -> run (Youido hs notFound wrapperf) rq
+    Nothing -> run (Youido hs notFound wrapperf users) rq
     Just x -> toResponse . wrapHtml wrapperf <$> f x
 

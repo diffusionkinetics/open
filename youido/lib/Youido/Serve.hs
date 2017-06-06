@@ -7,6 +7,8 @@ import Youido.Database
 import Youido.Types
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger (logStdout)
+import Network.Wai.Middleware.HttpAuth
+
 import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
@@ -22,9 +24,14 @@ type Session = ()
 --conn <-  createConn <$> readJSON "youido.json"
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _) = do
+serve x y@(Youido _ _ _ users) = do
   scotty 3000 $ do
    middleware $ logStdout
+   when (not $ null users) $
+     middleware $ basicAuth (\u p -> case lookup u users of
+                                       Nothing -> return False
+                                       Just passwd -> return $ p == passwd)
+        "Youidoapp"
    matchAny (regex "/*") $ do
      rq <- request
      pars <- params
