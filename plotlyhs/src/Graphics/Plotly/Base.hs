@@ -54,10 +54,10 @@ import Graphics.Plotly.Utils
 -- * Traces
 
 -- |How should traces be drawn? (lines or markers)
-data Mode = Markers | Lines deriving Show
+data Mode = Markers | Lines | ModeText deriving Show
 
 instance {-# OVERLAPS #-} ToJSON [Mode] where
-  toJSON = toJSON . intercalate "+" . map (map toLower . show)
+  toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Mode" . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
 data TraceType = Scatter | Scatter3D | Bar | Mesh3D deriving Show
@@ -162,6 +162,15 @@ data HoverOn = HoverPoints | HoverFills deriving (Generic, Show)
 instance {-# OVERLAPS #-} ToJSON [HoverOn] where
   toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Hover" . show)
 
+data TextPosition
+  = TopLeft    | TopCenter    | TopRight
+  | MiddleLeft | MiddleCenter | MiddleRight
+  | BottomLeft | BottomCenter | BottomRight
+  deriving (Generic, Show)
+
+instance ToJSON TextPosition where
+  toJSON = toJSON . camelTo2 ' ' . show
+
 -- | A `Trace` is the component of a plot. Multiple traces can be superimposed.
 data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
@@ -170,6 +179,7 @@ data Trace = Trace
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
+  , _textposition :: Maybe TextPosition
   , _tracetype :: TraceType
   , _marker :: Maybe Marker
   , _line :: Maybe Line
@@ -181,6 +191,7 @@ data Trace = Trace
   , _hoverinfo :: Maybe HoverInfo
   , _hovertext :: Maybe (ListOrElem Text)
   , _hoveron :: Maybe [HoverOn]
+  , _connectgaps :: Maybe Bool
 
   -- 3D mesh
   , _i :: Maybe [Int] -- ^ i values, as ints
@@ -193,7 +204,7 @@ data Trace = Trace
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
