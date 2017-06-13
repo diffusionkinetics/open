@@ -4,6 +4,7 @@ import Dampf.AppFile
 import System.Process
 import Control.Monad
 import System.Exit
+import Data.Maybe
 
 buildDocker :: Dampfs -> IO ()
 buildDocker (Dampfs dampfs) = do
@@ -17,8 +18,11 @@ deployDocker :: Dampfs -> IO ()
 deployDocker (Dampfs dampfs) = do
   forM_ [(cnm,cspec) | Container cnm cspec <- dampfs] $ \(cnm,cspec) -> do
     let imnm = image cspec
-        port = maybe " " (\p -> " -p "++show p++":"++show p++" ") $ expose cspec
+        port = case expose cspec of
+                 Nothing -> " "
+                 Just ps -> concatMap (\p -> " -p "++show p++":"++show p++" ") ps
+        cmd = " "++(fromMaybe "" $ command cspec)
     system $ "docker stop "++cnm
     system $ "docker rm "++cnm
-    system $ "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm
+    system $ "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm++cmd
 
