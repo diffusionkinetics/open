@@ -22,7 +22,9 @@ deployDocker (Dampfs dampfs) = do
                  Nothing -> " "
                  Just ps -> concatMap (\p -> " -p "++show p++":"++show p++" ") ps
         cmd = " "++(fromMaybe "" $ command cspec)
+        runcmd = "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm++cmd
     system $ "docker stop "++cnm
     system $ "docker rm "++cnm
-    system $ "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm++cmd
+    putStrLn runcmd
+    system runcmd
 
