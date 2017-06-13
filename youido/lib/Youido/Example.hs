@@ -75,4 +75,5 @@ runIt = do
               ]
               "Not found!"
               (stdWrapper (mempty) sidebar)
-              [("tomn", "secret")]
+              []
+              3101

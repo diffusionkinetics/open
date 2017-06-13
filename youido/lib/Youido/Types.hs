@@ -140,6 +140,7 @@ data Youido m = Youido
   , notFoundHtml :: Html () -- ^ default, if nothing found
   , wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
   , basicAuthUsers :: [(ByteString, ByteString)]
+  , port :: Int
   }
 
 -- | get a response from a request, given a list of handlers
@@ -147,9 +148,9 @@ run :: Monad m
     => Youido m
     -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run (Youido [] notFound _ _) _ = return $ (toResponse notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf users) rq = do
+run (Youido [] notFound _ _ _) _ = return $ (toResponse notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf users p) rq = do
   case fromRequest rq of
-    Nothing -> run (Youido hs notFound wrapperf users) rq
+    Nothing -> run (Youido hs notFound wrapperf users p) rq
     Just x -> toResponse . wrapHtml wrapperf <$> f x
 

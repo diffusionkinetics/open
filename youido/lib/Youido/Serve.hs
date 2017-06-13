@@ -24,8 +24,8 @@ type Session = ()
 --conn <-  createConn <$> readJSON "youido.json"
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ users) = do
-  scotty 3000 $ do
+serve x y@(Youido _ _ _ users port) = do
+  scotty port $ do
    middleware $ logStdout
    when (not $ null users) $
      middleware $ basicAuth (\u p -> case lookup u users of
