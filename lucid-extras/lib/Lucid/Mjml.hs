@@ -12,12 +12,10 @@ import Lucid.Mjml.Section as E
 import Lucid.Mjml.Text as E
 import Lucid.Mjml.Attributes as E
 import Lucid.Mjml.Divider as E
+import Lucid.Mjml.Button as E
 
-import Lucid.Html5 as E hiding (section_)
-
-import Lucid
-import Lucid.Mjml.Component
 import Lucid.Mjml.Skeleton
+import Lucid.Base
 
 import Control.Monad.Reader
 import Control.Monad.State

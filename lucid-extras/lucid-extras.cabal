@@ -33,10 +33,12 @@ Library
                  , Lucid.Mjml.Component
                  , Lucid.Mjml.Container
                  , Lucid.Mjml.Column
+                 , Lucid.Mjml.Divider
                  , Lucid.Mjml.Unit
                  , Lucid.Mjml.Section
                  , Lucid.Mjml.Skeleton
                  , Lucid.Mjml.Text
+                 , Lucid.Mjml.Button
    Build-depends:
                  base                    >= 4.6 && < 5
                , lucid
@@ -54,6 +56,7 @@ Executable            site-gen
     main-is:          Main.hs
     default-language:  Haskell2010
     other-modules:    DevelMain
+                    , Lucid.Mjml.Samples.Postgres
     Build-Depends:    base                    >= 4.6 && < 5
                     , directory               >= 1.2
                     , lucid-extras

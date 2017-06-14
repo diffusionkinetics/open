@@ -64,7 +64,19 @@ columnClass w = T.concat $ case w of
 
 renderChild :: Monad m => HM.HashMap T.Text T.Text -> ElementT m () -> (MjmlT (ReaderT ElementContext m)) ()
 renderChild _ (ElementT True r) = r
-renderChild attrs (ElementT False r) = _
+renderChild attrs (ElementT False r) = tr_ . td_ [style_ $ generateStyles style] $ r
+  where
+    style = HM.fromList $ ("fontSize", "0px") : map (flip lookupAttr attrs)
+      ["font-family"
+      , "font-size"
+      , "font-weight"
+      , "letter-spacing"
+      , "line-height"
+      , "text-align"
+      , "text-decoration"
+      , "text-transform"
+      , "color"
+      , "height"]
 
 render :: Monad m => HM.HashMap T.Text T.Text -> [ElementT m ()] -> MjmlT (ReaderT ElementContext m) ()
 render attrs children = do

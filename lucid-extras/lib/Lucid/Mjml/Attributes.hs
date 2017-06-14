@@ -412,3 +412,13 @@ twitterIconColor_ = makeAttribute "twitter-icon-color"
 -- | @vertical-align@ attribute
 verticalAlign_ :: T.Text -> Attribute
 verticalAlign_ = makeAttribute "vertical-align"
+
+
+ -- Legacy attributes
+-- | @bgcolor@ HTML attribute
+bgcolor_ :: T.Text -> Attribute
+bgcolor_ = makeAttribute "bgcolor"
+
+-- | @valign@ HTML attribute
+valign_ :: T.Text -> Attribute
+valign_ = makeAttribute "valign"

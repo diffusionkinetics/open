@@ -3,6 +3,7 @@
 module Lucid.Mjml.Section
   (
     section_
+  , wrapper_
   ) where
 
 import Lucid.Mjml.Component
@@ -62,3 +63,6 @@ section_ :: Monad m => [Attribute] -> [ElementT m ()] -> ElementT m ()
 section_ attrs children = ElementT False (render attrMap children)
   where
      attrMap = HM.fromListWith (<>) (map toPair attrs)
+
+wrapper_ :: Monad m => [Attribute] -> [ElementT m ()] -> ElementT m ()
+wrapper_ = section_

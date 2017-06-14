@@ -84,7 +84,7 @@ defaultAttrs = HM.fromList [
   , ("padding", "10px 25px")
   ]
 
-render :: Monad m => HM.HashMap T.Text T.Text -> T.Text -> MjmlT m ()
+render :: Monad m => HM.HashMap T.Text T.Text -> Html () -> MjmlT m ()
 render attrs content = rendererWrapper fullAttrs $ div_ [style_ $ generateStyles style] (toHtml content)
   where
     fullAttrs = HM.union attrs defaultAttrs
@@ -100,5 +100,5 @@ render attrs content = rendererWrapper fullAttrs $ div_ [style_ $ generateStyles
       , "color"
       , "height"]
 
-text_ :: Monad m => [Attribute] -> T.Text -> ElementT m ()
+text_ :: Monad m => [Attribute] -> Html () -> ElementT m ()
 text_ attrs content = ElementT False (render (HM.fromListWith (<>) (map toPair attrs)) content)
