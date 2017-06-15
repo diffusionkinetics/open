@@ -52,6 +52,7 @@ Library
                , pretty
                , containers
                , unix
+               , typed-process
 
 executable dampf
   main-is: Main.hs

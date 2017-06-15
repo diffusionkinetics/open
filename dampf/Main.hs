@@ -20,6 +20,9 @@ data Cmd = DumpYaml {appFile :: Maybe FilePath}
          | Build {appFile :: Maybe FilePath}
          | Deploy {appFile :: Maybe FilePath}
          | SetupDB {appFile :: Maybe FilePath}
+         | Backup { appFile :: Maybe FilePath
+                  , database :: Maybe String }
+
   deriving (Generic, Show)
 
 
@@ -39,4 +42,5 @@ dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
 dispatch (Build mfp) = goBuild mfp
 dispatch (Deploy mfp) = goDeploy mfp
 dispatch (SetupDB mfp) = setupDB mfp
+dispatch (Backup mfp mdbnm) = backupDB mfp mdbnm
 
