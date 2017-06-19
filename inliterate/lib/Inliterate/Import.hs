@@ -35,7 +35,7 @@ instance AskInliterate Float
 
 instance AskInliterate UTCTime
 
-instance AskInliterate String where
+instance AskInliterate {-# OVERLAPPING #-} String where
   askInliterate = answerWith id
 
 instance AskInliterate T.Text where
@@ -62,7 +62,7 @@ instance AskInliterate (Html ()) where
 instance AskInliterate Plotly where
   askInliterate q cts plt = askInliterate q cts $ (toHtml plt :: Html ())
 
-instance (Show a, AskInliterate a) => AskInliterate [a] where
+instance {-# OVERLAPPABLE #-} (Show a, AskInliterate a) => AskInliterate [a] where
   askInliterate = answerWith lshow where
     lshow xs = let (first5, rest) = splitAt 5 xs
                    sfirst5 = map show first5
