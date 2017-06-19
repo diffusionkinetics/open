@@ -35,7 +35,7 @@ instance AskInliterate Float
 
 instance AskInliterate UTCTime
 
-instance AskInliterate {-# OVERLAPPING #-} String where
+instance {-# OVERLAPPING #-} AskInliterate String where
   askInliterate = answerWith id
 
 instance AskInliterate T.Text where
