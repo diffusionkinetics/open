@@ -1,5 +1,5 @@
-module Svm 
+module Fuml.Svm
   where
 
-import AI.SVM.Simple 
+import AI.SVM.Simple
 import Fuml.Core
