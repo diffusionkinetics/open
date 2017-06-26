@@ -81,7 +81,7 @@ Confused?
   it is in the prediction. 
 * `Maybe p`: if you have a previous model fit for data that is close, and the 
   method that can benefit from a close solution, you can pass this in here.
-* `[(Vector Double, o)]`: lists of pairs of predictors in the observed 
+* `[(Vector Double, o)]`: lists of pairs of predictors and the observed 
   outcome. This argument is likely be more general in future versions
   of Fuml.
   
