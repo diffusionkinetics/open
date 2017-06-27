@@ -40,7 +40,8 @@ instance FromJSON ImageSpec
 
 data ContainerSpec = ContainerSpec
   { image :: String,
-    expose :: Maybe Int
+    expose :: Maybe [Int],
+    command :: Maybe String
   } deriving (Generic, Show)
 
 instance FromJSON ContainerSpec

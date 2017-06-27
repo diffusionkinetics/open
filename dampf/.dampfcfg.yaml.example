@@ -1,0 +1,6 @@
+# a file such as the below should me placed in $HOME/.dampfcfg.yaml
+
+postgres_password: mybigsecret
+db_passwords:
+   myuser: usersecretpassword
+live_certificate: /etc/letsencrypt/live/mydomain.com/

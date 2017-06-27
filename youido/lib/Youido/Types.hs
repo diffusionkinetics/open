@@ -14,6 +14,7 @@ import Lucid
 import Data.Aeson
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
+import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
 import System.IO.Unsafe (unsafePerformIO)
@@ -29,6 +30,8 @@ data Response = Response
 -- types that can be converted to a response: e.g. HTML and JSON
 class ToResponse a where
   toResponse :: a -> Response
+  wrapHtml :: (Html () -> Html ()) -> a -> a
+  wrapHtml = flip const
 
 instance ToResponse Response where
   toResponse = id
@@ -37,13 +40,7 @@ instance ToResponse (Html ()) where
   toResponse h = Response ok200
                           [("Content-Type", "text/html; charset=utf-8")]
                           (renderBS h)
-
-newtype AsHtml = AsHtml TL.Text
-
-instance ToResponse AsHtml where
-  toResponse (AsHtml t) =Response ok200
-                          [("Content-Type", "text/html; charset=utf-8")]
-                          (LBS.fromStrict $ T.encodeUtf8 $ TL.toStrict t)
+  wrapHtml wrapper x = wrapper x
 
 instance ToResponse Value where
   toResponse v = Response ok200
@@ -58,7 +55,9 @@ instance ToResponse Javascript where
                                  lbs
 
 instance ToResponse Text where
-  toResponse t = Response ok200 [] $ LBS.fromStrict $ T.encodeUtf8 t
+  toResponse t = Response ok200
+                          [("Content-Type", "text/plain; charset=utf-8")]
+                          $ LBS.fromStrict $ T.encodeUtf8 t
 
 instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
   toResponse (Left x) = toResponse x
@@ -66,7 +65,7 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 
 -- types that can be parsed from a request, maybe
 class FromRequest a where
-  fromRequest :: Request -> Maybe a
+  fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
 class ToURL a where
   toURL :: a -> Text
@@ -86,21 +85,21 @@ data (s::Symbol) :/ a where
   (:/) :: Key s -> a -> s :/ a
 
 instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
-  toURL (_ :/ a) = (pack $ symbolVal (Proxy::Proxy s)) <> "/" <> toURL a
+  toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
 
 instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
-  fromRequest rq = case pathInfo rq of
+  fromRequest (rq,pars) = case pathInfo rq of
       p:ps -> let sv = symbolVal (Proxy::Proxy s) in
               if p ==  pack sv
                 then let newrq = rq {pathInfo = ps}
-                     in fmap (Key :/) $ fromRequest newrq
+                     in fmap (Key :/) $ fromRequest (newrq,pars)
                 else Nothing
       [] -> Nothing
 
-instance ToURL () where toURL _ = ""
+instance ToURL () where toURL _ = "/"
 
 instance FromRequest () where
-  fromRequest rq = case pathInfo rq of
+  fromRequest (rq,_) = case pathInfo rq of
     [] -> Just ()
     [""] -> Just ()
     _ -> Nothing
@@ -109,12 +108,12 @@ instance FromRequest () where
 data GetOrPost a b = Get a | Post b
 
 instance (FromRequest a, FromRequest b) => FromRequest (GetOrPost a b) where
-  fromRequest rq = case requestMethod rq of
-    "GET" -> fmap Get $ fromRequest rq
-    "POST" -> fmap Post $ fromRequest rq
+  fromRequest (rq,pars) = case requestMethod rq of
+    "GET" -> fmap Get $ fromRequest (rq,pars)
+    "POST" -> fmap Post $ fromRequest (rq,pars)
 
 instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
-  fromRequest rq = case (fromRequest rq, fromRequest rq) of
+  fromRequest rqpars = case (fromRequest rqpars, fromRequest rqpars) of
     (Just x, _) -> return $ Left x
     (Nothing, Just y) -> return $ Right y
     _ -> Nothing
@@ -122,12 +121,7 @@ instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
 newtype FormFields = FormFields [(TL.Text, TL.Text)]
 
 instance FromRequest FormFields where
-  fromRequest rq = fmap FormFields parseFormFields where
-    parseFormFields = Just $ map toTLs $ fst $ unsafePerformIO $ parseRequestBody emptyBackend rq
-    emptyBackend :: BackEnd ()
-    emptyBackend _ _ _ = return ()
-    toTL bs = TL.fromStrict $ T.decodeUtf8 bs
-    toTLs (b1,b2) = (toTL b1, toTL b2)
+  fromRequest (_,pars) = Just $ FormFields pars
 
 
 -- | handler box, parametrised on a monad
@@ -141,15 +135,22 @@ instance Monad m => Monoid (Handler m) where
     Left x -> fmap Left $ f1 x
     Right y -> fmap Right $ f2 y
 
+data Youido m = Youido
+  { handlers :: [Handler m] -- ^ list of handlers
+  , notFoundHtml :: Html () -- ^ default, if nothing found
+  , wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
+  , basicAuthUsers :: [(ByteString, ByteString)]
+  , port :: Int
+  }
+
 -- | get a response from a request, given a list of handlers
 run :: Monad m
-    => [Handler m] -- ^ list of handlers
-    -> Html () -- ^ default, if nothing found
-    -> Request -- ^ incoming request
+    => Youido m
+    -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run [] notFound _ = return $ (toResponse notFound) { code = notFound404  }
-run (H f : hs) notFound rq = do
+run (Youido [] notFound _ _ _) _ = return $ (toResponse notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf users p) rq = do
   case fromRequest rq of
-    Nothing -> run hs notFound rq
-    Just x -> toResponse <$> f x
+    Nothing -> run (Youido hs notFound wrapperf users p) rq
+    Just x -> toResponse . wrapHtml wrapperf <$> f x
 

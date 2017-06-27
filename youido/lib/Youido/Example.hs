@@ -8,6 +8,8 @@ import Youido.Serve
 import Youido.Types
 import Youido.Dashdo
 import Lucid
+import Lucid.Bootstrap
+import Lucid.Bootstrap3
 import Numeric.Datasets.Gapminder
 import Numeric.Datasets
 import Control.Monad.Reader
@@ -16,38 +18,24 @@ import Network.Wai
 import Data.Text (Text, pack)
 import Data.Monoid
 import Lens.Micro.Platform
+--import Graphics.Plotly.Lucid.hs
 
 import Dashdo
 import Dashdo.Types
 import Dashdo.Elements
 
-data BubblesDD = BubblesDD { _selYear :: Int}
-
-makeLenses ''BubblesDD
-
-
-runIt :: IO ()
-runIt = do
-  ddH <- dashdoGlobal
-  gapM <- getDataset gapminder
-  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
-  serve () [ ddH
-           , H dd
-           , H (countryH gapM)
-           ]
-
 data Countries = Countries
                | Country Text
 
 instance FromRequest Countries where
-  fromRequest rq = case pathInfo rq of
+  fromRequest (rq,_) = case pathInfo rq of
     "countries":_ -> Just Countries
     "country":cnm:_ -> Just $ Country cnm
     _ -> Nothing
 
 instance ToURL Countries where
-  toURL Countries = "countries"
-  toURL (Country cnm) = "country/"<>cnm
+  toURL Countries = "/countries"
+  toURL (Country cnm) = "/country/"<>cnm
 
 countryH :: [Gapminder] -> Countries -> ReaderT a IO (Html ())
 countryH gapM Countries = do
@@ -59,8 +47,33 @@ countryH gapM (Country c) = do
     li_ $ "year: " <> toHtml (show $ year e) <> "  population: "<> toHtml (show $ pop e)
 
 
+data BubblesDD = BubblesDD { _selYear :: Int} deriving Show
+makeLenses ''BubblesDD
+
 bubblesDD gapM b = do
   let years = nub $ map year gapM
   select (map showOpt years) selYear
   h2_ "hello world"
   p_ (toHtml $ show $ _selYear b)
+
+
+
+sidebar = mkSidebar
+    [ "Bubbles"  *~ #bubbles :/ Initial
+    , "Counties" *~ Countries
+    ]
+
+runIt :: IO ()
+runIt = do
+  ddH <- dashdoGlobal
+  gapM <- getDataset gapminder
+  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
+  serve () $ Youido
+              [ ddH
+              , H dd
+              , H $ countryH gapM
+              ]
+              "Not found!"
+              (stdWrapper (mempty) sidebar)
+              []
+              3101

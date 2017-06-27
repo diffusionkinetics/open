@@ -1,0 +1,28 @@
+image myimage:
+  dockerFile: .
+
+container mycontainer1:
+  image: myimage
+  expose: [3002]
+
+container myadmincontainer:
+  image: myimage
+  expose: [3102]
+  command: foobar serve
+
+postgresdb mydb:
+  migrations: migrations/
+  db_user: myuser
+  db_extensions: ["hstore"]
+
+domain api.mydomain.com:
+  proxy_container: mycontainer1:3002
+  letsencrypt: true
+
+domain platform.mydomain.com
+  proxy_container: myadmincontainer:3102
+  letsencrypt: true
+
+domain mydomain.com:
+  static: www/
+  letsencrypt: true
