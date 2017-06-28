@@ -72,7 +72,7 @@ Confused?
   need to access this to interpret the model, but it may heavily depend on
   the different learning methods. For instance, for linear regression
   this might be a vector of regression coefficients.
-* `o`: the predicted outcome. Why are predicted and observed outcomes different? This allows 
+* `a`: the predicted outcome. Why are predicted and observed outcomes different? This allows 
   methods to return information about the uncertainty in the prediction. 
   For instance, if your observed outcome is true and false (a classifier; 
   for instance, predict whether individuals are men or women), a prediction
