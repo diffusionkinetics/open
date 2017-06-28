@@ -24,30 +24,13 @@ import Graphics.Plotly.GoG
 import Graphics.Plotly.Simple
 import Graphics.Plotly.Histogram (histogram)
 
+-- System Load dashdo
+
 data SysStats = SysStats
  { statsLoad :: Double
  , statsMem :: Integer
  , statsDiskIO :: (Integer, Integer)
  }
-
-data PsCtl = PsCtl
- { _processFilter :: Tag (Process -> Bool)
- , _processUser :: Text
- }
-
-psActive, psAll :: Tag (Process -> Bool)
-psActive = Tag "a" ((>0.1) . procCPUPercent)
-psAll = Tag "b" (const True)
-
-makeLenses ''PsCtl
-
-main = do
-  stats <- newMVar ([] :: [SysStats])
-  forkIO (statGrab stats)
-  let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
-                , RDashdo "process" "Processes" psDashdo ]
-  html <- rdash plotlyCDN
-  runRDashdo html $ dashdos
 
 data Unused = Unused
 
@@ -67,6 +50,21 @@ load _ stats = do
      [ ("CPU Load",     toHtml $ plotly "foo" [cpuLoad] & layout . margin ?~ thinMargins)
      , ("Memory Usage", toHtml $ plotly "bar" [memUsage] & layout . margin ?~ thinMargins)
      , ("Disk IO",      toHtml $ plotly "baz" [diskRead, diskWrite] & layout . margin ?~ thinMargins)]
+
+-- end of System Load dashdo
+
+
+-- Processes dashdo
+data PsCtl = PsCtl
+ { _processFilter :: Tag (Process -> Bool)
+ , _processUser :: Text
+ }
+
+psActive, psAll :: Tag (Process -> Bool)
+psActive = Tag "a" ((>0.1) . procCPUPercent)
+psAll = Tag "b" (const True)
+
+makeLenses ''PsCtl
 
 psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
 
@@ -109,3 +107,13 @@ statGrab mvStats = diskStats >>= forever
            (r, w) <- diskStats
            modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
            return (r, w)
+
+-- end of Processes dashdo
+
+main = do
+  stats <- newMVar ([] :: [SysStats])
+  forkIO (statGrab stats)
+  let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
+                , RDashdo "process" "Processes" psDashdo ]
+  html <- rdash plotlyCDN
+  runRDashdo html $ dashdos
