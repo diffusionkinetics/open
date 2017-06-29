@@ -14,6 +14,7 @@ category:            Statistics, Web
 Cabal-Version: 	     >= 1.10
 extra-source-files:
         public/js/dashdo.js
+        public/js/runners/*.js
 
 Library
    ghc-options:       -Wall -fno-warn-type-defaults
@@ -33,6 +34,7 @@ Library
    Build-depends:
                  base                    >= 4.6 && <5
                , scotty
+               , http-types
                , lucid
                , lucid-extras
                , text
@@ -49,4 +51,3 @@ Library
                , template-haskell
                , aeson
                , plotlyhs
-

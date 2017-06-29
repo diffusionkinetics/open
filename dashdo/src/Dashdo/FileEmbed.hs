@@ -1,4 +1,4 @@
-module Dashdo.FileEmbed (embedFile) where
+module Dashdo.FileEmbed (embedFile, embedDir) where
 
 -- wrapper around fileEmbed that forces ghc to
 -- recompile when dependent files change
@@ -12,3 +12,5 @@ embedFile :: FilePath -> Q Exp
 embedFile path = do
   qAddDependentFile path
   DFE.embedFile path
+
+embedDir = DFE.embedDir
