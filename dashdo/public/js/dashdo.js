@@ -21,6 +21,7 @@ $(function(){
   var switchDashdo = function(did) {
     if (did in dashdos) {
       $('#dashdo-main').replaceWith(dashdos[did].main);
+      $('#dashdo-sidebar').replaceWith(dashdos[did].sidebar);
       $('#dashdo-form').attr('href', did);
       $('#dashdo-title').text($('.dashdo-link[href="'+did+'"]').text());
 
@@ -82,6 +83,8 @@ $(function(){
         dashdos[did] = {};
         dashdos[did].main = $('<div id="dashdo-main"></div>')
           .append($.parseHTML(r, null, true));
+        dashdos[did].sidebar = $('<div id="dashdo-sidebar"></div>')
+          .append(dashdos[did].main.find('.dashdo-sidebar').remove());
         $('#spinner').removeClass('fa-spin');
         switchDashdo(did);
       }

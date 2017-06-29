@@ -18,8 +18,9 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
+-- TODO: placeholder for items for sidebar
 sidebarList :: Monad m => [RDashdo] -> [HtmlT m ()]
-sidebarList = map sidebarListItem
+sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-sidebar"] mempty ]
   where 
     sidebarListItem = \rd ->
       a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
