@@ -31,7 +31,7 @@ $(function(){
         var input = $(this).siblings('input').first();
         var restyle = function() {
           var value = input.attr('value');
-          if (value == "") {
+          if (value === "") {
             Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
           } else {
             var os = graph.data[0][attr].map(function(p) {
