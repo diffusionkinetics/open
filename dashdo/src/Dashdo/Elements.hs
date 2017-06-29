@@ -48,6 +48,7 @@ wrap hdr h =  doctypehtml_ $ do
     cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
+    script_ [src_ "/js/runners/base.js"] ""
 
 textInput :: Lens' a Text -> SHtml a ()
 textInput f = do

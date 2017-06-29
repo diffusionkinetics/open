@@ -25,6 +25,7 @@ sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-side
       a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
         (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
 
+-- TODO: remove? (seems like never used)
 dashdo :: RDashdo -> IO (String, TL.Text)
 dashdo (RDashdo fid _ d) = do
   t <- fst <$> dashdoGenOut d (initial d)
@@ -53,6 +54,7 @@ rdash rdashdos headExtra = do
         cdnJqueryJS
         cdnBootstrapJS
         script_ [src_ "/js/dashdo.js"] ("" :: Text)
+        script_ [src_ "/js/runners/rdashdo.js"] ("" :: Text)
 
 controls :: Monad m => HtmlT m () -> HtmlT m ()
 controls content = do

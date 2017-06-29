@@ -8,8 +8,10 @@ import Dashdo.FileEmbed
 
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
+import Network.HTTP.Types (status404)
 import Control.Monad.Trans (liftIO)
 import System.Random
+import qualified Data.List as L
 import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.Text as T
@@ -51,6 +53,16 @@ serve iniHtml handlers = do
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
       raw dashdoJS
+    get "/js/runners/:runner" $ do
+      runner <- param "runner"
+      let runnersEmbedded = $(embedDir "public/js/runners")
+      case L.find ((== runner) . fst) runnersEmbedded of
+        Just    (_,content) -> do
+          setHeader "Content-Type" "application/javascript"
+          raw $ BLS.fromStrict content
+        Nothing -> do
+          status status404
+
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
     forM_ handlers $ \(did, _, hdl) -> post (literal ('/':did)) (params >>= hdl)
