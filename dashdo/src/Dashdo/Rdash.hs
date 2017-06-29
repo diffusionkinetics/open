@@ -18,8 +18,12 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
-sidebarList :: (Monad m) => [RDashdo] -> [HtmlT m ()]
-sidebarList = map (\d->a_ [href_ (pack $ rdFid d), class_ "dashdo-link"] $ (toHtml $ rdTitle d) <> (i_ [class_ "fa fa-tachometer menu-icon"] mempty))
+sidebarList :: Monad m => [RDashdo] -> [HtmlT m ()]
+sidebarList = map sidebarListItem
+  where 
+    sidebarListItem = \rd ->
+      a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
+        (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
 
 dashdo :: RDashdo -> IO (String, TL.Text)
 dashdo (RDashdo fid _ d) = do
