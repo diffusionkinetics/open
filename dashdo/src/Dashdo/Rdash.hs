@@ -18,13 +18,16 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
+sidebarList :: (Monad m) => [RDashdo] -> [HtmlT m ()]
+sidebarList = map (\d->a_ [href_ (pack $ rdFid d), class_ "dashdo-link"] $ (toHtml $ rdTitle d) <> (i_ [class_ "fa fa-tachometer menu-icon"] mempty))
+
 dashdo :: RDashdo -> IO (String, TL.Text)
 dashdo (RDashdo fid _ d) = do
   t <- fst <$> dashdoGenOut d (initial d)
   return (fid, t)
 
-rdash :: Html () -> IO TL.Text
-rdash headExtra = do
+rdash :: [RDashdo] -> Html () -> IO TL.Text
+rdash rdashdos headExtra = do
   return $ renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
@@ -32,9 +35,7 @@ rdash headExtra = do
         cdnThemeCSS
         headExtra
       body_ $ do
-        let sb  = do RD.mkSidebar sidebarMain sidebarTitle [
-                       div_ [id_ "dashdo-sidebar"] mempty
-                       ]
+        let sb  = do RD.mkSidebar sidebarMain sidebarTitle $ sidebarList rdashdos
             sbf = RD.mkSidebarFooter (rowEven XS
               [ a_ [href_ "https://github.com/filopodia/open"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
               , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty

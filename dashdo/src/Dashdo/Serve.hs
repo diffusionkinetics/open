@@ -60,5 +60,4 @@ serve iniHtml handlers = do
       raw dashdoJS
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
-    get "/titles" $ json titles
     forM_ handlers $ \(did, _, hdl) -> post (literal ('/':did)) (params >>= hdl)
