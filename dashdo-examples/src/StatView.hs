@@ -55,6 +55,7 @@ load _ stats = do
 
 
 -- Processes dashdo
+
 data PsCtl = PsCtl
  { _processFilter :: Tag (Process -> Bool)
  , _processUser :: Text
@@ -115,5 +116,5 @@ main = do
   forkIO (statGrab stats)
   let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
                 , RDashdo "process" "Processes" psDashdo ]
-  html <- rdash plotlyCDN
+  html <- rdash dashdos plotlyCDN
   runRDashdo html $ dashdos
