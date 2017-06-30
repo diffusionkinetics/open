@@ -1,7 +1,3 @@
-// TODO: in RDashdo form 'href' -> 'action' (to make it submit!)
-// TODO: ajax rendering
-// TODO: switch between dashdos
-// TODO: remove STATIC PILICY! wai-middleware-static
 (function ( $ ) {
  
     $.fn.dashdo = function(options) {
@@ -24,9 +20,13 @@
         uuidUrl: "/uuid",
         uuidInterval: 1000,
         periodicSubmit: parseInt($('.dashdo-periodic-submit', this).val()),
+        
+        // multiple dashdos only:
+        containerElement: null,
+        endpoints: []  // 'multiDashdo' if the length is greater than 0
       }, options)
 
-      var resubmitNative = function() {
+      var resubmitNatively = function() {
         $("input", this).prop('readonly', true);
         $(this).submit()
       }.bind(this)
@@ -57,20 +57,20 @@
       }
 
       var resubmitWithAjax = function() {
-        requestHtmlFromServer(
-          $(e.target).attr("action"),
-          $(e.target).serialize(),
-          function(data) {
-            // TODO: ajax rendering
-            console.log('data', data)
-            console.log('this', this)
-          }.bind(this)
-        )
+        if(!!settings.containerElement) {
+          requestHtmlFromServer(
+            $(this).attr("action"),
+            $(this).serialize(),
+            function(data) {
+              $(settings.containerElement).replaceWith(data)
+            }.bind(this)
+          )
+        }
       }.bind(this)
 
       var properReSubmit = (settings.ajax) ?
             resubmitWithAjax :
-            resubmitNative;
+            resubmitNatively;
 
       if(typeof settings.periodicSubmit === "number" && settings.periodicSubmit > 0) {  // be aware that NaN is also numberic
         setInterval(properReSubmit, settings.periodicSubmit)
@@ -88,6 +88,18 @@
         })
       }
       uuidLoop()
+
+      var switchDashdo = function(endpoint) {
+        $(this).attr("action", endpoint)
+        properReSubmit()
+      }.bind(this)
+
+      if(settings.endpoints.length > 0) {  // TODO: multi-dashdo == ajax ? remove ?
+        switchDashdo(settings.endpoints[0])
+      }
+
+      // TODO: switch between dashdos
+      // TODO: remove STATIC PILICY! wai-middleware-static
 
       return this;
     }
