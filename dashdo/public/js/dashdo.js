@@ -34,7 +34,7 @@
       $("input,select", this).each(function(i,e) {
         $(e).change(function() {  // todo: _.debounce(func, [wait=0], [options={}]) ?
           if (typeof(manual_submit) == "undefined" || !manual_submit) {
-            resubmitNative()
+            properReSubmit()
           }
         });
       }.bind(this));
@@ -88,8 +88,6 @@
         })
       }
       uuidLoop()
-
-      // TODO: #4 - manual submit
 
       return this;
     }
