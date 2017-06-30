@@ -57,7 +57,7 @@ stdWrapper hdrMore sidebar h = doctypehtml_ $ do
     cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
-    script_ [src_ "/js/runners/youido.js"] ""
+    script_ [src_ "/js/runners/base.js"] ""
 
 mkSidebar :: [(Text, Text)] -> Html ()
 mkSidebar links = ul_ $ mapM_ f links where
