@@ -1,1 +1,5 @@
-// alert("Hey, I'm using basic Dashdo")
+(function($) {
+  $(document).ready(function() {
+    $('#dashdoform').dashdo()
+  })
+})(jQuery)
