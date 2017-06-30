@@ -33,6 +33,9 @@ getRandomUUID = fromStrict . UUID.toText <$> randomIO
 dashdoJS :: BLS.ByteString
 dashdoJS = BLS.fromStrict $(embedFile "public/js/dashdo.js")
 
+dashdoJSrunnerBase :: BLS.ByteString
+dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
+
 runDashdo :: Dashdo a -> IO ()
 runDashdo d = do
   (iniHtml, _) <- dashdoGenOut d (initial d)

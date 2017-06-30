@@ -29,7 +29,8 @@ dashdoGlobal = do
   uuid <- getRandomUUID
   let h1 = H $ \(_ :: "uuid" :/ () ) -> return $ toStrict uuid
   let h2 = H $ \(_ :: "js" :/ "dashdo.js" :/ () ) -> return $ JS dashdoJS
-  return $ h1 <> h2
+  let h3 = H $ \(_ :: "js" :/ "runners" :/ "base.js" :/ () ) -> return $ JS dashdoJSrunnerBase
+  return $ h1 <> h2 <> h3
 
 -- request for a dashdo app
 data DashdoReq = Initial | Submit [(TL.Text, TL.Text)]
