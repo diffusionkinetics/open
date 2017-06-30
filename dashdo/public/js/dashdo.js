@@ -23,9 +23,10 @@
         ajax: false,
         uuidUrl: "/uuid",
         uuidInterval: 1000,
-      }, options )
+        periodicSubmit: parseInt($('.dashdo-periodic-submit', this).val()),
+      }, options)
 
-      var resubmit = function() {
+      var resubmitNative = function() {
         $("input", this).prop('readonly', true);
         $(this).submit()
       }.bind(this)
@@ -33,7 +34,7 @@
       $("input,select", this).each(function(i,e) {
         $(e).change(function() {  // todo: _.debounce(func, [wait=0], [options={}]) ?
           if (typeof(manual_submit) == "undefined" || !manual_submit) {
-            resubmit()
+            resubmitNative()
           }
         });
       }.bind(this));
@@ -55,7 +56,7 @@
         })
       }
 
-      var submitWithAjax = function() {
+      var resubmitWithAjax = function() {
         requestHtmlFromServer(
           $(e.target).attr("action"),
           $(e.target).serialize(),
@@ -67,11 +68,19 @@
         )
       }.bind(this)
 
+      var properReSubmit = (settings.ajax) ?
+            resubmitWithAjax :
+            resubmitNative;
+
+      if(typeof settings.periodicSubmit === "number" && settings.periodicSubmit > 0) {  // be aware that NaN is also numberic
+        setInterval(properReSubmit, settings.periodicSubmit)
+      }
+
       var uuid = null
       var uuidLoop = function() {
         $.get(settings.uuidUrl).done(function(data) {
           if(uuid && uuid != data) {
-            resubmit()
+            properReSubmit()
           }
           uuid = data
         }).always(function() {
@@ -80,8 +89,6 @@
       }
       uuidLoop()
 
-      // TODO: #2 - uuid chage
-      // TODO: #3 - periodic submit
       // TODO: #4 - manual submit
 
       return this;
