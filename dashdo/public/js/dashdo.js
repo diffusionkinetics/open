@@ -21,13 +21,14 @@
         ajax: false,
         uuidUrl: "/uuid",
         uuidInterval: 1000,
-        periodicSubmit: parseInt($('.dashdo-periodic-submit', this).val()),
         
         // multiple dashdos only:
         containerElement: null,
         switcherElements: null,
         switcherAttr: 'href',
         switcherEvent: 'click',
+
+        periodicSubmitSelector: '.dashdo-periodic-submit'
       }, options)
 
       var resubmitNatively = function() {
@@ -60,13 +61,16 @@
         })
       }
 
-      var resubmitWithAjax = function() {
+      var resubmitWithAjax = function(onSuccessfulRender) {
         if(!!settings.containerElement) {
           requestHtmlFromServer(
             $(this).attr("action"),
             $(this).serialize(),
             function(data) {
               $(settings.containerElement).html(data)
+              if(!!onSuccessfulRender) {
+                onSuccessfulRender()
+              }
             }.bind(this)
           )
         }
@@ -75,10 +79,6 @@
       var properReSubmit = (settings.ajax) ?
             resubmitWithAjax :
             resubmitNatively;
-
-      if(typeof settings.periodicSubmit === "number" && settings.periodicSubmit > 0) {  // be aware that NaN is also numberic
-        setInterval(properReSubmit, settings.periodicSubmit)
-      }
 
       var uuid = null
       var uuidLoop = function() {
@@ -93,9 +93,22 @@
       }
       uuidLoop()
 
+      var submitTimer = null
+      var periodicSubmitLoop = function() {
+        var currentPeriodicSubmitValue = parseInt($(this).find(settings.periodicSubmitSelector).val())
+        if(!!currentPeriodicSubmitValue) {
+          properReSubmit()
+          submitTimer = setTimeout(periodicSubmitLoop.bind(this), currentPeriodicSubmitValue)
+        }
+      }.bind(this)
+      periodicSubmitLoop()
+
       var switchDashdo = function(endpoint) {
         $(this).attr("action", endpoint)  // set action of the form to the endpoint
-        properReSubmit()
+        resubmitWithAjax(function() {  // if switched & rendered successfully, renew periodic submit loop
+          clearInterval(submitTimer)
+          periodicSubmitLoop()
+        })
       }.bind(this)
 
       if(settings.switcherElements !== null) {  // TODO: multi-dashdo == ajax ? remove ?
@@ -114,7 +127,6 @@
         }
       }
       
-      // TODO: periodic?
       // TODO: sidebar?
       // TODO: restyle
       // TODO: remove STATIC PILICY! wai-middleware-static
