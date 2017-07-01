@@ -9,9 +9,11 @@
         - uuidUrl (default: '/uuid')
         - uuidInterval (default: 1000)
 
-       ui:
-        - event on which dashdo changes
-        - (ajax-only!) container (which to (re-)render)
+       ui (ajax-only!):
+        - container (which to (re-)render)
+        - switcherElements: $('.dashdo-link'),
+        - switcherAttr: 'href',
+        - switcherEvent: 'click',
       */
 
       var settings = $.extend({
@@ -23,7 +25,9 @@
         
         // multiple dashdos only:
         containerElement: null,
-        endpoints: []  // 'multiDashdo' if the length is greater than 0
+        switcherElements: null,
+        switcherAttr: 'href',
+        switcherEvent: 'click',
       }, options)
 
       var resubmitNatively = function() {
@@ -62,7 +66,7 @@
             $(this).attr("action"),
             $(this).serialize(),
             function(data) {
-              $(settings.containerElement).replaceWith(data)
+              $(settings.containerElement).html(data)
             }.bind(this)
           )
         }
@@ -90,15 +94,29 @@
       uuidLoop()
 
       var switchDashdo = function(endpoint) {
-        $(this).attr("action", endpoint)
+        $(this).attr("action", endpoint)  // set action of the form to the endpoint
         properReSubmit()
       }.bind(this)
 
-      if(settings.endpoints.length > 0) {  // TODO: multi-dashdo == ajax ? remove ?
-        switchDashdo(settings.endpoints[0])
-      }
+      if(settings.switcherElements !== null) {  // TODO: multi-dashdo == ajax ? remove ?
+        var firstEndpoint = 
+          $(settings.switcherElements)
+            .first()
+            .attr(settings.switcherAttr)
 
-      // TODO: switch between dashdos
+        if(firstEndpoint) {
+          switchDashdo(firstEndpoint)
+
+          $(settings.switcherElements).on(settings.switcherEvent, function(e) {
+            e.preventDefault()
+            switchDashdo($(e.target).attr(settings.switcherAttr))
+          })
+        }
+      }
+      
+      // TODO: periodic?
+      // TODO: sidebar?
+      // TODO: restyle
       // TODO: remove STATIC PILICY! wai-middleware-static
 
       return this;
