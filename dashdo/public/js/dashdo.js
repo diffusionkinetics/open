@@ -9,6 +9,7 @@
         - uuidUrl (default: '/uuid')
         - uuidInterval (default: 1000)
         - periodicSubmitSelector (default: '.dashdo-periodic-submit')
+        - dashdoTitleSelector (default: '#dashdo-title')
 
        ui (ajax-only!):
         - container (which to (re-)render)
@@ -29,7 +30,8 @@
         switcherAttr: 'href',
         switcherEvent: 'click',
 
-        periodicSubmitSelector: '.dashdo-periodic-submit'
+        periodicSubmitSelector: '.dashdo-periodic-submit',
+        dashdoTitleSelector: '#dashdo-title',
       }, options)
 
       var resubmitNatively = function() {
@@ -107,6 +109,16 @@
       var switchDashdo = function(endpoint) {
         $(this).attr("action", endpoint)  // set action of the form to the endpoint
         resubmitWithAjax(function() {  // if switched & rendered successfully, renew periodic submit loop
+          if(!!settings.dashdoTitleSelector) {
+            var title = $(settings.switcherElements)
+            .filter('[' + settings.switcherAttr + '="' + endpoint + '"]')
+            .text()
+
+            if(!!title) {
+              $(settings.dashdoTitleSelector).text(title)
+            }
+          }
+
           clearInterval(submitTimer)
           periodicSubmitLoop()
         })
@@ -129,6 +141,7 @@
       }
       
       // TODO: sidebar?
+      // TODO: title
       // TODO: restyle
       // TODO: remove STATIC PILICY! wai-middleware-static
 
