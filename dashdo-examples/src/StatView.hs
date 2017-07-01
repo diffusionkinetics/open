@@ -6,7 +6,7 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
-import Dashdo.Rdash (rdash, charts, controls, inSidebar)
+import Dashdo.Rdash (rdash, charts, controls, inDashboard)
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
@@ -80,7 +80,7 @@ process ctl (ps, us) = do
         in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
 
-  inSidebar $
+  inDashboard $
     checkbox "Hide inactive processes" psActive psAll processFilter
 
   charts

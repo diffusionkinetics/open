@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dashdo.Rdash (rdash, charts, controls, inSidebar) where
+module Dashdo.Rdash (rdash, charts, controls, inSidebar, inDashboard) where
 
 import Dashdo
 import Dashdo.Types
@@ -81,3 +81,8 @@ charts cs = do
 
 inSidebar :: SHtml a () -> SHtml a ()
 inSidebar = div_ [class_ "dashdo-sidebar"]
+
+inDashboard :: SHtml a () -> SHtml a ()
+inDashboard content = div_ [class_ "row"] $
+  mkCol [(XS, 12), (MD, 12)] $
+    div_ content
