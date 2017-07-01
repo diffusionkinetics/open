@@ -37,14 +37,13 @@
         $("input", this).prop('readonly', true);
         $(this).submit()
       }.bind(this)
-      
-      $("input,select", this).each(function(i,e) {
-        $(e).change(function() {  // todo: _.debounce(func, [wait=0], [options={}]) ?
-          if (typeof(manual_submit) == "undefined" || !manual_submit) {
-            properReSubmit()
-          }
-        });
-      }.bind(this));
+
+      $(this).on("change", ":input", function() {
+        if (typeof(manual_submit) === "undefined" || !manual_submit) {
+          $(":input").prop("readonly", true);
+          properReSubmit()
+        }
+      })
 
       this.filter("form").on("submit", function(e) {
         if(!settings.ajax) {
@@ -152,7 +151,7 @@
           var input = $(this).siblings('input').first();
           var restyle = function() {
             var value = input.attr('value');
-            if (value == "") {
+            if (value === "") {
               Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
             } else {
               var os = graph.data[0][attr].map(function(p) {
@@ -173,11 +172,8 @@
           });
         });
       }
-      
-      // TODO: sidebar?
-      // TODO: remove STATIC PILICY! wai-middleware-static
 
-      return this;
+      return this; // returning the dashdo
     }
  
 }( jQuery ));
