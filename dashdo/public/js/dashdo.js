@@ -8,6 +8,7 @@
         - ajax: true / false (default: false),
         - uuidUrl (default: '/uuid')
         - uuidInterval (default: 1000)
+        - periodicSubmitSelector (default: '.dashdo-periodic-submit')
 
        ui (ajax-only!):
         - container (which to (re-)render)
