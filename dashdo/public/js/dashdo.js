@@ -9,9 +9,9 @@
         - uuidUrl (default: '/uuid')
         - uuidInterval (default: 1000)
         - periodicSubmitSelector (default: '.dashdo-periodic-submit')
-        - dashdoTitleSelector (default: '#dashdo-title')
 
        ui (ajax-only!):
+        - dashdoTitleSelector (default: '#dashdo-title')
         - container (which to (re-)render)
         - switcherElements: $('.dashdo-link'),
         - switcherAttr: 'href',
@@ -24,7 +24,6 @@
         uuidUrl: "/uuid",
         uuidInterval: 1000,
         
-        // multiple dashdos only:
         containerElement: null,
         switcherElements: null,
         switcherAttr: 'href',
