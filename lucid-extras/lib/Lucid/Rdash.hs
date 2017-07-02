@@ -1,6 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lucid.Rdash (indexPage) where
+module Lucid.Rdash (
+    indexPage
+  , mkBody
+  , mkHead
+  , mkHeaderBar
+  , mkIndexPage
+  , mkMetaBox
+  , mkMetaTitle
+  , mkPageContent
+  , mkPageWrapperOpen
+  , mkSidebar
+  , mkSidebarFooter
+  , mkSidebarItem
+  , mkSidebarWrapper
+  , sidebarMain
+  , sidebarTitle
+  ) where
 
 import qualified Data.Text as T
 import Data.List
