@@ -12,23 +12,22 @@ import Data.Monoid ((<>))
 type FormField t = (Int, t -> Text -> t)
 type FormFields t = [FormField t]
 
-type SHtml t a = HtmlT (State (Int,t,FormFields t)) a
+type SHtml t a = HtmlT (StateT (Int,t,FormFields t) IO) a
 
 data RDashdo = forall t. RDashdo
   { rdFid    :: String
   , rdTitle  :: Text
   , rdDashdo :: Dashdo t }
 
-data Dashdo t = forall b. Dashdo
+data Dashdo t = Dashdo
   { initial :: t
-  , fetch :: t -> IO b
-  , render :: t -> b -> SHtml t () }
+  , render :: SHtml t () }
 
-runSHtml :: t -> SHtml t () -> (FormFields t, TL.Text)
-runSHtml val shtml =
+runSHtml :: t -> SHtml t () -> IO (FormFields t, TL.Text)
+runSHtml val shtml = do
   let stT = renderTextT shtml
-      (t, (_, _, ffs)) = runState stT (0, val, [])
-  in (ffs, t)
+  (t, (_, _, ffs)) <- runStateT stT (0, val, [])
+  return (ffs, t)
 
 fieldName :: Int -> Attribute
 fieldName n = name_ $ "f"<>pack (show n)

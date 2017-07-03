@@ -119,3 +119,14 @@ plotlySelect plot attr f = do
     toHtml plot
     input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
     input_ [type_ "hidden", class_ "dashdo-plotly-select-attr", value_ attr]
+
+(~>) :: SimpleGetter t b -> (b -> Html ()) -> SHtml t ()
+g ~> f = do
+  (_,v,_) <- lift get
+  toHtml $ f $ v ^. g
+
+toHtmls :: ToHtml b => SimpleGetter t b -> SHtml t ()
+toHtmls g = g ~> toHtml
+
+(#>) :: SimpleGetter t b -> SHtml b () -> SHtml t ()
+g #> f = undefined
