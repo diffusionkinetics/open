@@ -33,10 +33,11 @@ library
                      , microlens
                      , mtl
                      , random-fu
+                     , deepseq
 
-Test-Suite test-fuml
+Test-Suite test-svm
   type:       exitcode-stdio-1.0
-  main-is: TestFuml.hs
+  main-is: TestSVM.hs
   default-language:  Haskell2010
   build-depends:       base >=4.6 && <5
                      , fuml
@@ -44,3 +45,6 @@ Test-Suite test-fuml
                      , vector
                      , mtl
                      , random-fu
+                     , svm-simple
+                     , fuml-svm
+                     , microlens
