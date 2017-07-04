@@ -34,11 +34,11 @@ svcWtd :: Ord o =>
 svcWtd cltype kernel = Supervisor $ \_ theData ->
   let f = factor theData
 
-      seperate :: (Weighted o, VS.Vector Double) -> ((o, Double), (o, VS.Vector Double))
-      seperate (Weighted w o, v) = ((o, w), (o, v))
+      separate :: (Weighted o, VS.Vector Double) -> ((o, Double), (o, VS.Vector Double))
+      separate (Weighted w o, v) = ((o, w), (o, v))
 
       wtdCl = snd $ trainWtdClassifier cltype kernel weights trainingSet
-      (weights, trainingSet) = unzip . map seperate . vScale f $ theData
+      (weights, trainingSet) = unzip . map separate . vScale f $ theData
 
    in return $ Predict (f, wtdCl) (classify wtdCl . VS.map (*f))
 
