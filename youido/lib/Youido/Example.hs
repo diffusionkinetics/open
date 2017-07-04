@@ -69,11 +69,11 @@ runIt = do
   gapM <- getDataset gapminder
   dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
   serve () $ Youido
-              [ ddH
-              , H dd
-              , H $ countryH gapM
+              [ ddH  -- handler for /uuid and public/js
+              , H dd -- handler for /bubbles
+              , H $ countryH gapM -- handler for /countries
               ]
-              "Not found!"
-              (stdWrapper (mempty) sidebar)
-              []
-              3101
+              "Not found!"  -- if nothing found
+              (stdWrapper (mempty) sidebar)  -- wrapper for html
+              []  -- basic auth users
+              3101  -- port
