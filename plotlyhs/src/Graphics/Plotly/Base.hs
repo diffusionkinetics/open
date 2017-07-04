@@ -324,7 +324,10 @@ data Plotly = Plotly
   { _elemid :: Text
   , _traces :: [Trace]
   , _layout :: Layout
-  }
+  } deriving Generic
+
+instance ToJSON Plotly where
+  toJSON = genericToJSON jsonOptions
 
 makeLenses ''Plotly
 
