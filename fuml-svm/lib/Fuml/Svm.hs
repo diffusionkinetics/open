@@ -5,6 +5,7 @@ module Fuml.Svm
   , RegressorType(..)
   , rbfSimple
   , svc
+  , svcWtd
   , svr
   , oneClass
   ) where
@@ -18,26 +19,33 @@ import Fuml.Core
 import qualified Data.Vector.Storable as VS
 
 rbfSimple :: (Ord o, NFData o) => Supervisor Identity o (Double, SVMClassifier o) o
-rbfSimple = Supervisor $ \_ theData ->
-  let scaled = vScale f theData
-      f = factor theData
-   in return . predWith f . snd . chehLin $ scaled
+rbfSimple = Supervisor . const $ predWith chehLin classify 
 
 svc :: Ord o =>
      ClassifierType 
   -> Kernel 
-  -> Maybe [(o, Double)] -- Training weights
   -> Supervisor Identity o (Double, SVMClassifier o) o
-svc cltype kernel mbweights = Supervisor $ \_ theData ->
-  let scaled = vScale f theData
-      f = factor theData
+svc cltype kernel = Supervisor . const $ predWith (trainClassifier cltype kernel) classify
 
-      classifier = case mbweights of 
-        Just weights -> snd $ trainWtdClassifier cltype kernel weights scaled
-        Nothing -> snd $ trainClassifier cltype kernel scaled
-   in return (predWith f classifier)
+svcWtd :: Ord o => 
+     ClassifierType 
+  -> Kernel
+  -> Supervisor Identity (Weighted o) (Double, SVMClassifier o) o
+svcWtd cltype kernel = Supervisor $ \_ theData ->
+  let f = factor theData
 
-predWith f cl = Predict (f, cl) (classify cl . VS.map (*f))
+      seperate :: (Weighted o, VS.Vector Double) -> ((o, Double), (o, VS.Vector Double))
+      seperate (Weighted w o, v) = ((o, w), (o, v))
+
+      wtdCl = snd $ trainWtdClassifier cltype kernel weights trainingSet
+      (weights, trainingSet) = unzip . map seperate . vScale f $ theData
+
+   in return $ Predict (f, wtdCl) (classify wtdCl . VS.map (*f))
+
+predWith train interpret dataset = return $ Predict (f, svm) (interpret svm . VS.map (*f))
+  where f = factor dataset
+        scaled = vScale f dataset
+        svm = snd . train $ scaled
 
 factor :: [(VS.Vector Double, o)] -> Double
 factor = recip . VS.maximum . fst . maximumBy (compare `on` VS.maximum . fst)
@@ -50,18 +58,12 @@ oneClass ::
      Double -- 'nu' parameter
   -> Kernel
   -> Supervisor Identity () (Double, SVMOneClass) OneClassResult
-oneClass nu kernel = Supervisor $ \_ theData ->
-  let f = factor theData
-      scaled = VS.map (*f) . fst <$> theData
-      oneclass = snd $ trainOneClass nu kernel scaled
-   in return $ Predict (f, oneclass) (inSet oneclass . VS.map (*f))
+oneClass nu kernel = Supervisor . const $ 
+   predWith (trainOneClass nu kernel . map snd) inSet
 
 svr :: 
      RegressorType
   -> Kernel
   -> Supervisor Identity Double (Double, SVMRegressor) Double
-svr rtype kernel = Supervisor $ \_ theData ->
-  let f = factor theData
-      scaled = vScale f theData
-      regressor = snd $ trainRegressor rtype kernel scaled
-   in return $ Predict (f, regressor) (predictRegression regressor . VS.map (*f))
+svr rtype kernel = Supervisor . const $ 
+  predWith (trainRegressor rtype kernel) predictRegression

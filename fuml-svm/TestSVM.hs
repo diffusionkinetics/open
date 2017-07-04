@@ -45,7 +45,7 @@ testClassifier = do
 
   let oneclass = runSupervisor' (oneClass 0.01 Linear) $ fmap (const ()) <$> filter ((== 1) . snd) train
   let simple = runSupervisor' rbfSimple train
-  let basic = runSupervisor' (svc (C 8) (Polynomial 3 3 3) Nothing) train
+  let basic = runSupervisor' (svc (C 8) (Polynomial 3 3 3)) train
 
   let go a | a == 1 = In | otherwise = Out
   print "oneclass" 
@@ -66,4 +66,7 @@ testRegression = do
   print $ rmse test regr
 
 {-main = testRegression-}
-main = testClassifier
+{-main = testClassifier-}
+main = do
+  testRegression
+  testClassifier

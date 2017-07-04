@@ -8,6 +8,8 @@ import Data.List (nub)
 import Lens.Micro
 import Control.Monad.Identity
 
+data Weighted o = Weighted Double o
+
 -- |The result of running a predictive model
 data Predict p a = Predict
   { model :: p -- ^ the internal state of the model
