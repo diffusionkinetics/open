@@ -34,6 +34,22 @@ data SysStats = SysStats
 
 data Unused = Unused
 
+statGrab :: MVar [SysStats] -> IO ()
+statGrab mvStats = diskStats >>= forever
+ where diskStats = ((sum . map fst &&& sum . map snd) . map (diskRead &&& diskWrite))
+           <$> runStats snapshots
+       grab f = f <$> runStats snapshot
+       forever o = do
+           n <- update o
+           threadDelay 1000000
+           forever n
+       update (r', w') = do
+           cpu <- grab load1
+           mem <- grab memUsed
+           (r, w) <- diskStats
+           modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
+           return (r, w)
+
 loadDashdo mvStats = Dashdo Unused (const (readMVar mvStats)) load
 
 load :: Unused -> [SysStats] -> SHtml Unused ()
@@ -67,6 +83,12 @@ psAll = Tag "b" (const True)
 
 makeLenses ''PsCtl
 
+getStats :: IO ([Process], [UserEntry])
+getStats = do
+  ps <- runStats snapshots
+  us <- getAllUserEntries
+  return (ps, us)
+
 psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
@@ -86,28 +108,6 @@ process ctl (ps, us) = do
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
      , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) "y" processUser)]
-
-getStats :: IO ([Process], [UserEntry])
-getStats = do
-  ps <- runStats snapshots
-  us <- getAllUserEntries
-  return (ps, us)
-
-statGrab :: MVar [SysStats] -> IO ()
-statGrab mvStats = diskStats >>= forever
- where diskStats = ((sum . map fst &&& sum . map snd) . map (diskRead &&& diskWrite))
-           <$> runStats snapshots
-       grab f = f <$> runStats snapshot
-       forever o = do
-           n <- update o
-           threadDelay 1000000
-           forever n
-       update (r', w') = do
-           cpu <- grab load1
-           mem <- grab memUsed
-           (r, w) <- diskStats
-           modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
-           return (r, w)
 
 -- end of Processes dashdo
 
