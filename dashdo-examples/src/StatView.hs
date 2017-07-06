@@ -98,7 +98,8 @@ process ctl (ps, us) = do
       userFilter _ = const True
 
       processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (_tagVal $ _processFilter ctl) $ filter (userFilter user) ps
+        $ filter (_tagVal $ _processFilter ctl) 
+        $ filter (userFilter user) ps
       
       users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us where
         userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
