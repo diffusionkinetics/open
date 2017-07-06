@@ -93,17 +93,20 @@ psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
-  let user = map (fromIntegral . userID) $ filter ((== _processUser ctl) . pack . userName) us
+  let user = (fromIntegral . userID) <$> filter ((== _processUser ctl) . pack . userName) us
       userFilter (uid:_) = ((== uid) . procUid)
-      userFilter _ = const True
+      userFilter _ = const True  -- empty user filter
 
-      processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
+      processes = hbarChart 
+        $ map (decodeUtf8 . procName &&& procCPUPercent)
         $ filter (_tagVal $ _processFilter ctl) 
         $ filter (userFilter user) ps
       
-      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us where
-        userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
-          uid = fromIntegral (userID u)
+      users = hbarChart 
+        $ filter ((> 0) . snd) 
+        $ map (pack . userName &&& userCPU) us where
+          userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
+            uid = fromIntegral (userID u)
 
   controls $
     checkbox "Hide inactive processes" psActive psAll processFilter
