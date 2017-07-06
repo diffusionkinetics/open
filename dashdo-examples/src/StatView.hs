@@ -96,11 +96,13 @@ process ctl (ps, us) = do
   let user = map (fromIntegral . userID) $ filter ((== _processUser ctl) . pack . userName) us
       userFilter (uid:_) = ((== uid) . procUid)
       userFilter _ = const True
+
       processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
         $ filter (_tagVal $ _processFilter ctl) $ filter (userFilter user) ps
-      userCPU u = let uid = fromIntegral (userID u)
-        in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
-      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
+      
+      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us where
+        userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
+          uid = fromIntegral (userID u)
 
   controls $
     checkbox "Hide inactive processes" psActive psAll processFilter
