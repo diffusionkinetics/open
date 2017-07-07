@@ -11,6 +11,7 @@ import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Lucid
+import qualified Data.List as L (find)
 import Data.Text (Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8)
 import Lens.Micro.Platform
@@ -96,14 +97,14 @@ psDashdo = Dashdo (PsCtl All "") (const getStats) process
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
   -- TODO: multiple dimensions...
-  let user = (fromIntegral . userID) <$> filter ((== ctl ^. processUser) . pack . userName) us
-      userFilter (uid:_) = ((== uid) . procUid)
-      userFilter _ = const True  -- empty user filter
+  let userFilter = case L.find ((== ctl ^. processUser) . pack . userName) us of
+        Just u  -> (== (fromIntegral . userID $ u)) . procUid
+        Nothing -> const True
 
       processes = hbarChart 
         $ map (decodeUtf8 . procName &&& procCPUPercent)
         $ filter (filterProcesses $ ctl ^. processFilterType) 
-        $ filter (userFilter user) ps
+        $ filter (userFilter) ps
       
       users = hbarChart 
         $ filter ((> 0) . snd) 
