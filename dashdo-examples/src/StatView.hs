@@ -72,16 +72,18 @@ load _ stats = do
 
 -- Processes dashdo
 
+data ProcessFilterType = All | Active deriving (Eq, Show)
+
 data PsCtl = PsCtl
- { _processFilter :: Tag (Process -> Bool)
+ { _processFilterType :: ProcessFilterType
  , _processUser :: Text
  }
 
-psActive, psAll :: Tag (Process -> Bool)
-psActive = Tag "a" ((>0.1) . procCPUPercent)
-psAll = Tag "b" (const True)
-
 makeLenses ''PsCtl
+
+filterProcesses :: ProcessFilterType -> (Process -> Bool)
+filterProcesses All    = const True
+filterProcesses Active = (>0.1) . procCPUPercent
 
 getStats :: IO ([Process], [UserEntry])
 getStats = do
@@ -89,17 +91,18 @@ getStats = do
   us <- getAllUserEntries
   return (ps, us)
 
-psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
+psDashdo = Dashdo (PsCtl All "") (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
+  -- TODO: multiple dimensions...
   let user = (fromIntegral . userID) <$> filter ((== _processUser ctl) . pack . userName) us
       userFilter (uid:_) = ((== uid) . procUid)
       userFilter _ = const True  -- empty user filter
 
       processes = hbarChart 
         $ map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (_tagVal $ _processFilter ctl) 
+        $ filter (filterProcesses $ _processFilterType ctl) 
         $ filter (userFilter user) ps
       
       users = hbarChart 
@@ -109,7 +112,7 @@ process ctl (ps, us) = do
             uid = fromIntegral (userID u)
 
   controls $
-    checkbox "Hide inactive processes" psActive psAll processFilter
+    checkbox "Hide inactive processes" Active All processFilterType
 
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
