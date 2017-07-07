@@ -95,7 +95,7 @@
                     input.attr('value', data.points[0][attr]);
                   }
                   _restyle()
-                  input.change()  // to fix: input.change causes resubmit that 'looses' .dashdo-plotly-select events
+                  input.change()
                 });
               });
 
