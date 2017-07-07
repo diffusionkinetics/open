@@ -96,13 +96,13 @@ psDashdo = Dashdo (PsCtl All "") (const getStats) process
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
   -- TODO: multiple dimensions...
-  let user = (fromIntegral . userID) <$> filter ((== _processUser ctl) . pack . userName) us
+  let user = (fromIntegral . userID) <$> filter ((== ctl ^. processUser) . pack . userName) us
       userFilter (uid:_) = ((== uid) . procUid)
       userFilter _ = const True  -- empty user filter
 
       processes = hbarChart 
         $ map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (filterProcesses $ _processFilterType ctl) 
+        $ filter (filterProcesses $ ctl ^. processFilterType) 
         $ filter (userFilter user) ps
       
       users = hbarChart 
