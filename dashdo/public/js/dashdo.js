@@ -69,9 +69,39 @@
             $(this).serialize(),
             function(data) {
               $(settings.containerElement).html(data)
-              if(!!onSuccessfulRender) {
-                onSuccessfulRender()
-              }
+              
+              $('.dashdo-plotly-select .js-plotly-plot').each(function() {
+                var graph = $(this).get(0);
+                var attr = $(this).siblings('.dashdo-plotly-select-attr').attr('value');
+                var input = $(this).siblings('input').first();
+
+                var _restyle = function() {
+                  var value = input.attr('value');
+                  if (value === "") {
+                    Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
+                  } else {
+                    var os = graph.data[0][attr].map(function(p) {  // example: graph.data[0]['y']
+                      return p == value ? '#1F77B4' : '#A5C8E1';
+                    });
+                    Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
+                  }
+                };
+                _restyle();
+
+                $(this).get(0).on('plotly_click', function(data) {
+                  if (input.attr('value') == data.points[0][attr]) {
+                    input.attr('value', "");
+                  } else {
+                    input.attr('value', data.points[0][attr]);
+                  }
+                  _restyle()
+                  input.change()  // to fix: input.change causes resubmit that 'looses' .dashdo-plotly-select events
+                });
+              });
+
+              // if switched & rendered successfully, renew periodic submit loop
+              clearInterval(submitTimer)
+              periodicSubmitLoop()
             }.bind(this)
           )
         }
@@ -104,15 +134,23 @@
       }.bind(this)
       periodicSubmitLoop()
 
+      // cosmetics
+      var refreshTitle = function(endpoint) {
+        if(!!settings.dashdoTitleSelector) {
+          var title = $(settings.switcherElements)
+          .filter('[' + settings.switcherAttr + '="' + endpoint + '"]')
+          .text()
+
+          if(!!title) {
+            $(settings.dashdoTitleSelector).text(title)
+          }
+        }
+      }
+
       var switchDashdo = function(endpoint) {
         $(this).attr("action", endpoint)  // set action of the form to the endpoint
-        resubmitWithAjax(function() {  // if switched & rendered successfully, renew periodic submit loop
-          refreshTitle(endpoint)
-          restyle()
-
-          clearInterval(submitTimer)
-          periodicSubmitLoop()
-        })
+        refreshTitle(endpoint)
+        resubmitWithAjax()
       }.bind(this)
 
       if(settings.switcherElements !== null) {  // TODO: multi-dashdo == ajax ? remove ?
@@ -129,48 +167,6 @@
             switchDashdo($(e.target).attr(settings.switcherAttr))
           })
         }
-      }
-
-      // cosmetics
-      var refreshTitle = function(endpoint) {
-        if(!!settings.dashdoTitleSelector) {
-            var title = $(settings.switcherElements)
-            .filter('[' + settings.switcherAttr + '="' + endpoint + '"]')
-            .text()
-
-            if(!!title) {
-              $(settings.dashdoTitleSelector).text(title)
-            }
-          }
-      }
-
-      var restyle = function() {
-        $('.dashdo-plotly-select .js-plotly-plot').each(function() {
-          var graph = $(this).get(0);
-          var attr = $(this).siblings('.dashdo-plotly-select-attr').attr('value');
-          var input = $(this).siblings('input').first();
-          var restyle = function() {
-            var value = input.attr('value');
-            if (value === "") {
-              Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
-            } else {
-              var os = graph.data[0][attr].map(function(p) {
-                return p == value ? '#1F77B4' : '#A5C8E1';
-              });
-              Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
-            }
-          };
-          restyle();
-          $(this).get(0).on('plotly_click', function(data) {
-            if (input.attr('value') == data.points[0][attr]) {
-              input.attr('value', "");
-            } else {
-              input.attr('value', data.points[0][attr]);
-            }
-            restyle();
-            input.change();
-          });
-        });
       }
 
       return this; // returning the dashdo
