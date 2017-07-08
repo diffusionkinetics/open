@@ -80,26 +80,25 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
 
-rdashSidebar :: [(Text, Text)] -> Html ()
-rdashSidebar links = do
-  let mklink :: (Text,Text) -> Html ()
-      mklink (title, dest) =
+rdashSidebar :: Text -> [((Text, Text), Text)] -> Html ()
+rdashSidebar title links = do
+  let mklink :: ((Text, Text),Text) -> Html ()
+      mklink ((title, fa), dest) =
         a_ [href_ dest] $
-          toHtml title <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
+          toHtml title <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
       sidebar = map mklink links
+      sidebarMain  = a_ [href_ "#"] $ do
+          toHtml title
+          span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
       sb = RD.mkSidebar sidebarMain (span_ "Dashboards") $ sidebar
       sbfoot = ""
   RD.mkSidebarWrapper sb sbfoot
 
-sidebarMain :: (Monad m) => HtmlT m ()
-sidebarMain  = a_ [href_ "#"] $ do
-  "Dashdo"
-  span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
 mkSidebar :: [(Text, Text)] -> Html ()
 mkSidebar links = ul_ $ mapM_ f links where
   f (title, dest) = li_ $ a_ [href_ dest] $: title
 
 infixl 0 *~
-(*~) :: ToURL a => Text -> a -> (Text, Text)
+(*~) :: ToURL a => b -> a -> (b, Text)
 t *~ x = (t, toURL x)
