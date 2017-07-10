@@ -117,7 +117,7 @@ process ctl (ps, us) = do
 
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
-     , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) "y" processUser)]
+     , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) processUser)]
 
 -- end of Processes dashdo
 

@@ -111,11 +111,10 @@ checkbox text vTrue vFalse f = do
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
 
-plotlySelect :: Plotly -> Text -> Lens' a Text -> SHtml a ()
-plotlySelect plot attr f = do
+plotlySelect :: Plotly -> Lens' a Text -> SHtml a ()
+plotlySelect plot f = do
   (val, n) <- freshAndValue
   putFormField (n, lensSetter f)
   div_ [class_ "dashdo-plotly-select"] $ do
-    toHtml plot
-    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
-    input_ [type_ "hidden", class_ "dashdo-plotly-select-attr", value_ attr]
+    toHtml plot  -- abstract, cool
+    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]  -- TODO: for_; multiple values -- fn[] (in separate plotlySelectMultiple function)

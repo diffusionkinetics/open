@@ -72,7 +72,7 @@
               
               $('.dashdo-plotly-select .js-plotly-plot').each(function() {
                 var graph = $(this).get(0);
-                var attr = $(this).siblings('.dashdo-plotly-select-attr').attr('value');
+                var axis = (graph.data[0].orientation === "h") ? "y" : "x";
                 var input = $(this).siblings('input').first();
 
                 var _restyle = function() {
@@ -81,7 +81,7 @@
                     // making all graph unselected
                     Plotly.restyle(graph, { 'marker.color': '#1F77B4' });
                   } else {
-                    var os = graph.data[0][attr].map(function(p) {  // example: graph.data[0]['y']
+                    var os = graph.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
                       // TODO: p `elem` [values]
                       return p == value ? '#1F77B4' : '#A5C8E1';
                     });
@@ -92,13 +92,13 @@
 
                 // TODO: separate function for multiple
                 $(this).get(0).on('plotly_click', function(data) {
-                  if (input.attr('value') == data.points[0][attr]) {
+                  if (input.attr('value') == data.points[0][axis]) {
                     // unchecking currently selected
                     // TODO: remove from [values]
                     input.attr('value', "");
                   } else {
                     // TODO: add to [values]
-                    input.attr('value', data.points[0][attr]);
+                    input.attr('value', data.points[0][axis]);
                   }
                   _restyle()
                   input.change()
