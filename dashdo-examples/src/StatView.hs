@@ -96,7 +96,6 @@ psDashdo = Dashdo (PsCtl All []) (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
-  -- TODO: multiple dimensions...
   let userFilter = case L.filter ((`elem` ctl ^. processUsers) . pack . userName) us of
         []  -> const True
         lst -> (`elem` ((fromIntegral . userID) <$> lst)) . procUid
