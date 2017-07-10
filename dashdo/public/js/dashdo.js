@@ -78,7 +78,7 @@
                 var _restyle = function() {
                   var value = input.attr('value');
                   if (value === "") {
-                    Plotly.restyle(graph, { 'marker.color': '#1F77B4)' });
+                    Plotly.restyle(graph, { 'marker.color': '#1F77B4' });
                   } else {
                     var os = graph.data[0][attr].map(function(p) {  // example: graph.data[0]['y']
                       return p == value ? '#1F77B4' : '#A5C8E1';
