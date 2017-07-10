@@ -40,12 +40,12 @@ wrap hdr h =  doctypehtml_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
+    cdnJqueryJS
     hdr
 
   body_ $ do
     container_ $ form_ [action_ "/", method_ "post", id_ "dashdoform"] $ do
       h
-    cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
