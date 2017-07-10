@@ -18,9 +18,11 @@ dashdoGenOut (Dashdo _ f r) x = do
 
 parseForm :: a -> FormFields a -> [(TL.Text, TL.Text)] -> a
 parseForm x [] _ = x
-parseForm x ((n,f):nfs) pars =
-  let fldName = "f"<>TL.pack (show n)
-      newx = case lookup fldName pars of
-               Nothing -> x
-               Just lt -> f x (TL.toStrict lt)
+parseForm x ((n,f):nfs) pars =                  -- x=initial d (accumulator)
+  let fldName = "f"<>TL.pack (show n)           -- fn
+      newx = case lookup fldName pars of        -- looking for fn in params [(TL.Text, TL.Text)]
+               Just lt -> f x (TL.toStrict lt)  -- apply function corresponding to `n` in list of FormFields - number-function pairs
+               Nothing -> case filter ((== fldName <> "[]") . fst) pars of -- if nothing found, try looking for fn[]
+                 [] -> x
+                 listParams -> foldl f x (map (TL.toStrict . snd) listParams)
   in parseForm newx nfs pars
