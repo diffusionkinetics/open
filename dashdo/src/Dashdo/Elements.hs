@@ -116,5 +116,14 @@ plotlySelect plot f = do
   (val, n) <- freshAndValue
   putFormField (n, lensSetter f)
   div_ [class_ "dashdo-plotly-select"] $ do
-    toHtml plot  -- abstract, cool
-    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]  -- TODO: for_; multiple values -- fn[] (in separate plotlySelectMultiple function)
+    toHtml plot
+    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
+
+plotlySelectMultiple :: Plotly -> Lens' a [Text] -> SHtml a ()
+plotlySelectMultiple plot f = do
+  (val, n) <- freshAndValue
+  putFormField (n, lensPusher f)
+  div_ [class_ "dashdo-plotly-select"] $ do
+    toHtml plot
+    forM_ (val ^. f) $ \(v) ->
+      input_ [type_ "hidden", fieldNameMultiple n, value_ v]

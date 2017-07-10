@@ -11,7 +11,7 @@ import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Lucid
-import qualified Data.List as L (find)
+import qualified Data.List as L (filter)
 import Data.Text (Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8)
 import Lens.Micro.Platform
@@ -77,7 +77,7 @@ data ProcessFilterType = All | Active deriving (Eq, Show)
 
 data PsCtl = PsCtl
  { _processFilterType :: ProcessFilterType
- , _processUser :: Text
+ , _processUsers :: [Text]
  }
 
 makeLenses ''PsCtl
@@ -92,14 +92,14 @@ getStats = do
   us <- getAllUserEntries
   return (ps, us)
 
-psDashdo = Dashdo (PsCtl All "") (const getStats) process
+psDashdo = Dashdo (PsCtl All []) (const getStats) process
 
 process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
 process ctl (ps, us) = do
   -- TODO: multiple dimensions...
-  let userFilter = case L.find ((== ctl ^. processUser) . pack . userName) us of
-        Just u  -> (== (fromIntegral . userID $ u)) . procUid
-        Nothing -> const True
+  let userFilter = case L.filter ((`elem` ctl ^. processUsers) . pack . userName) us of
+        []  -> const True
+        lst -> (`elem` ((fromIntegral . userID) <$> lst)) . procUid
 
       processes = hbarChart 
         $ map (decodeUtf8 . procName &&& procCPUPercent)
@@ -117,7 +117,7 @@ process ctl (ps, us) = do
 
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
-     , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) processUser)]
+     , ("CPU Usage by User",    plotlySelectMultiple (plotly "us" [users] & layout . margin ?~ thinMargins) processUsers)]
 
 -- end of Processes dashdo
 

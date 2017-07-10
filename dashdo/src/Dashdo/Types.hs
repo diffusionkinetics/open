@@ -33,6 +33,9 @@ runSHtml val shtml =
 fieldName :: Int -> Attribute
 fieldName n = name_ $ "f"<>pack (show n)
 
+fieldNameMultiple :: Int -> Attribute
+fieldNameMultiple n = name_ $ "f" <>pack (show n) <> "[]"
+
 fresh :: SHtml a Int
 fresh = do
   (n, v, ffs) <- lift $ get
@@ -53,3 +56,6 @@ putFormField ff = do
 
 lensSetter :: ASetter' s a -> (s -> a -> s)
 lensSetter l x y = x & l .~ y
+
+lensPusher :: ASetter s t [a] [a] -> s -> a -> t
+lensPusher l x y = over l ((:) y) x
