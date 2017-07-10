@@ -78,9 +78,11 @@
                 var _restyle = function() {
                   var value = input.attr('value');
                   if (value === "") {
+                    // making all graph unselected
                     Plotly.restyle(graph, { 'marker.color': '#1F77B4' });
                   } else {
                     var os = graph.data[0][attr].map(function(p) {  // example: graph.data[0]['y']
+                      // TODO: p `elem` [values]
                       return p == value ? '#1F77B4' : '#A5C8E1';
                     });
                     Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
@@ -88,10 +90,14 @@
                 };
                 _restyle();
 
+                // TODO: separate function for multiple
                 $(this).get(0).on('plotly_click', function(data) {
                   if (input.attr('value') == data.points[0][attr]) {
+                    // unchecking currently selected
+                    // TODO: remove from [values]
                     input.attr('value', "");
                   } else {
+                    // TODO: add to [values]
                     input.attr('value', data.points[0][attr]);
                   }
                   _restyle()
