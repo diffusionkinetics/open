@@ -73,34 +73,38 @@
               $('.dashdo-plotly-select .js-plotly-plot').each(function() {
                 var graph = $(this).get(0);
                 var axis = (graph.data[0].orientation === "h") ? "y" : "x";
-                var input = $(this).siblings('input').first();
 
-                var _restyle = function() {
-                  var value = input.attr('value');
-                  if (value === "") {
+                var firstInputName = $(this).siblings('input').first().attr('name')
+                if (!firstInputName) return // falsey value - input with 'name' attr is not found
+
+                var values = $(this).siblings('input').map(function() {
+                  return this.value
+                }).get()
+                
+                var restyle = function() {
+                  if (values.length === 0) {
                     // making all graph unselected
                     Plotly.restyle(graph, { 'marker.color': '#1F77B4' });
                   } else {
                     var os = graph.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
-                      // TODO: p `elem` [values]
-                      return p == value ? '#1F77B4' : '#A5C8E1';
+                      return (values.indexOf(p) !== -1) ? '#1F77B4' : '#A5C8E1';
                     });
                     Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
                   }
                 };
-                _restyle();
+                restyle();
 
-                // TODO: separate function for multiple
+                var input = $(this).siblings('input').first();                
                 $(this).get(0).on('plotly_click', function(data) {
                   if (input.attr('value') == data.points[0][axis]) {
-                    // unchecking currently selected
-                    // TODO: remove from [values]
-                    input.attr('value', "");
+                    // TODO: what if someone wants _not_ multiselectable plotly?
+                    // TODO: remove item's input
+                    // input.attr('value', '');
                   } else {
-                    // TODO: add to [values]
-                    input.attr('value', data.points[0][axis]);
+                    // TODO: add input corresponding to current item
+                    // input.attr('value', data.points[0][axis]);
                   }
-                  _restyle()
+                  restyle()
                   input.change()
                 });
               });
