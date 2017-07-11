@@ -33,7 +33,9 @@ dockerIter (Stop c next)      = interpStop c >> next
 
 
 interpBuild :: (MonadIO m) => String -> FilePath -> m ()
-interpBuild t i = void $ runProcess process
+interpBuild t i = do
+    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ t
+    void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
@@ -43,6 +45,7 @@ interpBuild t i = void $ runProcess process
 
 interpRm :: (MonadIO m) => String -> m String
 interpRm c = do
+    liftIO . putStrLn $ "Docker: Removing " ++ c
     (_, o, _) <- readProcess process
     return . T.unpack $ T.decodeUtf8 o
   where
@@ -53,7 +56,9 @@ interpRm c = do
 
 interpRun :: (MonadIO m)
     => String -> String -> Maybe [Int] -> Maybe String -> m ()
-interpRun c i p e = void $ runProcess process
+interpRun c i p e = do
+    liftIO . putStrLn $ "Docker: Running " ++ c ++ " '" ++ cmd ++ "'"
+    void $ runProcess process
   where
     ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x]) (fromMaybe [] p)
     cmd     = fromMaybe "" e
@@ -72,7 +77,9 @@ interpRun c i p e = void $ runProcess process
 
 
 interpStop :: (MonadIO m) => String -> m ()
-interpStop c = void $ runProcess process
+interpStop c = do
+    liftIO . putStrLn $ "Docker: Stopping " ++ c
+    void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
