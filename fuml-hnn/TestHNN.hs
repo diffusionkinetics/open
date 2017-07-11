@@ -6,6 +6,7 @@ import Numeric.LinearAlgebra
 import Numeric.Datasets.OldFaithful
 import Numeric.Datasets.Iris
 import qualified Data.Vector.Storable as V
+import qualified Data.Set as Set
 import Data.Function (on)
 import Data.Random
 import Fuml.Core
@@ -31,6 +32,20 @@ irisOneClass' (Iris a b c d cl) = (vector [a,b,c,d], toNum cl) where
   toNum Setosa = True
   toNum Versicolor = False
   toNum Virginica = False
+
+data IR = SE | VE | VI deriving (Eq, Ord, Show)
+
+irisMultiClass'' :: Iris -> (Vector R, Set.Set IR)
+irisMultiClass'' (Iris a b c d cl) = (vector [a,b,c,d], Set.singleton $ toNum cl) where
+  toNum Setosa = SE
+  toNum Versicolor = VE
+  toNum Virginica = VI
+
+irisMultiClass' :: Iris -> (Vector R, IR)
+irisMultiClass' (Iris a b c d cl) = (vector [a,b,c,d], toNum cl) where
+  toNum Setosa = SE
+  toNum Versicolor = VE
+  toNum Virginica = VI
 
 irisMultiClass :: Iris -> Sample R
 irisMultiClass (Iris a b c d cl) = (vector [a,b,c,d], V.singleton . toNum $ cl) where
@@ -82,21 +97,22 @@ testRegression = do
   print $ rmse test reg'
 
 testMultiClass = do
-  (test, train) <- shuffleSplitTo irisMultiClass iris
+  (test, train) <- shuffleSplitTo irisMultiClass' iris
 
   let sc = Just $ vector [1/8, 1/5, 1/7, 1/2.5]
 
   cl  <- runSupervisor (multiClass [10] (sigmoidNTimes 4000 0.99) sc) Nothing train
   cl' <- runSupervisor (multiClass [10] (sigmoidNTimes 4000 0.99) sc) (Just $ model cl) train
+
   let go (i,o) = do
         print "---" 
         print o
         print $ predict cl i
 
-  print "multiclass acc"
-  print $ accuracy test cl'
+  {-print "multiclass acc"-}
+  {-print $ accuracy test cl'-}
 
-  {-mapM_ go test-}
+  mapM_ go test
 
 testMultipleOutputsOnClassification = do
   (test, train) <- shuffleSplitTo irisSample iris
@@ -121,18 +137,37 @@ testOneClass = do
   oneC <- runSupervisor (oneClass [4] (tanhNTimes 1000 0.9) sc) Nothing train
   oneC' <- runSupervisor (oneClass [4] (tanhNTimes 1000 0.9) sc) (Just $ model oneC) train
 
-  print " oneClass acc "
-  print $ accuracy test oneC'
+  let go (i,o) = do
+        print "---" 
+        print o
+        print $ predict oneC i
 
-{-testOverlappingClasses = do-}
+  mapM_ go test
+
+  {-print " oneClass acc "-}
+  {-print $ accuracy test oneC'-}
+
+testOverlappingClasses = do
+  (test, train) <- shuffleSplitTo irisMultiClass'' iris
+  let sc = Just $ vector [1/8, 1/5, 1/7, 1/2.5]
   
+  overl <- runSupervisor (overlappingClasses [12] (sigmoidNTimes 1000 0.9) sc) Nothing train
+  overl' <- runSupervisor (overlappingClasses [12] (sigmoidNTimes 1000 0.9) sc) (Just $ model overl) train
+
+  let go (i,o) = do
+        print "---" 
+        print o
+        print $ predict overl' i
+
+  mapM_ go test
 
 main = do
   {-nnRegressOldFaithful-}
   {-nnClassifyOneClass-}
   {-nnClassify-}
   {-testRegression-}
-  testOneClass
+  {-testOneClass-}
   {-testMultiClass-}
   {-testMultipleOutputsOnClassification -}
+  testOverlappingClasses 
   print "done"

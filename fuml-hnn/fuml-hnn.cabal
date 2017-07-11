@@ -48,3 +48,4 @@ Test-Suite test-hnn
                      , hnn
                      , hmatrix
                      , fuml-hnn
+                     , containers

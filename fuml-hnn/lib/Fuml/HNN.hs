@@ -7,9 +7,8 @@ import Numeric.LinearAlgebra
 import Data.Bifunctor
 import Data.Set (Set)
 import Data.Map (Map)
-import Data.List (nub, maximumBy)
+import Data.List (nub)
 import Data.Traversable (mapAccumL)
-import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import AI.HNN.FF.Network
@@ -75,8 +74,8 @@ oneClass ::
      [Int]              -- hidden layers
   -> Learning R
   -> Maybe (Vector R)   -- input scaling coefficients
-  -> Supervisor IO Bool (Scaling R, Network R) Bool
-oneClass layers learning mb_scales = (> 0.5) <$> go (oneOutput layers learning scales)
+  -> Supervisor IO Bool (Scaling R, Network R) R
+oneClass layers learning mb_scales = go (oneOutput layers learning scales)
   where go (Supervisor sup) = Supervisor $ \mbP -> sup mbP . map (fmap $ fromIntegral . fromEnum)
         
         scales = case mb_scales of
@@ -88,7 +87,7 @@ multiClass :: Ord o =>
      [Int]              -- hidden layers 
   -> Learning R
   -> Maybe (Vector R)   -- input scaling coefficients
-  -> Supervisor IO o ([o], Vector R, Network R) o
+  -> Supervisor IO o ([o], Vector R, Network R) (Map o R)
 multiClass layers (Learning act train) mbCoefs = Supervisor sup where
   sup Nothing theData = do
     let nfeatures = V.length . fst . head $ theData
@@ -109,8 +108,8 @@ multiClass layers (Learning act train) mbCoefs = Supervisor sup where
   convert i keys theData = bimap (* i) (toVector keys) <$> theData
   predWith inputCoefs keys net = return (Predict (keys, inputCoefs, net) (toClass keys . output net act . (* inputCoefs)))
 
-  toClass :: Ord o => [o] -> Vector R -> o
-  toClass vo = (vo !!) . fst . maximumBy (compare `on` snd) . zip [0..] . V.toList
+  toClass :: Ord o => [o] -> Vector R -> Map o R
+  toClass vo = Map.fromList . zip vo . V.toList 
 
   toVector :: Ord o => [o] -> o -> Vector R
   toVector vo o = vector $ map go vo
