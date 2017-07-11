@@ -30,11 +30,17 @@ runSHtml val shtml =
       (t, (_, _, ffs)) = runState stT (0, val, [])
   in (ffs, t)
 
+mkFieldName :: Int -> Text
+mkFieldName = ((<>) "f") . pack . show
+
+mkFieldNameMultiple :: Int -> Text
+mkFieldNameMultiple n = mkFieldName n <> "[]"
+
 fieldName :: Int -> Attribute
-fieldName n = name_ $ "f"<>pack (show n)
+fieldName = name_ . mkFieldName
 
 fieldNameMultiple :: Int -> Attribute
-fieldNameMultiple n = name_ $ "f" <>pack (show n) <> "[]"
+fieldNameMultiple = name_ . mkFieldNameMultiple
 
 fresh :: SHtml a Int
 fresh = do

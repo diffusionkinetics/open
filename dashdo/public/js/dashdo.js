@@ -9,6 +9,8 @@
         - uuidUrl (default: '/uuid')
         - uuidInterval (default: 1000)
         - periodicSubmitSelector (default: '.dashdo-periodic-submit')
+        - colorSelected: 1F77B4
+        - colorUnSelected: A5C8E1
 
        ui (ajax-only!):
         - dashdoTitleSelector (default: '#dashdo-title')
@@ -23,6 +25,9 @@
         ajax: false,
         uuidUrl: "/uuid",
         uuidInterval: 1000,
+
+        colorSelected: '#1F77B4',
+        colorUnSelected: '#A5C8E1',
         
         containerElement: null,
         switcherElements: null,
@@ -31,6 +36,8 @@
 
         periodicSubmitSelector: '.dashdo-periodic-submit',
         dashdoTitleSelector: '#dashdo-title',
+
+        multiselectNamesSelector: '.dashdo-plotly-multi-select-names',
       }, options)
 
       var resubmitNatively = function() {
@@ -74,39 +81,51 @@
                 var graph = $(this).get(0);
                 var axis = (graph.data[0].orientation === "h") ? "y" : "x";
 
-                var firstInputName = $(this).siblings('input').first().attr('name')
-                if (!firstInputName) return // falsey value - input with 'name' attr is not found
-
-                var values = $(this).siblings('input').map(function() {
+                var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
                   return this.value
                 }).get()
                 
                 var restyle = function() {
                   if (values.length === 0) {
-                    // making all graph unselected
-                    Plotly.restyle(graph, { 'marker.color': '#1F77B4' });
+                    // making all graph selected
+                    console.log('all are selected! ^))')
+                    Plotly.restyle(graph, { 'marker.color': settings.colorSelected });
                   } else {
                     var os = graph.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
-                      return (values.indexOf(p) !== -1) ? '#1F77B4' : '#A5C8E1';
+                      return (values.indexOf(p) !== -1) ? // p `elem` values == True
+                        settings.colorSelected : 
+                        settings.colorUnSelected;
                     });
                     Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
                   }
                 };
                 restyle();
 
-                var input = $(this).siblings('input').first();                
+                var currentMultipleFieldName = $(this).siblings(settings.multiselectNamesSelector).val()
+                var isMultiple = !!currentMultipleFieldName
+
                 $(this).get(0).on('plotly_click', function(data) {
-                  if (input.attr('value') == data.points[0][axis]) {
-                    // TODO: what if someone wants _not_ multiselectable plotly?
-                    // TODO: remove item's input
-                    // input.attr('value', '');
+                  var selectedValueFromPlot = data.points[0][axis]
+
+                  if(!isMultiple) {
+                    var input = $(this).siblings('input[name]').first()
+                    if (input.attr('value') == selectedValueFromPlot) { // if selected
+                      input.attr('value', ''); // then deselect
+                    } else {
+                      input.attr('value', selectedValueFromPlot);  // if not selected, then select
+                    }
                   } else {
-                    // TODO: add input corresponding to current item
-                    // input.attr('value', data.points[0][axis]);
+                    var currentInputs = $(this).siblings('input[name="' + currentMultipleFieldName + '"][value="' + selectedValueFromPlot + '"]')
+                    
+                    if (currentInputs.length > 0) {
+                      $(currentInputs).remove()
+                    } else {
+                      $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
+                    }
                   }
-                  restyle()
-                  input.change()
-                });
+
+                  properReSubmit()
+                }.bind(this));
               });
 
               // if switched & rendered successfully, renew periodic submit loop
@@ -163,7 +182,7 @@
         resubmitWithAjax()
       }.bind(this)
 
-      if(settings.switcherElements !== null) {  // TODO: multi-dashdo == ajax ? remove ?
+      if(settings.switcherElements !== null) {
         var firstEndpoint = 
           $(settings.switcherElements)
             .first()

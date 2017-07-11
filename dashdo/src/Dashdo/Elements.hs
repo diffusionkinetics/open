@@ -125,5 +125,6 @@ plotlySelectMultiple plot f = do
   putFormField (n, lensPusher f)
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
+    input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ mkFieldNameMultiple n]
     forM_ (val ^. f) $ \(v) ->
       input_ [type_ "hidden", fieldNameMultiple n, value_ v]
