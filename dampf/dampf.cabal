@@ -30,6 +30,8 @@ Library
                    Dampf.ConfigFile
                    Dampf.Common
                    Dampf.Docker
+                   Dampf.Docker.Free
+                   Dampf.Docker.Types
                    Dampf.Nginx
                    Dampf.Nginx.Config
                    Dampf.Postgres.Migrate
@@ -53,6 +55,7 @@ Library
                , containers
                , unix
                , typed-process
+               , free
 
 executable dampf
   main-is: Main.hs

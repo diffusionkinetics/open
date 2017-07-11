@@ -1,30 +1,38 @@
-module Dampf.Docker where
+module Dampf.Docker
+  ( -- * Actions
+    buildDocker
+  , deployDocker
+    -- * Docker Monad
+  , DockerT
+    -- * Docker DSL
+  , build
+  , rm
+  , run
+  , stop
+  ) where
+
+import Control.Monad            (forM_, void)
+import Control.Monad.IO.Class   (MonadIO)
 
 import Dampf.AppFile
-import System.Process
-import Control.Monad
-import System.Exit
-import Data.Maybe
+import Dampf.Docker.Free
+import Dampf.Docker.Types
 
-buildDocker :: Dampfs -> IO ()
-buildDocker (Dampfs dampfs) = do
-  forM_ [(nm,imspec) | Image nm imspec <- dampfs] $ \(nm,imspec) -> do
-    let cmd = "docker build -t "++nm++" "++dockerFile imspec
-    --putStrLn cmd
-    ExitSuccess <- system $ cmd
-    return ()
 
-deployDocker :: Dampfs -> IO ()
-deployDocker (Dampfs dampfs) = do
-  forM_ [(cnm,cspec) | Container cnm cspec <- dampfs] $ \(cnm,cspec) -> do
-    let imnm = image cspec
-        port = case expose cspec of
-                 Nothing -> " "
-                 Just ps -> concatMap (\p -> " -p "++show p++":"++show p++" ") ps
-        cmd = " "++(fromMaybe "" $ command cspec)
-        runcmd = "docker run -d --restart=always --net=\"host\" --name="++cnm++port++imnm++cmd
-    system $ "docker stop "++cnm
-    system $ "docker rm "++cnm
-    putStrLn runcmd
-    system runcmd
+-- TODO: Rename this buildImages?
+buildDocker :: (MonadIO m) => Dampfs -> m ()
+buildDocker (Dampfs d) = runDockerT $ forM_ is $ \(n, iSpec) ->
+    build n (dockerFile iSpec)
+  where
+    is = [(n, iSpec) | Image n iSpec <- d]
+
+
+-- TODO: Rename this deployContainers?
+deployDocker :: (MonadIO m) => Dampfs -> m ()
+deployDocker (Dampfs d) = runDockerT $ forM_ cs $ \(n, cSpec) -> do
+    stop n
+    void $ rm n
+    run n (image cSpec) (expose cSpec) (command cSpec)
+  where
+    cs = [(n, cSpec) | Container n cSpec <- d]
 
