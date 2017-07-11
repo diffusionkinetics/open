@@ -41,6 +41,7 @@ packages:
 - '../../open/dashdo/'
 - '../../open/lucid-extras/'
 - '../../open/fuml/'
+- '../../open/datasets'
 
 #- location:
 #    git: git@github.com:glutamate/plotlyhs
