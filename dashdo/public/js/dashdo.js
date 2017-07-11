@@ -23,7 +23,7 @@
       var settings = $.extend({
         // These are the defaults.
         ajax: false,
-        uuidUrl: "/uuid",
+        uuidUrl: '/uuid',
         uuidInterval: 1000,
 
         colorSelected: '#1F77B4',
@@ -41,20 +41,20 @@
       }, options)
 
       var resubmitNatively = function() {
-        $("input", this).prop('readonly', true);
+        $('input', this).prop('readonly', true)
         $(this).submit()
       }.bind(this)
 
-      $(this).on("change", ":input", function() {
-        if (typeof(manual_submit) === "undefined" || !manual_submit) {
-          $(":input").prop("readonly", true);
+      $(this).on('change', ':input', function() {
+        if (typeof(manual_submit) === 'undefined' || !manual_submit) {
+          $(':input').prop('readonly', true)
           properReSubmit()
         }
       })
 
-      this.filter("form").on("submit", function(e) {
+      this.filter('form').on('submit', function(e) {
         if(!settings.ajax) {
-          $("input", this).prop('readonly', true);
+          $('input', this).prop('readonly', true)
           return // and then it actualy submits
         }
         e.preventDefault()  // no 'native' submitting on ajax versions
@@ -62,7 +62,7 @@
 
       var requestHtmlFromServer = function(url, data, onSuccess) {
         $.ajax({
-          type: "POST",
+          type: 'POST',
           url: url,
           data: data,
           success: onSuccess,
@@ -72,14 +72,14 @@
       var resubmitWithAjax = function(onSuccessfulRender) {
         if(!!settings.containerElement) {
           requestHtmlFromServer(
-            $(this).attr("action"),
+            $(this).attr('action'),
             $(this).serialize(),
             function(data) {
               $(settings.containerElement).html(data)
               
               $('.dashdo-plotly-select .js-plotly-plot').each(function() {
-                var graph = $(this).get(0);
-                var axis = (graph.data[0].orientation === "h") ? "y" : "x";
+                var graph = $(this).get(0)
+                var axis = (graph.data[0].orientation === 'h') ? 'y' : 'x'
 
                 var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
                   return this.value
@@ -89,17 +89,17 @@
                   if (values.length === 0) {
                     // making all graph selected
                     console.log('all are selected! ^))')
-                    Plotly.restyle(graph, { 'marker.color': settings.colorSelected });
+                    Plotly.restyle(graph, { 'marker.color': settings.colorSelected })
                   } else {
                     var os = graph.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
                       return (values.indexOf(p) !== -1) ? // p `elem` values == True
                         settings.colorSelected : 
-                        settings.colorUnSelected;
-                    });
-                    Plotly.restyle(graph, {'marker.color' : [os]}, [0]);
+                        settings.colorUnSelected
+                    })
+                    Plotly.restyle(graph, {'marker.color' : [os]}, [0])
                   }
-                };
-                restyle();
+                }
+                restyle()
 
                 var currentMultipleFieldName = $(this).siblings(settings.multiselectNamesSelector).val()
                 var isMultiple = !!currentMultipleFieldName
@@ -110,9 +110,9 @@
                   if(!isMultiple) {
                     var input = $(this).siblings('input[name]').first()
                     if (input.attr('value') == selectedValueFromPlot) { // if selected
-                      input.attr('value', ''); // then deselect
+                      input.attr('value', '') // then deselect
                     } else {
-                      input.attr('value', selectedValueFromPlot);  // if not selected, then select
+                      input.attr('value', selectedValueFromPlot)  // if not selected, then select
                     }
                   } else {
                     var currentInputs = $(this).siblings('input[name="' + currentMultipleFieldName + '"][value="' + selectedValueFromPlot + '"]')
@@ -125,8 +125,8 @@
                   }
 
                   properReSubmit()
-                }.bind(this));
-              });
+                }.bind(this))
+              })
 
               // if switched & rendered successfully, renew periodic submit loop
               clearInterval(submitTimer)
@@ -138,7 +138,7 @@
 
       var properReSubmit = (settings.ajax) ?
             resubmitWithAjax :
-            resubmitNatively;
+            resubmitNatively
 
       var uuid = null
       var uuidLoop = function() {
@@ -177,7 +177,7 @@
       }
 
       var switchDashdo = function(endpoint) {
-        $(this).attr("action", endpoint)  // set action of the form to the endpoint
+        $(this).attr('action', endpoint)  // set action of the form to the endpoint
         refreshTitle(endpoint)
         resubmitWithAjax()
       }.bind(this)
@@ -198,7 +198,7 @@
         }
       }
 
-      return this; // returning the dashdo
+      return this // returning the dashdo
     }
  
-}( jQuery ));
+}( jQuery ))
