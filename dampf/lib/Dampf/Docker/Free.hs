@@ -35,7 +35,10 @@ dockerIter (Stop c next)      = interpStop c >> next
 interpBuild :: (MonadIO m) => String -> FilePath -> m ()
 interpBuild t i = void $ runProcess process
   where
-    process = proc "docker" ["build", "-t", t, i]
+    process = setStdin closed
+        $ setStdout closed
+        $ setStderr closed
+        $ proc "docker" ["build", "-t", t, i]
 
 
 interpRm :: (MonadIO m) => String -> m String
@@ -43,33 +46,38 @@ interpRm c = do
     (_, o, _) <- readProcess process
     return . T.unpack $ T.decodeUtf8 o
   where
-    process = proc "docker" ["rm", c]
-
-
--- docker run -d --restart=always --net=host --name={platform} -p 3012:3012 \
---      {filocore} {filocore platform}
---
--- each port p -> ["-p", "{p}:{p}"]
+    process = setStdin closed
+        $ setStderr closed
+        $ proc "docker" ["rm", c]
 
 
 interpRun :: (MonadIO m)
     => String -> String -> Maybe [Int] -> Maybe String -> m ()
-interpRun c i p e = do
-    liftIO $ print process
-    void $ runProcess process
+interpRun c i p e = void $ runProcess process
   where
     ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x]) (fromMaybe [] p)
     cmd     = fromMaybe "" e
 
-    process = proc "docker" $ ["run", "-d", "--restart=always", "--net=host"
-        , "--name=" ++ c
-        ] ++ ports ++ [i] ++ words cmd
+    process = setStdin closed
+        $ setStdout closed
+        $ setStderr closed
+        $ proc "docker" args
+
+    args = concat [
+        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ c]
+        , ports
+        , [i]
+        , words cmd
+        ]
 
 
 interpStop :: (MonadIO m) => String -> m ()
 interpStop c = void $ runProcess process
   where
-    process = proc "docker" ["stop", c]
+    process = setStdin closed
+        $ setStdout closed
+        $ setStderr closed
+        $ proc "docker" ["stop", c]
 
 
 -- DSL
