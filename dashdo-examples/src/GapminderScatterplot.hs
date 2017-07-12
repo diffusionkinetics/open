@@ -16,7 +16,7 @@ import Data.Text (Text, unpack, pack)
 import Lens.Micro.Platform
 import Control.Monad
 
-import Graphics.Plotly hiding (xaxis, yaxis)
+import Graphics.Plotly
 import Graphics.Plotly.Lucid
 
 data GmParams = GmParams
@@ -66,7 +66,10 @@ countriesScatterPlot gms =
     trace = points (aes & x .~ gdpPercap
                         & y .~ lifeExp
                         & color .~ Just (continentRGB . read . unpack . continent)) gms
-  in toHtml $ plotly "scatterplot" [trace]
+  in toHtml $
+    plotly "countries-scatterplot" [trace]
+      & layout %~ xaxis .~ (Just $ defAxis & axistitle .~ Just "GDP Per Capita")
+      & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
 
 gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
 gmRenderer gms gmParams () =
