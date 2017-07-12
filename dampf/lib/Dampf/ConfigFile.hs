@@ -17,6 +17,8 @@ import qualified Data.Map.Strict as Map
 import           Data.Maybe                 (fromMaybe)
 import           Data.Yaml
 import           GHC.Generics               (Generic)
+import           System.Directory           (getHomeDirectory)
+import           System.FilePath            ((</>))
 
 import           Dampf.ConfigFile.Env
 
@@ -68,28 +70,40 @@ defaultPostgresConfig = PostgresConfig
     }
 
 
-subst :: Value -> Value -> Value
-subst (Object x) (Object y) = Object $ HM.unionWith subst x y
-subst _          y          = y
-
-
 -- Using Configurations
 
+withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
+withConfigFile mf action = loadConfigFile mf >>= action
+{-# INLINE withConfigFile #-}
+
+
 loadConfigFile :: Maybe FilePath -> IO DampfConfig
-loadConfigFile mf = decodeFile cfgFile >>= \case
+loadConfigFile (Just f) = parseConfig f
+loadConfigFile _        = parseDefaultConfig
+{-# INLINE loadConfigFile #-}
+
+
+parseDefaultConfig :: IO DampfConfig
+parseDefaultConfig = do
+    cfgFile <- fmap (</> ".dampfcfg.yaml") getHomeDirectory
+    parseConfig cfgFile
+{-# INLINE parseDefaultConfig #-}
+
+
+parseConfig :: FilePath -> IO DampfConfig
+parseConfig f = decodeFile f >>= \case
     Just y  -> do
         ry <- subst defCfg <$> resolveEnvVars y
         parseMonad parseJSON ry
 
     Nothing -> error "Could not load config"
   where
-    cfgFile = fromMaybe "~/.dampfcfg.yaml" mf
-
     defCfg  = fromMaybe Null
         . parseMaybe parseJSON
         $ toJSON defaultConfig
 
 
-withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
-withConfigFile mf action = loadConfigFile mf >>= action
+subst :: Value -> Value -> Value
+subst (Object x) (Object y) = Object $ HM.unionWith subst x y
+subst _          y          = y
 
