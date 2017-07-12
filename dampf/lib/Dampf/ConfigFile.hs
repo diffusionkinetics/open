@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 module Dampf.ConfigFile
@@ -6,16 +7,17 @@ module Dampf.ConfigFile
     DampfConfig(..)
   , PostgresConfig(..)
     -- * Using Configurations
+  , loadConfigFile
   , withConfigFile
   ) where
 
-import           Data.Map.Strict          (Map)
+import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe               (fromMaybe)
+import           Data.Maybe                 (fromMaybe)
 import           Data.Yaml
-import           GHC.Generics             (Generic)
-import           System.Directory
-import           System.FilePath
+import           GHC.Generics               (Generic)
+
+import           Dampf.ConfigFile.Env
 
 
 -- Configuration Types
@@ -29,6 +31,7 @@ data DampfConfig = DampfConfig
   } deriving (Generic, Show)
 
 
+instance ToJSON DampfConfig
 instance FromJSON DampfConfig
 
 
@@ -40,6 +43,7 @@ data PostgresConfig = PostgresConfig
     } deriving (Show, Generic)
 
 
+instance ToJSON PostgresConfig
 instance FromJSON PostgresConfig
 
 
@@ -47,10 +51,10 @@ instance FromJSON PostgresConfig
 
 defaultConfig :: DampfConfig
 defaultConfig = DampfConfig
-    { postgresPassword = ""
-    , dbPasswords = Map.empty
-    , liveCertificate = Nothing
-    , postgres = defaultPostgresConfig
+    { postgresPassword  = ""
+    , dbPasswords       = Map.empty
+    , liveCertificate   = Nothing
+    , postgres          = defaultPostgresConfig
     }
 
 
@@ -65,11 +69,17 @@ defaultPostgresConfig = PostgresConfig
 
 -- Using Configurations
 
+loadConfigFile :: Maybe FilePath -> IO DampfConfig
+loadConfigFile mf = decodeFile cfgFile >>= \case
+    Just y  -> do
+        ry <- resolveEnvVars y
+        parseMonad parseJSON ry
+
+    Nothing -> error "Could not load config"
+  where
+    cfgFile = fromMaybe "~/.dampfcfg.yaml" mf
+
+
 withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
-withConfigFile mfp thenDo = do
-  home <- getHomeDirectory
-  let fp = fromMaybe (home </>".dampfcfg.yaml") mfp
-  ev <- decodeFileEither fp
-  case ev of
-    Right v -> thenDo v
-    Left e -> fail $ show e
+withConfigFile mf action = loadConfigFile mf >>= action
+

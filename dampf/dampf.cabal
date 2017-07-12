@@ -28,6 +28,7 @@ Library
                    Dampf
                    Dampf.AppFile
                    Dampf.ConfigFile
+                   Dampf.ConfigFile.Env
                    Dampf.Common
                    Dampf.Docker
                    Dampf.Docker.Free
@@ -56,6 +57,7 @@ Library
                , unix
                , typed-process
                , free
+               , vector
 
 executable dampf
   main-is: Main.hs
