@@ -11,6 +11,7 @@ import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import Data.Monoid ((<>))
+import qualified Data.Foldable as DF
 import Data.Text (Text, unpack, pack)
 import Lens.Micro.Platform
 import Control.Monad
@@ -42,16 +43,15 @@ gmRenderer gms gmParams () =
               th_ "Population"
               th_ "Gdp per capita"
               th_ "Life expectancy"
-          {-
+          
           tbody_ $ do
-            for_ gms $ \(c) -> do
+            DF.for_ gms $ \(c) -> do
               tr_ $ do
-                td_ $ country   c
-                td_ $ year      c
-                td_ $ pop       c
-                td_ $ gdpPercap c
-                td_ $ lifeExp   c
-          -}
+                td_ $ toHtml (country          c)
+                td_ $ toHtml (show $ year      c)
+                td_ $ toHtml (show $ pop       c)
+                td_ $ toHtml (show $ gdpPercap c)
+                td_ $ toHtml (show $ lifeExp   c)
 
 main = do
   gms <- getDataset gapminder
