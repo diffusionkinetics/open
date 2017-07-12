@@ -1,22 +1,69 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
-module Dampf.ConfigFile where
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
-import GHC.Generics
-import Data.Yaml
-import Data.Maybe (fromMaybe)
-import System.Directory
-import System.FilePath
-import Data.Map.Strict (Map)
+module Dampf.ConfigFile
+  ( -- * Configuration Types
+    DampfConfig(..)
+  , PostgresConfig(..)
+    -- * Using Configurations
+  , withConfigFile
+  ) where
+
+import           Data.Map.Strict          (Map)
+import qualified Data.Map.Strict as Map
+import           Data.Maybe               (fromMaybe)
+import           Data.Yaml
+import           GHC.Generics             (Generic)
+import           System.Directory
+import           System.FilePath
+
+
+-- Configuration Types
 
 data DampfConfig = DampfConfig
-  { postgres_password :: String
-  , db_passwords :: Map String String
-  , live_certificate :: Maybe FilePath
+  { postgresPassword :: String
+  , dbPasswords :: Map String String
+  , liveCertificate :: Maybe FilePath
+
+  , postgres :: PostgresConfig
   } deriving (Generic, Show)
+
 
 instance FromJSON DampfConfig
 
 
+data PostgresConfig = PostgresConfig
+    { name  :: String
+    , host  :: String
+    , port  :: Int
+    , users :: Map String String
+    } deriving (Show, Generic)
+
+
+instance FromJSON PostgresConfig
+
+
+-- Default Configurations
+
+defaultConfig :: DampfConfig
+defaultConfig = DampfConfig
+    { postgresPassword = ""
+    , dbPasswords = Map.empty
+    , liveCertificate = Nothing
+    , postgres = defaultPostgresConfig
+    }
+
+
+defaultPostgresConfig :: PostgresConfig
+defaultPostgresConfig = PostgresConfig
+    { name  = "default"
+    , host  = "localhost"
+    , port  = 5432
+    , users = Map.fromList [("postgres", "")]
+    }
+
+
+-- Using Configurations
 
 withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
 withConfigFile mfp thenDo = do

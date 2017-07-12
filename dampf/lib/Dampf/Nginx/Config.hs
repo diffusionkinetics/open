@@ -3,7 +3,7 @@
 module Dampf.Nginx.Config where
 
 import Dampf.AppFile
-import Dampf.ConfigFile
+import Dampf.ConfigFile hiding (port)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.PrettyPrint.HughesPJClass
@@ -45,7 +45,7 @@ instance Pretty ServerDecl where
     = text "ssl_certificate_key" <+> text fp <> char ';'
 
 encryptDecls :: DampfConfig -> [ServerDecl]
-encryptDecls cfg = maybe [] f $ live_certificate cfg where
+encryptDecls cfg = maybe [] f $ liveCertificate cfg where
   f liveCert = [ Listen 443 ["ssl"]
                , SSLCertificate $ liveCert</>"fullchain.pem"
                , SSLCertificateKey $ liveCert</>"privkey.pem"
