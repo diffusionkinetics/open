@@ -11,6 +11,7 @@ module Dampf.ConfigFile
   , withConfigFile
   ) where
 
+import qualified Data.HashMap.Strict as HM
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe                 (fromMaybe)
@@ -67,17 +68,26 @@ defaultPostgresConfig = PostgresConfig
     }
 
 
+subst :: Value -> Value -> Value
+subst (Object x) (Object y) = Object $ HM.unionWith subst x y
+subst _          y          = y
+
+
 -- Using Configurations
 
 loadConfigFile :: Maybe FilePath -> IO DampfConfig
 loadConfigFile mf = decodeFile cfgFile >>= \case
     Just y  -> do
-        ry <- resolveEnvVars y
+        ry <- subst defCfg <$> resolveEnvVars y
         parseMonad parseJSON ry
 
     Nothing -> error "Could not load config"
   where
     cfgFile = fromMaybe "~/.dampfcfg.yaml" mf
+
+    defCfg  = fromMaybe Null
+        . parseMaybe parseJSON
+        $ toJSON defaultConfig
 
 
 withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
