@@ -30,8 +30,17 @@ runSHtml val shtml =
       (t, (_, _, ffs)) = runState stT (0, val, [])
   in (ffs, t)
 
+mkFieldName :: Int -> Text
+mkFieldName = ((<>) "f") . pack . show
+
+mkFieldNameMultiple :: Int -> Text
+mkFieldNameMultiple n = mkFieldName n <> "[]"
+
 fieldName :: Int -> Attribute
-fieldName n = name_ $ "f"<>pack (show n)
+fieldName = name_ . mkFieldName
+
+fieldNameMultiple :: Int -> Attribute
+fieldNameMultiple = name_ . mkFieldNameMultiple
 
 fresh :: SHtml a Int
 fresh = do
@@ -53,3 +62,6 @@ putFormField ff = do
 
 lensSetter :: ASetter' s a -> (s -> a -> s)
 lensSetter l x y = x & l .~ y
+
+lensPusher :: ASetter s t [a] [a] -> s -> a -> t
+lensPusher l x y = over l ((:) y) x

@@ -11,6 +11,7 @@ import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Lucid
+import qualified Data.List as L (filter)
 import Data.Text (Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8)
 import Lens.Micro.Platform
@@ -34,6 +35,22 @@ data SysStats = SysStats
 
 data Unused = Unused
 
+statGrab :: MVar [SysStats] -> IO ()
+statGrab mvStats = diskStats >>= forever
+ where diskStats = ((sum . map fst &&& sum . map snd) . map (diskRead &&& diskWrite))
+           <$> runStats snapshots
+       grab f = f <$> runStats snapshot
+       forever o = do
+           n <- update o
+           threadDelay 1000000
+           forever n
+       update (r', w') = do
+           cpu <- grab load1
+           mem <- grab memUsed
+           (r, w) <- diskStats
+           modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
+           return (r, w)
+
 loadDashdo mvStats = Dashdo Unused (const (readMVar mvStats)) load
 
 load :: Unused -> [SysStats] -> SHtml Unused ()
@@ -56,36 +73,18 @@ load _ stats = do
 
 -- Processes dashdo
 
-data PsCtl = PsCtl
- { _processFilter :: Tag (Process -> Bool)
- , _processUser :: Text
- }
+data ProcessFilterType = All | Active deriving (Eq, Show)
 
-psActive, psAll :: Tag (Process -> Bool)
-psActive = Tag "a" ((>0.1) . procCPUPercent)
-psAll = Tag "b" (const True)
+data PsCtl = PsCtl
+ { _processFilterType :: ProcessFilterType
+ , _processUsers :: [Text]
+ }
 
 makeLenses ''PsCtl
 
-psDashdo = Dashdo (PsCtl psAll "") (const getStats) process
-
-process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
-process ctl (ps, us) = do
-  let user = map (fromIntegral . userID) $ filter ((== _processUser ctl) . pack . userName) us
-      userFilter (uid:_) = ((== uid) . procUid)
-      userFilter _ = const True
-      processes = hbarChart . map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (_tagVal $ _processFilter ctl) $ filter (userFilter user) ps
-      userCPU u = let uid = fromIntegral (userID u)
-        in sum . map procCPUPercent . filter ((== uid) . procUid) $ ps
-      users = hbarChart . filter ((> 0) . snd) $ map (pack . userName &&& userCPU) us
-
-  controls $
-    checkbox "Hide inactive processes" psActive psAll processFilter
-
-  charts
-     [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
-     , ("CPU Usage by User",    plotlySelect (plotly "us" [users] & layout . margin ?~ thinMargins) "y" processUser)]
+filterProcesses :: ProcessFilterType -> (Process -> Bool)
+filterProcesses All    = const True
+filterProcesses Active = (>0.1) . procCPUPercent
 
 getStats :: IO ([Process], [UserEntry])
 getStats = do
@@ -93,21 +92,31 @@ getStats = do
   us <- getAllUserEntries
   return (ps, us)
 
-statGrab :: MVar [SysStats] -> IO ()
-statGrab mvStats = diskStats >>= forever
- where diskStats = ((sum . map fst &&& sum . map snd) . map (diskRead &&& diskWrite))
-           <$> runStats snapshots
-       grab f = f <$> runStats snapshot
-       forever o = do
-           n <- update o
-           threadDelay 1000000
-           forever n
-       update (r', w') = do
-           cpu <- grab load1
-           mem <- grab memUsed
-           (r, w) <- diskStats
-           modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
-           return (r, w)
+psDashdo = Dashdo (PsCtl All []) (const getStats) process
+
+process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
+process ctl (ps, us) = do
+  let userFilter = case L.filter ((`elem` ctl ^. processUsers) . pack . userName) us of
+        []  -> const True
+        lst -> (`elem` ((fromIntegral . userID) <$> lst)) . procUid
+
+      processes = hbarChart 
+        $ map (decodeUtf8 . procName &&& procCPUPercent)
+        $ filter (filterProcesses $ ctl ^. processFilterType) 
+        $ filter (userFilter) ps
+      
+      users = hbarChart 
+        $ filter ((> 0) . snd) 
+        $ map (pack . userName &&& userCPU) us where
+          userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
+            uid = fromIntegral (userID u)
+
+  controls $
+    checkbox "Hide inactive processes" Active All processFilterType
+
+  charts
+     [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
+     , ("CPU Usage by User",    plotlySelectMultiple (plotly "us" [users] & layout . margin ?~ thinMargins) processUsers)]
 
 -- end of Processes dashdo
 
