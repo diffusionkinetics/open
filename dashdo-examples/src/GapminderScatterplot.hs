@@ -16,6 +16,7 @@ import Data.Text (Text, unpack, pack)
 import Data.Aeson.Types
 import Lens.Micro.Platform
 import Control.Monad
+import Control.Applicative
 
 import Graphics.Plotly
 import Graphics.Plotly.Lucid
@@ -30,12 +31,12 @@ makeLenses ''GmParams
 
 gm0 = GmParams [] []
 
-data Continent = Africa | Americas | Asia | Europe | Oceania deriving (Eq, Show, Read)
+data Continent = Africa | Americas | Asia | Europe | Oceania deriving (Eq, Show, Read, Enum)
 
 continentRGB :: Continent -> RGB Int
 continentRGB Africa   = RGB 255 165 0
-continentRGB Americas = RGB 255 0 0
-continentRGB Asia     = RGB 128 0 128
+continentRGB Americas = RGB 178 34 34
+continentRGB Asia     = RGB 218 112 214
 continentRGB Europe   = RGB 0 128 0
 continentRGB Oceania  = RGB 0 0 255
 continentRGB _ = undefined
@@ -50,7 +51,8 @@ countriesTable gms =
       tr_ $ do
         th_ "Country"
         th_ "Population"
-        th_ "Gdp per capita"
+        th_ "GDP per capita"
+        th_ "GDP"
         th_ "Life expectancy"
     tbody_ $ do
       DF.for_ gms $ \(c) -> do
@@ -58,6 +60,7 @@ countriesTable gms =
           td_ $ toHtml (country          c)
           td_ $ toHtml (show $ pop       c)
           td_ $ toHtml (show $ gdpPercap c)
+          td_ $ toHtml (show $ gdp       c)
           td_ $ toHtml (show $ lifeExp   c)
 
 countriesScatterPlot :: [Gapminder] -> SHtml GmParams ()
@@ -81,6 +84,38 @@ countriesScatterPlot gms =
           & tickvals .~ Just (map (toJSON . fst) xTicks)
           & ticktext .~ Just (map (pack . snd) xTicks))
       & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
+      & layout %~ title .~ Just "GDP Per Capita and Life Exmectancy"
+
+gdp :: Gapminder -> Double
+gdp c = gdpPercap c * (fromIntegral $ pop c)
+
+continentsGDPsPie :: [Gapminder] -> SHtml GmParams ()
+continentsGDPsPie gms = 
+  let
+    -- list of continent-GDP pairs [(Continent, Double)]
+    -- for each continent from Africa to Oceania
+    continentGdps = 
+      [((,) currentCont) . sum $ 
+        gdp <$>
+          (filter ((== show currentCont) . unpack . continent) gms) 
+          | currentCont <- [ Africa .. Oceania ]]
+    
+    pieLabels = pack . show . fst <$> continentGdps
+    pieValues = toJSON . snd <$> continentGdps
+    pieColors = List $ (toJSON . continentRGB . fst) <$> continentGdps
+
+    trace :: Trace
+    trace = pie
+      & labels .~ Just pieLabels
+      & values .~ Just pieValues
+      & hole .~ Just (toJSON 0.4)
+      & marker .~ (Just $
+        defMarker
+          & markercolors .~ Just pieColors)
+
+  in toHtml $ 
+    plotly "continents-gdp" [trace]
+      & layout %~ title .~ Just "World's GDP by continents"
 
 gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
 gmRenderer gms gmParams () =
@@ -90,7 +125,7 @@ gmRenderer gms gmParams () =
       mkCol [(MD,8)] $ do
         countriesScatterPlot gms
       mkCol [(MD,4)] $ do
-        "Doghunt chart goes here"
+        continentsGDPsPie gms
     row_ $ do
       mkCol [(MD,12)] $ do
         countriesTable gms
