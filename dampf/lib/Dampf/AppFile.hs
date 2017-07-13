@@ -1,71 +1,116 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
-module Dampf.AppFile where
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
-import GHC.Generics
-import Data.Yaml
-import Data.Aeson
+module Dampf.AppFile
+  ( -- * App File Types
+    Dampf(..)
+  , Dampfs(..)
+  , ImageSpec(..)
+  , ContainerSpec(..)
+  , DomainSpec(..)
+  , DBSpec(..)
+    -- * Using App Files
+  , loadAppFile
+  , withAppFile
+  ) where
+
+import           Control.Monad
+import           Data.Aeson
 import qualified Data.HashMap.Lazy as HM
-import Control.Monad
+import           Data.Text                  (Text)
 import qualified Data.Text as T
-import Data.Maybe (fromMaybe)
+import           Data.Yaml
+import           GHC.Generics
 
-data Dampf = Image String ImageSpec
-           | Domain String DomainSpec
-           | PostgresDB String DBSpec
-           | Container String ContainerSpec
 
-           deriving Show
+data Dampf
+    = Image String ImageSpec
+    | Domain String DomainSpec
+    | PostgresDB String DBSpec
+    | Container String ContainerSpec
+    deriving (Show)
 
-newtype Dampfs = Dampfs {unDampfs :: [Dampf] } deriving Show
+
+newtype Dampfs = Dampfs { unDampfs :: [Dampf] }
+    deriving (Show)
+
 
 instance FromJSON Dampfs where
-  parseJSON = withObject "Dampf config" $ \hm -> do
-    fmap Dampfs $ forM (HM.toList hm) $ \(k,v) -> do
+  parseJSON = withObject "Dampf config" $ \hm ->
+    fmap Dampfs $ forM (HM.toList hm) $ \(k,v) ->
       case T.words k of
-        ["image", imname] -> do
-          imspec <- parseJSON v
-          return $ Image (T.unpack imname) imspec
-        ["container", cname] ->
-          Container <$> return (T.unpack cname) <*> parseJSON v
-        ["postgresdb", dbname] ->
-          PostgresDB <$> return (T.unpack dbname) <*> parseJSON v
-        ["domain", dname] ->
-          Domain <$> return (T.unpack dname) <*> parseJSON v
+        ["image", imname] -> Image
+            <$> return (T.unpack imname)
+            <*> parseJSON v
+
+        ["container", cname] -> Container
+            <$> return (T.unpack cname)
+            <*> parseJSON v
+
+        ["postgresdb", dbname] -> PostgresDB
+            <$> return (T.unpack dbname)
+            <*> parseJSON v
+
+        ["domain", dname] -> Domain
+            <$> return (T.unpack dname)
+            <*> parseJSON v
+
         _ -> fail $ "unknown dampf spec: "++ T.unpack k
 
-data ImageSpec = ImageSpec
-  { dockerFile :: FilePath } deriving (Generic, Show)
+
+data ImageSpec = ImageSpec { dockerFile :: FilePath }
+    deriving (Show, Generic)
+
 
 instance FromJSON ImageSpec
 
+
 data ContainerSpec = ContainerSpec
-  { image :: String,
-    expose :: Maybe [Int],
-    command :: Maybe String
-  } deriving (Generic, Show)
+    { image     :: String
+    , expose    :: Maybe [Int]
+    , command   :: Maybe String
+    } deriving (Show, Generic)
+
 
 instance FromJSON ContainerSpec
 
+
 data DomainSpec = DomainSpec
-  { static :: Maybe FilePath
-  , proxy_container :: Maybe T.Text
-  , letsencrypt :: Maybe Bool
-  -- , generate :: Maybe T.Text
-  } deriving (Generic, Show)
+    { static            :: Maybe FilePath
+    , proxyContainer    :: Maybe Text
+    , letsencrypt       :: Maybe Bool
+    } deriving (Show, Generic)
+
 
 instance FromJSON DomainSpec
 
+
 data DBSpec = DBSpec
-  { migrations :: Maybe FilePath
-  , db_user :: String
-  , db_extensions :: [String] } deriving (Generic, Show)
+    { migrations    :: Maybe FilePath
+    , dbUser        :: String
+    , dbExtensions  :: [String]
+    } deriving (Show, Generic)
+
 
 instance FromJSON DBSpec
 
+
+-- Using App Files
+
 withAppFile :: Maybe FilePath -> (Dampfs -> IO ()) -> IO ()
-withAppFile mfp thenDo = do
-  let fp = fromMaybe "dampf.yaml" mfp
-  ev <- decodeFileEither fp
-  case ev of
-    Right v -> thenDo v
-    Left e -> fail $ show e
+withAppFile mf action = loadAppFile mf >>= action
+{-# INLINE withAppFile #-}
+
+
+loadAppFile :: Maybe FilePath -> IO Dampfs
+loadAppFile (Just f) = parseAppFile f
+loadAppFile _        = parseAppFile "dampf.yaml"
+{-# INLINE loadAppFile #-}
+
+
+parseAppFile :: FilePath -> IO Dampfs
+parseAppFile f = decodeFile f >>= \case
+    Just y  -> parseMonad parseJSON y
+    Nothing -> error "Could not load app file"
+

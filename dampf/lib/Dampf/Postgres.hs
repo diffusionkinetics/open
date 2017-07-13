@@ -46,10 +46,10 @@ backupDB mfp mdbnm = do
                        , maybe True (==dbnm) mdbnm]
       forM_ dbs $ \( dbnm, dbspec) -> do
         let outfnm = "backup_"++dbnm++".sqlc"
-            passwd = lookupPassword (db_user dbspec) cfg
+            passwd = lookupPassword (dbUser dbspec) cfg
             envs = [("PGPASSWORD", passwd)
                    ,("PGDATABASE",dbnm )
-                   ,("PGUSER", db_user dbspec) ]
+                   ,("PGUSER", dbUser dbspec) ]
             cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
         runProcess_ cmd
 

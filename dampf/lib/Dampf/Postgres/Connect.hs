@@ -33,9 +33,9 @@ createConn dbnm dbspec cfg = do
 
 createSuperUserConn :: (HasDampfConfig c) => c -> String -> IO Connection
 createSuperUserConn cfg dbnm = do
-   let dbspec = DBSpec { db_user = "postgres",
+   let dbspec = DBSpec { dbUser = "postgres",
                          migrations = Nothing,
-                         db_extensions = []
+                         dbExtensions = []
                        }
 
    catch (createConn' dbnm dbspec cfg)
@@ -45,15 +45,15 @@ createSuperUserConn cfg dbnm = do
 
 
 createConn' :: (HasDampfConfig c) => String -> DBSpec -> c -> IO Connection
-createConn' dbnm dbspec cfg = do
-  let userNm = db_user dbspec
-  connect ConnectInfo
+createConn' dbnm dbSpec cfg = connect ConnectInfo
     { connectHost     = "localhost"
-    , connectUser     = userNm
-    , connectPassword = lookupPassword (db_user dbspec) cfg
+    , connectUser     = userName
+    , connectPassword = lookupPassword userName cfg
     , connectDatabase = dbnm
     , connectPort     = 5432
     }
+  where
+    userName = dbUser dbSpec
 
 
 destroyConn :: Connection -> IO ()
