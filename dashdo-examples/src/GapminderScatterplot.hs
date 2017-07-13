@@ -35,7 +35,7 @@ continentRGB :: Continent -> RGB Int
 continentRGB Africa   = RGB 255 165 0
 continentRGB Americas = RGB 255 0 0
 continentRGB Asia     = RGB 128 0 128
-continentRGB Europe   = RGB 0 255 0
+continentRGB Europe   = RGB 0 128 0
 continentRGB Oceania  = RGB 0 0 255
 continentRGB _ = undefined
 
