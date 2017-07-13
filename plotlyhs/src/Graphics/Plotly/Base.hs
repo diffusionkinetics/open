@@ -95,9 +95,16 @@ instance ToJSON a => ToJSON (ListOrElem a) where
   toJSON (List xs) = toJSON xs
   toJSON (All x) = toJSON x
 
+data Sizemode = Diameter | Area deriving (Show, Eq)
+
+instance ToJSON Sizemode where
+  toJSON = toJSON . map toLower . show
+
 -- | Marker specification
 data Marker = Marker
   { _size :: Maybe (ListOrElem Value)
+  , _sizeref :: Maybe Value
+  , _sizeMode :: Maybe Sizemode
   , _markercolor :: Maybe (ListOrElem Value)
   , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
   , _symbol :: Maybe Symbol
@@ -111,7 +118,7 @@ instance ToJSON Marker where
 
 -- | default marker specification
 defMarker :: Marker
-defMarker  = Marker Nothing Nothing Nothing Nothing Nothing
+defMarker  = Marker Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 
 -- | Dash type specification
