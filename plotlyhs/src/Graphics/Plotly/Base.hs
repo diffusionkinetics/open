@@ -227,9 +227,15 @@ instance ToJSON Trace where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
     where renamer = dropInitial "trace" . unLens
 
+data AxisType = Log | Date | Category deriving Show
+
+instance ToJSON AxisType where
+  toJSON = toJSON . map toLower . show
+
 -- |Options for axes
 data Axis = Axis
   { _range :: Maybe (Double,Double)
+  , _axistype :: Maybe AxisType
   , _axistitle :: Maybe Text
   , _showgrid :: Maybe Bool
   , _zeroline :: Maybe Bool
@@ -244,7 +250,7 @@ instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
