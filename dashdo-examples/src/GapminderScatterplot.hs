@@ -68,7 +68,10 @@ countriesScatterPlot gms =
                         & color .~ Just (continentRGB . read . unpack . continent)) gms
   in toHtml $
     plotly "countries-scatterplot" [trace]
-      & layout %~ xaxis .~ (Just $ defAxis & axistitle .~ Just "GDP Per Capita")
+      & layout %~ xaxis .~ (Just $ 
+        defAxis 
+          & axistype  .~ Just Log
+          & axistitle .~ Just "GDP Per Capita")
       & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
 
 gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
