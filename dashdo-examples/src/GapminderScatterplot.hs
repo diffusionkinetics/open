@@ -13,6 +13,7 @@ import Lucid.Bootstrap3
 import Data.Monoid ((<>))
 import qualified Data.Foldable as DF
 import Data.Text (Text, unpack, pack)
+import Data.Aeson.Types
 import Lens.Micro.Platform
 import Control.Monad
 
@@ -66,12 +67,19 @@ countriesScatterPlot gms =
     trace = points (aes & x .~ gdpPercap
                         & y .~ lifeExp
                         & color .~ Just (continentRGB . read . unpack . continent)) gms
+    xTicks = [
+        (1000,  "$ 1,000")
+      , (10000, "$ 10,000")
+      , (50000, "$ 50,000")]
+
   in toHtml $
     plotly "countries-scatterplot" [trace]
       & layout %~ xaxis .~ (Just $ 
         defAxis 
           & axistype  .~ Just Log
-          & axistitle .~ Just "GDP Per Capita")
+          & axistitle .~ Just "GDP Per Capita"
+          & tickvals .~ Just (map (toJSON . fst) xTicks)
+          & ticktext .~ Just (map (pack . snd) xTicks))
       & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
 
 gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
