@@ -14,11 +14,13 @@ import Data.Monoid ((<>))
 import qualified Data.Foldable as DF
 import Data.Text (Text, unpack, pack)
 import Data.Aeson.Types
+import GHC.Float
 import Lens.Micro.Platform
 import Control.Monad
 import Control.Applicative
 
 import Graphics.Plotly
+import qualified Graphics.Plotly.Base as B
 import Graphics.Plotly.Lucid
 
 data GmParams = GmParams
@@ -67,9 +69,18 @@ countriesScatterPlot :: [Gapminder] -> SHtml GmParams ()
 countriesScatterPlot gms =
   let
     trace :: Trace
-    trace = points (aes & x .~ gdpPercap
-                        & y .~ lifeExp
-                        & color .~ Just (continentRGB . read . unpack . continent)) gms
+    trace =
+      scatter
+        & B.x ?~ (toJSON . gdpPercap <$> gms)
+        & B.y ?~ (toJSON . lifeExp <$> gms)
+        & B.mode ?~ [B.Markers]
+        & B.marker ?~ 
+          (defMarker
+            & B.markercolor ?~ (List $ toJSON . continentRGB . read . unpack . continent <$> gms)
+            & B.size ?~ (List $ (toJSON . float2Double . (* 200000) . log . fromInteger . pop) <$> gms)
+            & B.sizeref ?~ toJSON 2e5
+            & B.sizeMode ?~ Area)
+
     xTicks = [
         (1000,  "$ 1,000")
       , (10000, "$ 10,000")
@@ -79,10 +90,10 @@ countriesScatterPlot gms =
     plotly "countries-scatterplot" [trace]
       & layout %~ xaxis .~ (Just $ 
         defAxis 
-          & axistype  .~ Just Log
-          & axistitle .~ Just "GDP Per Capita"
-          & tickvals .~ Just (map (toJSON . fst) xTicks)
-          & ticktext .~ Just (map (pack . snd) xTicks))
+          & axistype  ?~ Log
+          & axistitle ?~ "GDP Per Capita"
+          & tickvals ?~ (toJSON . fst <$> xTicks)
+          & ticktext ?~ (pack . snd <$> xTicks))
       & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
       & layout %~ title .~ Just "GDP Per Capita and Life Exmectancy"
 
