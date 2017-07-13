@@ -1,20 +1,22 @@
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module Dampf.ConfigFile
   ( -- * Configuration Types
     DampfConfig(..)
+  , HasDampfConfig(..)
   , PostgresConfig(..)
+  , HasPostgresConfig(..)
     -- * Using Configurations
   , loadConfigFile
   , withConfigFile
   ) where
 
-import qualified Data.HashMap.Strict as HM
+import           Control.Lens
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe                 (fromMaybe)
 import           Data.Yaml
 import           GHC.Generics               (Generic)
 import           System.Directory           (getHomeDirectory)
@@ -25,48 +27,61 @@ import           Dampf.ConfigFile.Env
 
 -- Configuration Types
 
-data DampfConfig = DampfConfig
-  { postgresPassword :: String
-  , dbPasswords :: Map String String
-  , liveCertificate :: Maybe FilePath
-
-  , postgres :: PostgresConfig
-  } deriving (Generic, Show)
-
-
-instance ToJSON DampfConfig
-instance FromJSON DampfConfig
-
-
 data PostgresConfig = PostgresConfig
-    { name  :: String
-    , host  :: String
-    , port  :: Int
-    , users :: Map String String
+    { _name  :: String
+    , _host  :: String
+    , _port  :: Int
+    , _users :: Map String String
     } deriving (Show, Generic)
+
+makeClassy ''PostgresConfig
 
 
 instance ToJSON PostgresConfig
-instance FromJSON PostgresConfig
+instance FromJSON PostgresConfig where
+    parseJSON (Object x) = PostgresConfig
+        <$> x .:? "name"  .!= (defaultPostgres ^. name)
+        <*> x .:? "host"  .!= (defaultPostgres ^. host)
+        <*> x .:? "port"  .!= (defaultPostgres ^. port)
+        <*> x .:? "users" .!= (defaultPostgres ^. users)
+
+    parseJSON _          = error "Expecting Object"
 
 
--- Default Configurations
-
-defaultConfig :: DampfConfig
-defaultConfig = DampfConfig
-    { postgresPassword  = ""
-    , dbPasswords       = Map.empty
-    , liveCertificate   = Nothing
-    , postgres          = defaultPostgresConfig
+defaultPostgres :: PostgresConfig
+defaultPostgres = PostgresConfig
+    { _name  = "default"
+    , _host  = "localhost"
+    , _port  = 5432
+    , _users = Map.fromList [("postgres", "")]
     }
 
 
-defaultPostgresConfig :: PostgresConfig
-defaultPostgresConfig = PostgresConfig
-    { name  = "default"
-    , host  = "localhost"
-    , port  = 5432
-    , users = Map.fromList [("postgres", "")]
+data DampfConfig = DampfConfig
+    { _liveCertificate :: Maybe FilePath
+    , _postgres :: PostgresConfig
+    } deriving (Show, Generic)
+
+makeClassy ''DampfConfig
+
+
+instance ToJSON DampfConfig
+instance FromJSON DampfConfig where
+    parseJSON (Object x) = DampfConfig
+        <$> x .:? "liveCertificate" .!= (defaultConfig ^. liveCertificate)
+        <*> x .:? "postgres"        .!= (defaultConfig ^. postgres)
+
+    parseJSON _          = error "Expecting Object"
+
+
+instance HasPostgresConfig DampfConfig where
+    postgresConfig = postgres
+
+
+defaultConfig :: DampfConfig
+defaultConfig = DampfConfig
+    { _liveCertificate  = Nothing
+    , _postgres         = defaultPostgres
     }
 
 
@@ -92,18 +107,6 @@ parseDefaultConfig = do
 
 parseConfig :: FilePath -> IO DampfConfig
 parseConfig f = decodeFile f >>= \case
-    Just y  -> do
-        ry <- subst defCfg <$> resolveEnvVars y
-        parseMonad parseJSON ry
-
+    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
     Nothing -> error "Could not load config"
-  where
-    defCfg  = fromMaybe Null
-        . parseMaybe parseJSON
-        $ toJSON defaultConfig
-
-
-subst :: Value -> Value -> Value
-subst (Object x) (Object y) = Object $ HM.unionWith subst x y
-subst _          y          = y
 

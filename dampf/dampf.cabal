@@ -58,6 +58,7 @@ Library
                , typed-process
                , free
                , vector
+               , lens
 
 executable dampf
   main-is: Main.hs

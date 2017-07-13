@@ -1,16 +1,20 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Dampf.Nginx.Config where
 
-import Dampf.AppFile
-import Dampf.ConfigFile hiding (port)
-import Data.Text (Text)
+import           Control.Lens
+import           Data.Text                      (Text)
 import qualified Data.Text as T
-import Text.PrettyPrint.HughesPJClass
-import Data.Maybe (fromMaybe)
-import System.FilePath
+import           Data.Maybe                     (fromMaybe)
+import           System.FilePath
+import           Text.PrettyPrint.HughesPJClass
+
+import           Dampf.AppFile
+import           Dampf.ConfigFile hiding        (port)
+
 
 data Server = Server [ServerDecl]
+
 
 data ServerDecl
   = Listen Int [String]
@@ -20,11 +24,13 @@ data ServerDecl
   | SSLCertificate FilePath
   | SSLCertificateKey FilePath
 
+
 instance Pretty Server where
   pPrint (Server sds)
      = text "server {"
        $$ nest 2 (vcat (map pPrint sds))
        $$ char '}'
+
 
 instance Pretty ServerDecl where
   pPrint (Listen p ss)
@@ -44,18 +50,22 @@ instance Pretty ServerDecl where
   pPrint (SSLCertificateKey fp)
     = text "ssl_certificate_key" <+> text fp <> char ';'
 
-encryptDecls :: DampfConfig -> [ServerDecl]
-encryptDecls cfg = maybe [] f $ liveCertificate cfg where
-  f liveCert = [ Listen 443 ["ssl"]
-               , SSLCertificate $ liveCert</>"fullchain.pem"
-               , SSLCertificateKey $ liveCert</>"privkey.pem"
-               , Include "/etc/letsencrypt/options-ssl-nginx.conf"
-               ]
+
+encryptDecls :: (HasDampfConfig c) => c -> [ServerDecl]
+encryptDecls cfg = maybe [] f $ cfg ^. liveCertificate
+  where
+    f liveCert = [ Listen 443 ["ssl"]
+                 , SSLCertificate $ liveCert</>"fullchain.pem"
+                 , SSLCertificateKey $ liveCert</>"privkey.pem"
+                 , Include "/etc/letsencrypt/options-ssl-nginx.conf"
+                 ]
+
 
 ttext :: Text -> Doc
 ttext = text . T.unpack
 
-domainToServer :: DampfConfig -> Text -> DomainSpec -> Server
+
+domainToServer :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Server
 domainToServer cfg nm dspec
   = Server $
       [ Listen 80 []
@@ -63,16 +73,20 @@ domainToServer cfg nm dspec
       , Location "/" $ domainToLocation nm dspec
       ] ++ if toEncrypt dspec then encryptDecls cfg else []
 
+
 domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
 domainToLocation nm (DomainSpec mstatic mproxy _)
   = concat [ maybe [] (const $ staticAttrs nm) mstatic
            , maybe [] proxyAttrs mproxy ]
 
+
 staticAttrs nm = [ ("root",  "/var/www/" `T.append` nm)
                  , ("index", "index.html" )]
 
+
 toEncrypt :: DomainSpec -> Bool
 toEncrypt ds = fromMaybe False $ letsencrypt ds
+
 
 proxyAttrs cname
   = let port = last $ T.splitOn ":" cname in
@@ -83,5 +97,6 @@ proxyAttrs cname
     , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]
 
-domainConfig :: DampfConfig -> Text -> DomainSpec -> Text
+domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
 domainConfig cfg nm spec = T.pack $ render $ pPrint $ domainToServer cfg nm spec
+
