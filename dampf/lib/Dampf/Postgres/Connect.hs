@@ -45,12 +45,12 @@ createSuperUserConn cfg dbnm = do
 
 
 createConn' :: (HasDampfConfig c) => String -> DBSpec -> c -> IO Connection
-createConn' dbnm dbSpec cfg = connect ConnectInfo
-    { connectHost     = "localhost"
-    , connectUser     = userName
+createConn' db dbSpec cfg = connect ConnectInfo
+    { connectHost     = cfg ^. postgres ^. host
+    , connectUser     = dbUser dbSpec
     , connectPassword = lookupPassword userName cfg
-    , connectDatabase = dbnm
-    , connectPort     = 5432
+    , connectDatabase = db
+    , connectPort     = cfg ^. postgres ^. port ^. to fromIntegral
     }
   where
     userName = dbUser dbSpec

@@ -10,40 +10,37 @@ import System.Process.Typed
 
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
-runMigrations mfp mdbnm = do
-  withConfigFile Nothing $ \cfg -> do
-    withAppFile mfp $ \(Dampfs dampfs) -> do
-      forM_ [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs]
-            $ \(dbnm, dbspec) -> do
-        when (maybe True (==dbnm) mdbnm) $
-          migrate cfg dbnm dbspec
+runMigrations mfp mdbnm = withConfigFile Nothing $ \cfg ->
+    withAppFile mfp $ \(Dampfs dampfs) ->
+        forM_ [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs] $ \(dbnm, dbspec) ->
+            when (maybe True (==dbnm) mdbnm) $ migrate dbnm dbspec cfg
+
 
 newMigrationCmd :: Maybe FilePath -> Maybe String -> String -> IO ()
-newMigrationCmd mfp mdbnm mignm = do
+newMigrationCmd mfp mdbnm mignm =
   withAppFile mfp $ \(Dampfs dampfs) -> do
     let dbs = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs]
     case (dbs, mdbnm) of
-      ([db], Nothing) -> newMigration mignm $ snd db
-      (_, Just dbnm) -> case lookup dbnm dbs of
-                          Just dbspec -> newMigration mignm dbspec
-                          Nothing -> fail "cannot find database in appfile"
-      _ -> fail $ "newmigration: database not specified"
+        ([db], Nothing) -> newMigration mignm $ snd db
+        (_, Just dbnm)  -> case lookup dbnm dbs of
+            Just dbspec -> newMigration mignm dbspec
+            Nothing     -> error "cannot find database in appfile"
+
+        _ -> error "newmigration: database not specified"
+
 
 setupDB :: Maybe FilePath -> IO ()
-setupDB mfp = do
-  withAppFile mfp $ \dampfs -> do
+setupDB mfp = withAppFile mfp $ \dampfs ->
     withConfigFile Nothing $ \cfg -> do
       createUsers dampfs cfg
       createDatabases dampfs cfg
       createExtensions dampfs cfg
 
+
 backupDB :: Maybe FilePath -> Maybe String -> IO ()
-backupDB mfp mdbnm = do
-  withAppFile mfp $ \(Dampfs dampfs) -> do
+backupDB mfp mdbnm = withAppFile mfp $ \(Dampfs dampfs) ->
     withConfigFile Nothing $ \cfg -> do
-      let dbs = [( dbnm, dbspec) |
-                       PostgresDB dbnm dbspec <- dampfs
-                       , maybe True (==dbnm) mdbnm]
+      let dbs = [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs, maybe True (==dbnm) mdbnm]
       forM_ dbs $ \( dbnm, dbspec) -> do
         let outfnm = "backup_"++dbnm++".sqlc"
             passwd = lookupPassword (dbUser dbspec) cfg
@@ -51,6 +48,9 @@ backupDB mfp mdbnm = do
                    ,("PGDATABASE",dbnm )
                    ,("PGUSER", dbUser dbspec) ]
             cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
+
         runProcess_ cmd
 
+
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump
+
