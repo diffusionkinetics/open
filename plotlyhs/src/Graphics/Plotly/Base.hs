@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Mode" . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Scatter3D | Bar | Mesh3D deriving Show
+data TraceType = Scatter | Scatter3D | Bar | Mesh3D | Pie deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -99,6 +99,7 @@ instance ToJSON a => ToJSON (ListOrElem a) where
 data Marker = Marker
   { _size :: Maybe (ListOrElem Value)
   , _markercolor :: Maybe (ListOrElem Value)
+  , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
   , _symbol :: Maybe Symbol
   , _opacity :: Maybe Double
   } deriving (Generic, Eq)
@@ -110,7 +111,7 @@ instance ToJSON Marker where
 
 -- | default marker specification
 defMarker :: Marker
-defMarker  = Marker Nothing Nothing Nothing Nothing
+defMarker  = Marker Nothing Nothing Nothing Nothing Nothing
 
 
 -- | Dash type specification
@@ -176,6 +177,9 @@ data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
   , _y :: Maybe [Value] -- ^ y values, as numbers
   , _z :: Maybe [Value] -- ^ z values, as numbers
+  , _values :: Maybe [Value] -- values for pie chart
+  , _labels :: Maybe [Text] -- labels for pie chart
+  , _hole :: Maybe Value -- pie chart hole property
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
@@ -204,7 +208,7 @@ data Trace = Trace
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
@@ -222,6 +226,9 @@ bars = mkTrace Bar
 mesh3d :: Trace
 mesh3d = mkTrace Mesh3D
 
+-- | an empty pie chart
+pie :: Trace
+pie = mkTrace Pie
 
 instance ToJSON Trace where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
