@@ -23,7 +23,7 @@ import           GHC.Generics               (Generic)
 import           System.Directory           (getHomeDirectory)
 import           System.FilePath            ((</>))
 
-import           Dampf.ConfigFile.Env
+import           Dampf.Internal.Env
 
 
 -- Configuration Types

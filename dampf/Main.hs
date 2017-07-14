@@ -34,9 +34,8 @@ main = do
     dispatch x
 
 dispatch :: Cmd -> IO ()
-dispatch (DumpYaml mfp) = dumpYaml (fromMaybe "dampf.yaml" mfp)
-dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
-dispatch (Dump mfp) = dumpCfg (fromMaybe "dampf.yaml" mfp)
+dispatch (DumpYaml mfp) = dumpApp (fromMaybe "dampf.yaml" mfp)
+dispatch (Dump mfp) = dumpConfig (fromMaybe "dampf.yaml" mfp)
 dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm
 dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
 dispatch (Build mfp) = goBuild mfp

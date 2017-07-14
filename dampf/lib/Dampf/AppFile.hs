@@ -24,6 +24,8 @@ import qualified Data.Text as T
 import           Data.Yaml
 import           GHC.Generics
 
+import           Dampf.Internal.Env
+
 
 data Dampf
     = Image String ImageSpec
@@ -111,6 +113,6 @@ loadAppFile = parseAppFile . fromMaybe "dampf.yaml"
 
 parseAppFile :: FilePath -> IO Dampfs
 parseAppFile f = decodeFile f >>= \case
-    Just y  -> parseMonad parseJSON y
+    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
     Nothing -> error "Could not load app file"
 

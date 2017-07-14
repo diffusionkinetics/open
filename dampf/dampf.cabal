@@ -28,7 +28,7 @@ Library
                    Dampf
                    Dampf.AppFile
                    Dampf.ConfigFile
-                   Dampf.ConfigFile.Env
+                   Dampf.Internal.Env
                    Dampf.Common
                    Dampf.Docker
                    Dampf.Docker.Free
