@@ -24,7 +24,6 @@ library
         Dampf
       , Dampf.AppFile
       , Dampf.ConfigFile
-      , Dampf.Common
       , Dampf.Docker
       , Dampf.Docker.Free
       , Dampf.Docker.Types
