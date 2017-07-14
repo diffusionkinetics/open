@@ -54,9 +54,11 @@ library
       , aeson
       , containers
       , directory
+      , exceptions
       , filepath
       , free
       , lens
+      , mtl
       , postgresql-simple
       , pretty
       , process
