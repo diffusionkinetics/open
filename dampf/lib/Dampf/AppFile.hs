@@ -18,6 +18,7 @@ module Dampf.AppFile
 import           Control.Monad
 import           Data.Aeson
 import qualified Data.HashMap.Lazy as HM
+import           Data.Maybe                 (fromMaybe)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           Data.Yaml
@@ -104,8 +105,7 @@ withAppFile mf action = loadAppFile mf >>= action
 
 
 loadAppFile :: Maybe FilePath -> IO Dampfs
-loadAppFile (Just f) = parseAppFile f
-loadAppFile _        = parseAppFile "dampf.yaml"
+loadAppFile = parseAppFile . fromMaybe "dampf.yaml"
 {-# INLINE loadAppFile #-}
 
 

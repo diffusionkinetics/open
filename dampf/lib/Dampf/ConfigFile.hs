@@ -17,6 +17,7 @@ module Dampf.ConfigFile
 import           Control.Lens
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
+import           Data.Maybe                 (fromMaybe)
 import           Data.Yaml
 import           GHC.Generics               (Generic)
 import           System.Directory           (getHomeDirectory)
@@ -93,16 +94,10 @@ withConfigFile mf action = loadConfigFile mf >>= action
 
 
 loadConfigFile :: Maybe FilePath -> IO DampfConfig
-loadConfigFile (Just f) = parseConfig f
-loadConfigFile _        = parseDefaultConfig
+loadConfigFile mf = do
+    homeCfg <- fmap (</> ".dampfcfg.yaml") getHomeDirectory
+    parseConfig $ fromMaybe homeCfg mf
 {-# INLINE loadConfigFile #-}
-
-
-parseDefaultConfig :: IO DampfConfig
-parseDefaultConfig = do
-    cfgFile <- fmap (</> ".dampfcfg.yaml") getHomeDirectory
-    parseConfig cfgFile
-{-# INLINE parseDefaultConfig #-}
 
 
 parseConfig :: FilePath -> IO DampfConfig
