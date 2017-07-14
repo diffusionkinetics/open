@@ -75,27 +75,31 @@ domainToServer cfg nm dspec
 
 
 domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation nm (DomainSpec mstatic mproxy _)
-  = concat [ maybe [] (const $ staticAttrs nm) mstatic
-           , maybe [] proxyAttrs mproxy ]
+domainToLocation nm (DomainSpec mstatic mproxy _) =
+  maybe [] (const $ staticAttrs nm) mstatic ++ maybe [] proxyAttrs mproxy
 
 
-staticAttrs nm = [ ("root",  "/var/www/" `T.append` nm)
-                 , ("index", "index.html" )]
+staticAttrs :: Text -> [(Text, Text)]
+staticAttrs nm =
+    [ ("root", "/var/www/" `T.append` nm)
+    , ("index", "index.html")
+    ]
 
 
 toEncrypt :: DomainSpec -> Bool
 toEncrypt ds = fromMaybe False $ letsencrypt ds
 
 
-proxyAttrs cname
-  = let port = last $ T.splitOn ":" cname in
-    [ ("proxy_pass",       "http://127.0.0.1:" `T.append` port)
+proxyAttrs :: Text -> [(Text, Text)]
+proxyAttrs cname =
+    [ ("proxy_pass",       "http://127.0.0.1:" `T.append` p)
     , ("proxy_set_header", "Host $host")
     , ("proxy_set_header", "X-Real-IP $remote_addr")
     , ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")
     , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]
+  where
+    p = last $ T.splitOn ":" cname
 
 domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
 domainConfig cfg nm spec = T.pack $ render $ pPrint $ domainToServer cfg nm spec

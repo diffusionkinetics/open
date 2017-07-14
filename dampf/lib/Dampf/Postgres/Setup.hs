@@ -2,57 +2,73 @@
 
 module Dampf.Postgres.Setup where
 
-import Control.Monad
-
-import Data.List
-import Dampf.AppFile
-import Dampf.ConfigFile
-import Dampf.Postgres.Connect
+import           Control.Monad
+import           Data.List
 import qualified Data.Text as T
+import           Database.PostgreSQL.Simple
+import           Database.PostgreSQL.Simple.Types
 
-import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.Types
+import           Dampf.AppFile
+import           Dampf.ConfigFile
+import           Dampf.Postgres.Connect
 
-createUsers :: Dampfs -> DampfConfig -> IO ()
+
+createUsers :: (HasDampfConfig c) => Dampfs -> c -> IO ()
 createUsers (Dampfs dampfs) cfg = do
-  conn <- createSuperUserConn cfg "postgres"
-  let dbs = [ dbspec | PostgresDB _ dbspec <- dampfs ]
-  forM_ dbs $ \dbspec -> do
-    let passwd = lookupPassword (db_user dbspec) cfg
-    rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
-       (Only $ db_user dbspec)
-    case rls :: [Only String] of
-      [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                    (Identifier $ T.pack $ db_user dbspec,passwd)
-      _ -> return ()
+    conn <- createSuperUserConn cfg "postgres"
+    forM_ ds $ \dbSpec -> do
+        let pass = lookupPassword (dbUser dbSpec) cfg
 
-    return ()
-  destroyConn conn
+        rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
+            (Only $ dbUser dbSpec)
 
-createExtensions :: Dampfs -> DampfConfig -> IO ()
-createExtensions (Dampfs dampfs) cfg = do
-  let dbs = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs ]
-  forM_ dbs $ \(dbnm, dbspec) -> do
-    conn <- createSuperUserConn cfg dbnm
-    let exts = nub $ db_extensions dbspec
-    forM_ exts $ \ext -> do
-      void $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
-                    (Only $ Identifier $ T.pack ext)
+        case rls :: [Only String] of
+            [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
+                (Identifier $ T.pack $ dbUser dbSpec, pass)
+
+            _ -> return ()
+
     destroyConn conn
+  where
+    ds = [spec | PostgresDB _ spec <- dampfs]
 
-createDatabases :: Dampfs -> DampfConfig -> IO ()
+
+createExtensions :: (HasDampfConfig c) => Dampfs -> c -> IO ()
+createExtensions (Dampfs dampfs) cfg = forM_ ds $ \(db, dbSpec) -> do
+    conn <- createSuperUserConn cfg db
+    let exts = nub $ dbExtensions dbSpec
+
+    forM_ exts $ \ext -> void
+        $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
+            (Only $ Identifier $ T.pack ext)
+
+    destroyConn conn
+  where
+    ds = [(db, dbSpec) | PostgresDB db dbSpec <- dampfs]
+
+
+createDatabases :: (HasDampfConfig c) => Dampfs -> c -> IO ()
 createDatabases (Dampfs dampfs) cfg = do
-  conn <- createSuperUserConn cfg "postgres"
-  let dbs' = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs ]
-  forM_ dbs' $ \(dbnm, dbspec) -> do
-    dbs <- query conn "SELECT datname FROM pg_database where datname = ?"
-       (Only $ dbnm)
-    case dbs :: [Only String] of
-      [] -> do execute conn "CREATE DATABASE ?"
-                    (Only $ Identifier $ T.pack dbnm)
-               execute conn "GRANT ALL PRIVILEGES ON DATABASE ? to ?"
-                    (Identifier $ T.pack dbnm, Identifier $ T.pack $ db_user dbspec)
-               return ()
-      _ -> return ()
-    return ()
-  destroyConn conn
+    conn <- createSuperUserConn cfg "postgres"
+
+    forM_ ds $ \(db, dbSpec) -> do
+        dbs <- query conn "SELECT datname FROM pg_database where datname = ?"
+            (Only db)
+
+        case dbs :: [Only String] of
+            [] -> do
+                _ <- execute conn "CREATE DATABASE ?"
+                    (Only . Identifier $ T.pack db)
+
+                _ <- execute conn "GRANT ALL PRIVILEGES ON DATABASE ? to ?"
+                    (Identifier $ T.pack db, Identifier . T.pack $ dbUser dbSpec)
+
+                return ()
+
+            _ -> return ()
+
+        return ()
+    destroyConn conn
+  where
+    ds = [(db, dbSpec) | PostgresDB db dbSpec <- dampfs]
+

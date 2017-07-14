@@ -1,7 +1,6 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
-module Dampf where
+{-# LANGUAGE OverloadedStrings #-}
 
-import Data.Yaml
+module Dampf where
 
 import Dampf.AppFile
 import Dampf.ConfigFile
@@ -10,24 +9,20 @@ import Dampf.Postgres
 import Dampf.Postgres.Setup
 import Dampf.Nginx
 
-dumpYaml :: FilePath -> IO ()
-dumpYaml fp = do
-  Just v <- decodeFile fp
-  print (v::Value)
 
-dumpCfg :: FilePath -> IO ()
-dumpCfg fp = do
-  ev <- decodeFileEither fp
-  case ev of
-    Right (Dampfs v) -> mapM_ print v
-    Left e -> fail $ show e
-  withConfigFile Nothing $ \cfg -> do
-    print cfg
+dumpApp :: FilePath -> IO ()
+dumpApp f = loadAppFile (Just f) >>= putStrLn . pShowDampfs
+
+
+dumpConfig :: FilePath -> IO ()
+dumpConfig f = loadConfigFile (Just f) >>= putStrLn . pShowDampfConfig
+
 
 goBuild :: Maybe FilePath -> IO ()
 goBuild mfp = do
   setupDB mfp
-  withAppFile mfp $ \dampfs -> do
+
+  withAppFile mfp $ \dampfs ->
     withConfigFile Nothing $ \cfg -> do
       buildDocker dampfs
       createUsers dampfs cfg
@@ -39,7 +34,8 @@ goBuild mfp = do
 goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
   goBuild mfp
-  withAppFile mfp $ \dampfs -> do
+
+  withAppFile mfp $ \dampfs ->
     withConfigFile Nothing $ \cfg -> do
       deployDocker dampfs
       runMigrations mfp Nothing

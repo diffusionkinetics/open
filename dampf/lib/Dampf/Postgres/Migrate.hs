@@ -2,61 +2,76 @@
 
 module Dampf.Postgres.Migrate where
 
+import Control.Arrow
 import Control.Monad
-
+import Data.Char
 import Data.List
+import Data.Maybe   (isJust, fromJust)
 import Data.String
 import Data.Time
+import Database.PostgreSQL.Simple
 import System.Directory
 import System.FilePath
-import Dampf.ConfigFile
+
 import Dampf.AppFile
+import Dampf.ConfigFile
 import Dampf.Postgres.Connect
 
-import Database.PostgreSQL.Simple
 
 digits :: String
 digits = "0123456789"
 
-migrate :: DampfConfig -> String -> DBSpec -> IO ()
-migrate cfg dbnm dbspec = do
-  let Just migrationsPath = migrations dbspec
-  ex <- doesDirectoryExist migrationsPath
-  when ex $ do
-    fileNames <- getDirectoryContents migrationsPath
-    let possibles = sortBy (\(a,_) (b,_) -> compare a b)
-                    . filter ((".sql" `isSuffixOf`) . snd)
-                    . map (\n -> (takeWhile (`elem` digits) n, migrationsPath </> n))
-                    $ fileNames
 
-    when (not $ null possibles) $ do
-
-      conn   <- createConn dbnm dbspec cfg
-
-      alreadyMigratedTimestamps <- getAlreadyMigratedTimestamps conn
+getMigrations :: FilePath -> IO [(String, FilePath)]
+getMigrations dir = do
+    files <- getDirectoryContents dir
+    return
+        . fmap (takeWhile isDigit &&& (dir </>))
+        . sort
+        $ filter (isSuffixOf ".sql") files
 
 
-      let toMigrate = filter ((`notElem` alreadyMigratedTimestamps) . fst) possibles
+migrate :: (HasDampfConfig c) => String -> DBSpec -> c -> IO ()
+migrate db dbSpec cfg
+    | isJust mp = do
+        exists <- doesDirectoryExist $ fromJust mp
 
-      forM_ toMigrate $ \(t,p) -> do
-        content <- readFile p
-        putStrLn $ "Migrating: "++t
-        let qStr = content ++ "; INSERT INTO migrations ( timestamp ) VALUES ('" ++ t ++ "')"
-            q    = fromString qStr
-        execute_ conn q
+        when exists $ do
+            ms <- getMigrations (fromJust mp)
+
+            unless (null ms) $ do
+                conn <- createConn db dbSpec cfg
+                done <- getAlreadyMigratedTimestamps conn
+                let ms' = filter ((`notElem` done) . fst) ms
+
+                forM_ ms' $ \(t, p) -> do
+                    content <- readFile p
+                    putStrLn $ "Migrating: " ++ t
+
+                    let qStr = content ++ "; INSERT INTO migrations (timestamp) VALUES ('" ++ t ++ "')"
+
+                    execute_ conn $ fromString qStr
+
+    | otherwise = return ()
+  where
+    mp = migrations dbSpec
+
 
 getAlreadyMigratedTimestamps :: Connection -> IO [String]
 getAlreadyMigratedTimestamps conn = do
-  _ <- execute_ conn "CREATE TABLE IF NOT EXISTS migrations ( timestamp varchar(15) PRIMARY KEY)"
+    _    <- execute_ conn "CREATE TABLE IF NOT EXISTS migrations ( timestamp varchar(15) PRIMARY KEY)"
+    rows <- query_ conn "SELECT timestamp FROM migrations"
 
-  rows <- query_ conn "SELECT timestamp FROM migrations"
-  return $ map head rows
+    return $ head <$> rows
+
 
 newMigration :: String -> DBSpec -> IO ()
-newMigration mignm dbspec = do
-  let Just migrationsPath = migrations dbspec
-  now <- getCurrentTime
-  let ts = formatTime defaultTimeLocale "%Y%m%d%H%M%S" now
-  let fp = migrationsPath </> ts ++ "_" ++ mignm ++ ".sql"
-  writeFile fp ""
-  putStrLn fp
+newMigration mig dbSpec = do
+    now <- getCurrentTime
+    let ts = formatTime defaultTimeLocale "%Y%m%d%H%M%S" now
+    let fp = path </> ts ++ "_" ++ mig ++ ".sql"
+    writeFile fp ""
+    putStrLn fp
+  where
+    path = fromJust $ migrations dbSpec
+

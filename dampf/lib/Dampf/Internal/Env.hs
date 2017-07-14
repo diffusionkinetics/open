@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
-module Dampf.ConfigFile.Env
+module Dampf.Internal.Env
   ( resolveEnvVars
   ) where
 
