@@ -19,8 +19,8 @@ module Dampf.AppFile
 import           Data.Maybe                 (fromMaybe)
 import           Data.Yaml
 
-import           Dampf.AppFile.Pretty
-import           Dampf.AppFile.Types
+import           Dampf.Internal.AppFile.Pretty
+import           Dampf.Internal.AppFile.Types
 import           Dampf.Internal.Env
 
 

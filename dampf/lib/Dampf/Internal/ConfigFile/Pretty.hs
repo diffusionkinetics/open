@@ -1,11 +1,11 @@
-module Dampf.ConfigFile.Pretty where
+module Dampf.Internal.ConfigFile.Pretty where
 
 import           Control.Lens
 import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Text.PrettyPrint
 
-import           Dampf.ConfigFile.Types
+import           Dampf.Internal.ConfigFile.Types
 
 
 pShowDampfConfig :: DampfConfig -> String

@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
-module Dampf.ConfigFile.Types
+module Dampf.Internal.ConfigFile.Types
   ( -- * Configuration Types
     DampfConfig(..)
   , HasDampfConfig(..)

@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
-module Dampf.AppFile.Types
+module Dampf.Internal.AppFile.Types
   ( -- * App File Types
     Dampf(..)
   , Dampfs(..)

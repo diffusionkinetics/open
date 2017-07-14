@@ -14,14 +14,14 @@ module Dampf.ConfigFile
   , withConfigFile
   ) where
 
-import           Data.Maybe                 (fromMaybe)
-import           Data.Yaml
-import           System.Directory           (getHomeDirectory)
-import           System.FilePath            ((</>))
+import Data.Maybe                 (fromMaybe)
+import Data.Yaml
+import System.Directory           (getHomeDirectory)
+import System.FilePath            ((</>))
 
-import           Dampf.ConfigFile.Pretty
-import           Dampf.ConfigFile.Types
-import           Dampf.Internal.Env
+import Dampf.Internal.ConfigFile.Pretty
+import Dampf.Internal.ConfigFile.Types
+import Dampf.Internal.Env
 
 
 -- Using Configurations
