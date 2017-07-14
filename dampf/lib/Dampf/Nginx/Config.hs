@@ -7,48 +7,10 @@ import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           Data.Maybe                     (fromMaybe)
 import           System.FilePath
-import           Text.PrettyPrint.HughesPJClass
 
 import           Dampf.AppFile
 import           Dampf.ConfigFile hiding        (port)
-
-
-data Server = Server [ServerDecl]
-
-
-data ServerDecl
-  = Listen Int [String]
-  | ServerName [Text]
-  | Location Text [(Text, Text)]
-  | Include FilePath
-  | SSLCertificate FilePath
-  | SSLCertificateKey FilePath
-
-
-instance Pretty Server where
-  pPrint (Server sds)
-     = text "server {"
-       $$ nest 2 (vcat (map pPrint sds))
-       $$ char '}'
-
-
-instance Pretty ServerDecl where
-  pPrint (Listen p ss)
-    = text "listen" <+> int p <+> vcat (map text ss) <> char ';'
-  pPrint (ServerName nms)
-    = text "server_name" <+> hsep (map ttext nms)<> char ';'
-  pPrint (Location path kvs)
-    = text "location" <+> ttext path
-                      <+> char '{'
-        $$ nest 2 (vcat (map ppKV kvs))
-        $$ char '}'
-          where ppKV (k,v) = ttext k <+> ttext v <> char ';'
-  pPrint (Include fp)
-    = text "include" <+> text fp <> char ';'
-  pPrint (SSLCertificate fp)
-    = text "ssl_certificate" <+> text fp <> char ';'
-  pPrint (SSLCertificateKey fp)
-    = text "ssl_certificate_key" <+> text fp <> char ';'
+import           Dampf.Nginx.Types
 
 
 encryptDecls :: (HasDampfConfig c) => c -> [ServerDecl]
@@ -59,10 +21,6 @@ encryptDecls cfg = maybe [] f $ cfg ^. liveCertificate
                  , SSLCertificateKey $ liveCert</>"privkey.pem"
                  , Include "/etc/letsencrypt/options-ssl-nginx.conf"
                  ]
-
-
-ttext :: Text -> Doc
-ttext = text . T.unpack
 
 
 domainToServer :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Server
@@ -102,5 +60,7 @@ proxyAttrs cname =
     p = last $ T.splitOn ":" cname
 
 domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
-domainConfig cfg nm spec = T.pack $ render $ pPrint $ domainToServer cfg nm spec
+domainConfig c t s = T.pack
+    . pShowServer
+    $ domainToServer c t s
 

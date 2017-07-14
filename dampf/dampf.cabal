@@ -29,6 +29,7 @@ library
       , Dampf.Docker.Types
       , Dampf.Nginx
       , Dampf.Nginx.Config
+      , Dampf.Nginx.Types
       , Dampf.Postgres.Migrate
       , Dampf.Postgres.Connect
       , Dampf.Postgres.Setup
