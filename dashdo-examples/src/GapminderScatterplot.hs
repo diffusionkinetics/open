@@ -74,6 +74,7 @@ countriesScatterPlot gms =
         & B.x ?~ (toJSON . gdpPercap <$> gms)
         & B.y ?~ (toJSON . lifeExp <$> gms)
         & B.mode ?~ [B.Markers]
+        & B.text ?~ (country <$> gms)
         & B.marker ?~ 
           (defMarker
             & B.markercolor ?~ (List $ toJSON . continentRGB . read . unpack . continent <$> gms)
