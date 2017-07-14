@@ -73,6 +73,7 @@ countriesScatterPlot gms =
       scatter
         & B.x ?~ (toJSON . gdpPercap <$> gms)
         & B.y ?~ (toJSON . lifeExp <$> gms)
+        & B.customdata ?~ (toJSON . country <$> gms)
         & B.mode ?~ [B.Markers]
         & B.text ?~ (country <$> gms)
         & B.marker ?~ 
@@ -118,12 +119,12 @@ continentsGDPsPie gms =
 
     trace :: Trace
     trace = pie
-      & labels .~ Just pieLabels
-      & values .~ Just pieValues
-      & hole .~ Just (toJSON 0.4)
-      & marker .~ (Just $
-        defMarker
-          & markercolors .~ Just pieColors)
+      & labels ?~ pieLabels
+      & values ?~ pieValues
+      & customdata ?~ (toJSON <$> pieLabels)
+      & hole ?~ (toJSON 0.4)
+      & marker ?~ (defMarker
+        & markercolors .~ Just pieColors)
 
   in toHtml $ 
     plotly "continents-gdp" [trace]
