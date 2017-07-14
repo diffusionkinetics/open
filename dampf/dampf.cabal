@@ -27,7 +27,11 @@ Library
    Exposed-modules:
                    Dampf
                    Dampf.AppFile
+                   Dampf.AppFile.Pretty
+                   Dampf.AppFile.Types
                    Dampf.ConfigFile
+                   Dampf.ConfigFile.Pretty
+                   Dampf.ConfigFile.Types
                    Dampf.Internal.Env
                    Dampf.Common
                    Dampf.Docker

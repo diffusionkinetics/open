@@ -11,11 +11,11 @@ import Dampf.Nginx
 
 
 dumpApp :: FilePath -> IO ()
-dumpApp f = loadAppFile (Just f) >>= print
+dumpApp f = loadAppFile (Just f) >>= putStrLn . pShowDampfs
 
 
 dumpConfig :: FilePath -> IO ()
-dumpConfig f = loadConfigFile (Just f) >>= print
+dumpConfig f = loadConfigFile (Just f) >>= putStrLn . pShowDampfConfig
 
 
 goBuild :: Maybe FilePath -> IO ()
