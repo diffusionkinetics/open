@@ -8,10 +8,10 @@ module Dampf.Docker.Free
   , stop
   ) where
 
+import           Control.Lens
 import           Control.Monad                  (void)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
 import           Control.Monad.Trans.Free       (liftF, iterT)
-import           Data.Maybe                     (fromMaybe)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import           System.Process.Typed
@@ -60,9 +60,9 @@ interpRun c s = do
     liftIO . putStrLn $ "Docker: Running " ++ c ++ " '" ++ cmd ++ "'"
     void $ runProcess process
   where
-    cmd     = fromMaybe "" (command s)
+    cmd     = s ^. command . non ""
     ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
-        (fromMaybe [] (expose s))
+        (s ^. expose . non [])
 
     process = setStdin closed
         $ setStdout closed
@@ -72,7 +72,7 @@ interpRun c s = do
     args = concat [
         [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ c]
         , ports
-        , [image s]
+        , [s ^. image]
         , words cmd
         ]
 

@@ -1,12 +1,14 @@
 module Dampf.Postgres where
 
-import Dampf.Postgres.Migrate
-import Dampf.Postgres.Connect
-import Dampf.AppFile
-import Dampf.ConfigFile
-import Dampf.Postgres.Setup
+import Control.Lens
 import Control.Monad (forM_, when)
 import System.Process.Typed
+
+import Dampf.AppFile
+import Dampf.ConfigFile
+import Dampf.Postgres.Connect
+import Dampf.Postgres.Migrate
+import Dampf.Postgres.Setup
 
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
@@ -43,10 +45,10 @@ backupDB mfp mdbnm = withAppFile mfp $ \(Dampfs dampfs) ->
       let dbs = [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs, maybe True (==dbnm) mdbnm]
       forM_ dbs $ \( dbnm, dbspec) -> do
         let outfnm = "backup_"++dbnm++".sqlc"
-            passwd = lookupPassword (dbUser dbspec) cfg
+            passwd = lookupPassword (dbspec ^. dbUser) cfg
             envs = [("PGPASSWORD", passwd)
                    ,("PGDATABASE",dbnm )
-                   ,("PGUSER", dbUser dbspec) ]
+                   ,("PGUSER", dbspec ^. dbUser) ]
             cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
 
         runProcess_ cmd

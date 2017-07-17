@@ -33,11 +33,7 @@ createConn dbnm dbspec cfg = do
 
 createSuperUserConn :: (HasDampfConfig c) => c -> String -> IO Connection
 createSuperUserConn cfg dbnm = do
-   let dbspec = DBSpec { dbUser = "postgres",
-                         migrations = Nothing,
-                         dbExtensions = []
-                       }
-
+   let dbspec = DBSpec Nothing "postgres" []
    catch (createConn' dbnm dbspec cfg)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
                                     threadDelay $ 10 * 1000 * 1000
@@ -47,13 +43,13 @@ createSuperUserConn cfg dbnm = do
 createConn' :: (HasDampfConfig c) => String -> DBSpec -> c -> IO Connection
 createConn' db dbSpec cfg = connect ConnectInfo
     { connectHost     = cfg ^. postgres ^. host
-    , connectUser     = dbUser dbSpec
+    , connectUser     = userName
     , connectPassword = lookupPassword userName cfg
     , connectDatabase = db
     , connectPort     = cfg ^. postgres ^. port ^. to fromIntegral
     }
   where
-    userName = dbUser dbSpec
+    userName = dbSpec ^. dbUser
 
 
 destroyConn :: Connection -> IO ()

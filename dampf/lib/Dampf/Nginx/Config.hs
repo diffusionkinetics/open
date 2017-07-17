@@ -5,7 +5,6 @@ module Dampf.Nginx.Config where
 import           Control.Lens
 import           Data.Text                      (Text)
 import qualified Data.Text as T
-import           Data.Maybe                     (fromMaybe)
 import           System.FilePath
 
 import           Dampf.AppFile
@@ -45,7 +44,7 @@ staticAttrs nm =
 
 
 toEncrypt :: DomainSpec -> Bool
-toEncrypt ds = fromMaybe False $ letsencrypt ds
+toEncrypt ds = ds ^. letsencrypt . non False
 
 
 proxyAttrs :: Text -> [(Text, Text)]

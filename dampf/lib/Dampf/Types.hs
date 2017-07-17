@@ -45,6 +45,10 @@ data DampfContext = DampfContext
 makeLenses ''DampfContext
 
 
+instance HasDampfs DampfContext where
+    dampfs = app
+
+
 instance HasDampfConfig DampfContext where
     dampfConfig = config
 

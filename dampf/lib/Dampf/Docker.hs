@@ -11,6 +11,7 @@ module Dampf.Docker
   , stop
   ) where
 
+import Control.Lens
 import Control.Monad            (forM_, void)
 import Control.Monad.IO.Class   (MonadIO)
 
@@ -22,7 +23,7 @@ import Dampf.Docker.Types
 -- TODO: Rename this buildImages?
 buildDocker :: (MonadIO m) => Dampfs -> m ()
 buildDocker (Dampfs d) = runDockerT $ forM_ is $ \(n, iSpec) ->
-    build n (dockerFile iSpec)
+    build n (iSpec ^. dockerFile)
   where
     is = [(n, iSpec) | Image n iSpec <- d]
 

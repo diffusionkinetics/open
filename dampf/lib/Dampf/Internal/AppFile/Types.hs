@@ -1,23 +1,90 @@
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module Dampf.Internal.AppFile.Types
   ( -- * App File Types
     Dampf(..)
+  , AsDampf(..)
   , Dampfs(..)
+  , HasDampfs(..)
   , ImageSpec(..)
+  , HasImageSpec(..)
   , ContainerSpec(..)
+  , HasContainerSpec(..)
   , DomainSpec(..)
+  , HasDomainSpec(..)
   , DBSpec(..)
+  , HasDBSpec(..)
   ) where
 
+import           Control.Lens
 import           Control.Monad
 import           Data.Aeson
+import           Data.Aeson.Types
 import qualified Data.HashMap.Lazy as HM
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
+
+
+data ImageSpec = ImageSpec
+    { _dockerFile :: FilePath
+    } deriving (Show, Generic)
+
+makeClassy ''ImageSpec
+
+
+instance FromJSON ImageSpec where
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
+
+
+data ContainerSpec = ContainerSpec
+    { _image     :: String
+    , _expose    :: Maybe [Int]
+    , _command   :: Maybe String
+    } deriving (Show, Generic)
+
+makeClassy ''ContainerSpec
+
+
+instance FromJSON ContainerSpec where
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
+
+
+data DomainSpec = DomainSpec
+    { _static            :: Maybe FilePath
+    , _proxyContainer    :: Maybe Text
+    , _letsencrypt       :: Maybe Bool
+    } deriving (Show, Generic)
+
+makeClassy ''DomainSpec
+
+
+instance FromJSON DomainSpec where
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
+
+
+data DBSpec = DBSpec
+    { _migrations    :: Maybe FilePath
+    , _dbUser        :: String
+    , _dbExtensions  :: [String]
+    } deriving (Show, Generic)
+
+makeClassy ''DBSpec
+
+
+instance FromJSON DBSpec where
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
 
 
 data Dampf
@@ -25,11 +92,16 @@ data Dampf
     | Domain String DomainSpec
     | PostgresDB String DBSpec
     | Container String ContainerSpec
-    deriving (Show)
+    deriving (Show, Generic)
+
+makeClassyPrisms ''Dampf
 
 
-newtype Dampfs = Dampfs { unDampfs :: [Dampf] }
-    deriving (Show)
+newtype Dampfs = Dampfs
+    { _specs :: [Dampf]
+    } deriving (Show, Generic)
+
+makeClassy ''Dampfs
 
 
 instance FromJSON Dampfs where
@@ -53,41 +125,4 @@ instance FromJSON Dampfs where
             <*> parseJSON v
 
         _ -> fail $ "unknown dampf spec: "++ T.unpack k
-
-
-data ImageSpec = ImageSpec { dockerFile :: FilePath }
-    deriving (Show, Generic)
-
-
-instance FromJSON ImageSpec
-
-
-data ContainerSpec = ContainerSpec
-    { image     :: String
-    , expose    :: Maybe [Int]
-    , command   :: Maybe String
-    } deriving (Show, Generic)
-
-
-instance FromJSON ContainerSpec
-
-
-data DomainSpec = DomainSpec
-    { static            :: Maybe FilePath
-    , proxyContainer    :: Maybe Text
-    , letsencrypt       :: Maybe Bool
-    } deriving (Show, Generic)
-
-
-instance FromJSON DomainSpec
-
-
-data DBSpec = DBSpec
-    { migrations    :: Maybe FilePath
-    , dbUser        :: String
-    , dbExtensions  :: [String]
-    } deriving (Show, Generic)
-
-
-instance FromJSON DBSpec
 

@@ -2,6 +2,7 @@
 
 module Dampf.Nginx where
 
+import           Control.Lens
 import           Control.Monad
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -16,8 +17,8 @@ import           Dampf.Nginx.Config
 
 
 deployDomains :: (HasDampfConfig c) => c -> Dampfs -> IO ()
-deployDomains cfg (Dampfs dampfs) = forM_ ds $ \(d,dSpec) -> do
-    moveStaticItems (static dSpec) d
+deployDomains cfg (Dampfs ss) = forM_ ds $ \(d,dSpec) -> do
+    moveStaticItems (dSpec ^. static) d
 
     let fl = domainConfig cfg (T.pack d) dSpec
     T.writeFile ("/etc/nginx/sites-available" </> d) fl
@@ -28,7 +29,7 @@ deployDomains cfg (Dampfs dampfs) = forM_ ds $ \(d,dSpec) -> do
 
     void $ system "service nginx reload"
   where
-    ds = [(d, dSpec) | Domain d dSpec <- dampfs]
+    ds = [(d, dSpec) | Domain d dSpec <- ss]
 
 
 moveStaticItems :: Maybe FilePath -> String -> IO ()

@@ -3,6 +3,7 @@
 module Dampf.Postgres.Migrate where
 
 import Control.Arrow
+import Control.Lens
 import Control.Monad
 import Data.Char
 import Data.List
@@ -16,10 +17,6 @@ import System.FilePath
 import Dampf.AppFile
 import Dampf.ConfigFile
 import Dampf.Postgres.Connect
-
-
-digits :: String
-digits = "0123456789"
 
 
 getMigrations :: FilePath -> IO [(String, FilePath)]
@@ -54,7 +51,7 @@ migrate db dbSpec cfg
 
     | otherwise = return ()
   where
-    mp = migrations dbSpec
+    mp = dbSpec ^. migrations
 
 
 getAlreadyMigratedTimestamps :: Connection -> IO [String]
@@ -73,5 +70,5 @@ newMigration mig dbSpec = do
     writeFile fp ""
     putStrLn fp
   where
-    path = fromJust $ migrations dbSpec
+    path = fromJust $ dbSpec ^. migrations
 

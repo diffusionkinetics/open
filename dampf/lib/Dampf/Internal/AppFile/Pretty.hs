@@ -4,6 +4,7 @@ module Dampf.Internal.AppFile.Pretty
   ( pShowDampfs
   ) where
 
+import           Control.Lens
 import           Data.Maybe         (fromMaybe)
 import qualified Data.Text as T
 import           Text.PrettyPrint
@@ -12,13 +13,11 @@ import           Dampf.Internal.AppFile.Types
 
 
 pShowDampfs :: Dampfs -> String
-pShowDampfs = render
-    . hang (text "AppFile:") 4
-    . pprDampfs
+pShowDampfs = render . hang (text "AppFile:") 4 . pprDampfs
 
 
 pprDampfs :: Dampfs -> Doc
-pprDampfs = vcat . fmap pprDampf . unDampfs
+pprDampfs = vcat . fmap pprDampf . view specs
 
 
 pprDampf :: Dampf -> Doc
@@ -40,43 +39,45 @@ pprDampf (PostgresDB n s) = text "postgresdb" <+> text n <> colon
 
 
 pprImageSpec :: ImageSpec -> Doc
-pprImageSpec s = text "dockerFile:" <+> text (dockerFile s)
+pprImageSpec spec = text "dockerFile:" <+> text df
+  where
+    df = spec ^. dockerFile
 
 
 pprContainerSpec :: ContainerSpec -> Doc
-pprContainerSpec s = vcat
-    [ text "image:" <+> text vi
-    , text "expose:" <+> pprList ve
-    , text "command:" <+> text vc
+pprContainerSpec spec = vcat
+    [ text "image:"   <+> text i
+    , text "expose:"  <+> pprList e
+    , text "command:" <+> text c
     ]
   where
-    vi = image s
-    ve = fromMaybe [] (expose s)
-    vc = fromMaybe "" (command s)
+    i = spec ^. image
+    e = spec ^. expose . non []
+    c = spec ^. command . non ""
 
 
 pprDomainSpec :: DomainSpec -> Doc
-pprDomainSpec s = vcat
-    [ text "static:" <+> text vs
-    , text "proxyContainer:" <+> text vpc
-    , text "letsencrypt:" <+> text vle
+pprDomainSpec spec = vcat
+    [ text "static:"         <+> text s
+    , text "proxyContainer:" <+> text pc
+    , text "letsencrypt:"    <+> text le
     ]
   where
-    vs  = fromMaybe "" (static s)
-    vpc = T.unpack $ fromMaybe "" (proxyContainer s)
-    vle = show $ fromMaybe False (letsencrypt s)
+    s  = spec ^. static . non ""
+    pc = spec ^. proxyContainer ^. to (T.unpack . fromMaybe "")
+    le = spec ^. letsencrypt ^. to (show . fromMaybe False)
 
 
 pprDBSpec :: DBSpec -> Doc
-pprDBSpec s = vcat
-    [ text "migrations:" <+> text vm
-    , text "dbUser:" <+> text vu
-    , text "dbExtensions:" <+> pprList ve
+pprDBSpec spec = vcat
+    [ text "migrations:"   <+> text m
+    , text "dbUser:"       <+> text u
+    , text "dbExtensions:" <+> pprList e
     ]
   where
-    vm = fromMaybe "" (migrations s)
-    vu = dbUser s
-    ve = dbExtensions s
+    m = spec ^. migrations . non ""
+    u = spec ^. dbUser
+    e = spec ^. dbExtensions
 
 
 pprList :: (Show a) => [a] -> Doc

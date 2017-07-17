@@ -4,11 +4,17 @@
 module Dampf.AppFile
   ( -- * App File Types
     Dampf(..)
+  , AsDampf(..)
   , Dampfs(..)
+  , HasDampfs(..)
   , ImageSpec(..)
+  , HasImageSpec(..)
   , ContainerSpec(..)
+  , HasContainerSpec(..)
   , DomainSpec(..)
+  , HasDomainSpec(..)
   , DBSpec(..)
+  , HasDBSpec(..)
     -- * Pretty Printing
   , pShowDampfs
     -- * Using App Files

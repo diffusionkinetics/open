@@ -2,6 +2,7 @@
 
 module Dampf.Postgres.Setup where
 
+import           Control.Lens
 import           Control.Monad
 import           Data.List
 import qualified Data.Text as T
@@ -17,14 +18,14 @@ createUsers :: (HasDampfConfig c) => Dampfs -> c -> IO ()
 createUsers (Dampfs dampfs) cfg = do
     conn <- createSuperUserConn cfg "postgres"
     forM_ ds $ \dbSpec -> do
-        let pass = lookupPassword (dbUser dbSpec) cfg
+        let pass = lookupPassword (dbSpec ^. dbUser) cfg
 
         rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
-            (Only $ dbUser dbSpec)
+            (Only $ dbSpec ^. dbUser)
 
         case rls :: [Only String] of
             [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                (Identifier $ T.pack $ dbUser dbSpec, pass)
+                (Identifier $ T.pack $ dbSpec ^. dbUser, pass)
 
             _ -> return ()
 
@@ -36,7 +37,7 @@ createUsers (Dampfs dampfs) cfg = do
 createExtensions :: (HasDampfConfig c) => Dampfs -> c -> IO ()
 createExtensions (Dampfs dampfs) cfg = forM_ ds $ \(db, dbSpec) -> do
     conn <- createSuperUserConn cfg db
-    let exts = nub $ dbExtensions dbSpec
+    let exts = nub $ dbSpec ^. dbExtensions
 
     forM_ exts $ \ext -> void
         $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
@@ -61,7 +62,7 @@ createDatabases (Dampfs dampfs) cfg = do
                     (Only . Identifier $ T.pack db)
 
                 _ <- execute conn "GRANT ALL PRIVILEGES ON DATABASE ? to ?"
-                    (Identifier $ T.pack db, Identifier . T.pack $ dbUser dbSpec)
+                    (Identifier $ T.pack db, Identifier . T.pack $ dbSpec ^. dbUser)
 
                 return ()
 
