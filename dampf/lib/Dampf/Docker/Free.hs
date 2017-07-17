@@ -16,6 +16,7 @@ import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import           System.Process.Typed
 
+import           Dampf.AppFile
 import           Dampf.Docker.Types
 
 
@@ -26,10 +27,10 @@ runDockerT = iterT dockerIter
 
 
 dockerIter :: (MonadIO m) => DockerF (m a) -> m a
-dockerIter (Build t i next)   = interpBuild t i >> next
-dockerIter (Rm c next)        = interpRm c >>= next
-dockerIter (Run c i p e next) = interpRun c i p e >> next
-dockerIter (Stop c next)      = interpStop c >> next
+dockerIter (Build t i next) = interpBuild t i >> next
+dockerIter (Rm c next)      = interpRm c >>= next
+dockerIter (Run c s next)   = interpRun c s >> next
+dockerIter (Stop c next)    = interpStop c >> next
 
 
 interpBuild :: (MonadIO m) => String -> FilePath -> m ()
@@ -54,14 +55,14 @@ interpRm c = do
         $ proc "docker" ["rm", c]
 
 
-interpRun :: (MonadIO m)
-    => String -> String -> Maybe [Int] -> Maybe String -> m ()
-interpRun c i p e = do
+interpRun :: (MonadIO m) => String -> ContainerSpec -> m ()
+interpRun c s = do
     liftIO . putStrLn $ "Docker: Running " ++ c ++ " '" ++ cmd ++ "'"
     void $ runProcess process
   where
-    ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x]) (fromMaybe [] p)
-    cmd     = fromMaybe "" e
+    cmd     = fromMaybe "" (command s)
+    ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
+        (fromMaybe [] (expose s))
 
     process = setStdin closed
         $ setStdout closed
@@ -71,7 +72,7 @@ interpRun c i p e = do
     args = concat [
         [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ c]
         , ports
-        , [i]
+        , [image s]
         , words cmd
         ]
 
@@ -97,9 +98,8 @@ rm :: (MonadIO m) => String -> DockerT m String
 rm c = liftF (Rm c id)
 
 
-run :: (MonadIO m)
-    => String -> String -> Maybe [Int] -> Maybe String -> DockerT m ()
-run c i p e = liftF (Run c i p e ())
+run :: (MonadIO m) => String -> ContainerSpec -> DockerT m ()
+run c s = liftF (Run c s ())
 
 
 stop :: (MonadIO m) => String -> DockerT m ()

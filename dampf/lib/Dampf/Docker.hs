@@ -32,7 +32,7 @@ deployDocker :: (MonadIO m) => Dampfs -> m ()
 deployDocker (Dampfs d) = runDockerT $ forM_ cs $ \(n, cSpec) -> do
     stop n
     void $ rm n
-    run n (image cSpec) (expose cSpec) (command cSpec)
+    run n cSpec
   where
     cs = [(n, cSpec) | Container n cSpec <- d]
 

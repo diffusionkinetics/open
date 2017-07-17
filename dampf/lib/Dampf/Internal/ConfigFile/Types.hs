@@ -11,12 +11,10 @@ module Dampf.Internal.ConfigFile.Types
   , HasPostgresConfig(..)
   ) where
 
-import           Control.Lens
-import           Data.Aeson.Types
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict as Map
-import           Data.Yaml
-import           GHC.Generics               (Generic)
+import Control.Lens
+import Data.Aeson.Types
+import Data.Map.Strict  (Map)
+import GHC.Generics     (Generic)
 
 
 -- Configuration Types
