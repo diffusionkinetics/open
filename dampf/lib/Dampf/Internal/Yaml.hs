@@ -3,8 +3,7 @@
 
 module Dampf.Internal.Yaml
   ( -- * Encoding and Decoding
-    gEncode
-  , gDecode
+    gDecode
     -- * Parsing
   , parseYaml
   ) where
@@ -14,10 +13,6 @@ import Data.Yaml
 import GHC.Generics
 
 import Dampf.Internal.Env
-
-
-gEncode :: (Generic a, GToJSON Zero (Rep a)) => a -> Value
-gEncode = genericToJSON options
 
 
 gDecode :: (Generic a, GFromJSON Zero (Rep a)) => Value -> Parser a

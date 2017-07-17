@@ -37,10 +37,6 @@ data ImageSpec = ImageSpec
 makeClassy ''ImageSpec
 
 
-instance ToJSON ImageSpec where
-    toJSON = gEncode
-
-
 instance FromJSON ImageSpec where
     parseJSON = gDecode
 
@@ -52,10 +48,6 @@ data ContainerSpec = ContainerSpec
     } deriving (Show, Generic)
 
 makeClassy ''ContainerSpec
-
-
-instance ToJSON ContainerSpec where
-    toJSON = gEncode
 
 
 instance FromJSON ContainerSpec where
@@ -71,10 +63,6 @@ data DomainSpec = DomainSpec
 makeClassy ''DomainSpec
 
 
-instance ToJSON DomainSpec where
-    toJSON = gEncode
-
-
 instance FromJSON DomainSpec where
     parseJSON = gDecode
 
@@ -86,10 +74,6 @@ data DBSpec = DBSpec
     } deriving (Show, Generic)
 
 makeClassy ''DBSpec
-
-
-instance ToJSON DBSpec where
-    toJSON = gEncode
 
 
 instance FromJSON DBSpec where

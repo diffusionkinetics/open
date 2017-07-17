@@ -31,10 +31,6 @@ data PostgresConfig = PostgresConfig
 makeClassy ''PostgresConfig
 
 
-instance ToJSON PostgresConfig where
-    toJSON = gEncode
-
-
 instance FromJSON PostgresConfig where
     parseJSON = gDecode
 
@@ -45,10 +41,6 @@ data DampfConfig = DampfConfig
     } deriving (Show, Generic)
 
 makeClassy ''DampfConfig
-
-
-instance ToJSON DampfConfig where
-    toJSON = gEncode
 
 
 instance FromJSON DampfConfig where
