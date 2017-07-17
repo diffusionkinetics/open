@@ -15,13 +15,12 @@ module Dampf.ConfigFile
   ) where
 
 import Data.Maybe                 (fromMaybe)
-import Data.Yaml
 import System.Directory           (getHomeDirectory)
 import System.FilePath            ((</>))
 
 import Dampf.Internal.ConfigFile.Pretty
 import Dampf.Internal.ConfigFile.Types
-import Dampf.Internal.Env
+import Dampf.Internal.Yaml
 
 
 -- Using Configurations
@@ -34,12 +33,6 @@ withConfigFile mf action = loadConfigFile mf >>= action
 loadConfigFile :: Maybe FilePath -> IO DampfConfig
 loadConfigFile mf = do
     homeCfg <- fmap (</> ".dampfcfg.yaml") getHomeDirectory
-    parseConfig $ fromMaybe homeCfg mf
+    parseYaml $ fromMaybe homeCfg mf
 {-# INLINE loadConfigFile #-}
-
-
-parseConfig :: FilePath -> IO DampfConfig
-parseConfig f = decodeFile f >>= \case
-    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
-    Nothing -> error "Could not load config"
 

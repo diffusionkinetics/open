@@ -16,6 +16,8 @@ import Data.Aeson.Types
 import Data.Map.Strict  (Map)
 import GHC.Generics     (Generic)
 
+import Dampf.Internal.Yaml
+
 
 -- Configuration Types
 
@@ -30,15 +32,11 @@ makeClassy ''PostgresConfig
 
 
 instance ToJSON PostgresConfig where
-    toJSON = genericToJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    toJSON = gEncode
 
 
 instance FromJSON PostgresConfig where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 data DampfConfig = DampfConfig
@@ -50,15 +48,11 @@ makeClassy ''DampfConfig
 
 
 instance ToJSON DampfConfig where
-    toJSON = genericToJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    toJSON = gEncode
 
 
 instance FromJSON DampfConfig where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 instance HasPostgresConfig DampfConfig where

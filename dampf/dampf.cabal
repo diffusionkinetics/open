@@ -41,6 +41,7 @@ library
       , Dampf.Internal.ConfigFile.Pretty
       , Dampf.Internal.ConfigFile.Types
       , Dampf.Internal.Env
+      , Dampf.Internal.Yaml
 
     ghc-options:
         -Wall

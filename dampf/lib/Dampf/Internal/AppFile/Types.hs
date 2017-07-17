@@ -22,11 +22,12 @@ module Dampf.Internal.AppFile.Types
 import           Control.Lens
 import           Control.Monad
 import           Data.Aeson
-import           Data.Aeson.Types
 import qualified Data.HashMap.Lazy as HM
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
+
+import           Dampf.Internal.Yaml
 
 
 data ImageSpec = ImageSpec
@@ -36,10 +37,12 @@ data ImageSpec = ImageSpec
 makeClassy ''ImageSpec
 
 
+instance ToJSON ImageSpec where
+    toJSON = gEncode
+
+
 instance FromJSON ImageSpec where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 data ContainerSpec = ContainerSpec
@@ -51,10 +54,12 @@ data ContainerSpec = ContainerSpec
 makeClassy ''ContainerSpec
 
 
+instance ToJSON ContainerSpec where
+    toJSON = gEncode
+
+
 instance FromJSON ContainerSpec where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 data DomainSpec = DomainSpec
@@ -66,10 +71,12 @@ data DomainSpec = DomainSpec
 makeClassy ''DomainSpec
 
 
+instance ToJSON DomainSpec where
+    toJSON = gEncode
+
+
 instance FromJSON DomainSpec where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 data DBSpec = DBSpec
@@ -81,10 +88,12 @@ data DBSpec = DBSpec
 makeClassy ''DBSpec
 
 
+instance ToJSON DBSpec where
+    toJSON = gEncode
+
+
 instance FromJSON DBSpec where
-    parseJSON = genericParseJSON opts
-      where
-        opts = defaultOptions { fieldLabelModifier = drop 1 }
+    parseJSON = gDecode
 
 
 data Dampf

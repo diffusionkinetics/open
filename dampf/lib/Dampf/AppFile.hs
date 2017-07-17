@@ -22,12 +22,11 @@ module Dampf.AppFile
   , withAppFile
   ) where
 
-import           Data.Maybe                 (fromMaybe)
-import           Data.Yaml
+import           Data.Maybe                     (fromMaybe)
 
 import           Dampf.Internal.AppFile.Pretty
 import           Dampf.Internal.AppFile.Types
-import           Dampf.Internal.Env
+import           Dampf.Internal.Yaml
 
 
 -- Using App Files
@@ -38,12 +37,6 @@ withAppFile mf action = loadAppFile mf >>= action
 
 
 loadAppFile :: Maybe FilePath -> IO Dampfs
-loadAppFile = parseAppFile . fromMaybe "dampf.yaml"
+loadAppFile = parseYaml . fromMaybe "dampf.yaml"
 {-# INLINE loadAppFile #-}
-
-
-parseAppFile :: FilePath -> IO Dampfs
-parseAppFile f = decodeFile f >>= \case
-    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
-    Nothing -> error "Could not load app file"
 
