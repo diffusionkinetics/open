@@ -40,36 +40,6 @@
       multiselectNamesSelector: '.dashdo-plotly-multi-select-names',
     }, options)
 
-    var AbstractPlotRenderer = function() {}
-
-    AbstractPlotRenderer.prototype = {
-      pickValues: function() {
-        // should return list
-        // TODO: $(this).siblings('input[name]').map(function() { return this.value }).get()
-        throw new TypeError("Method not implemented")
-      },
-
-      restyleAll: function() {
-        throw new TypeError("Method not implemented")
-      },
-
-      restyleCurrent: function() {
-        throw new TypeError("Method not implemented")
-      },
-
-      isEmpty: function() {
-        return this.pickValues().length === 0
-      },
-
-      restyle: function(graph) {
-        if(this.isEmpty) {
-          this.restyleAll()
-        } else {
-          this.restyleCurrent()
-        }
-      },
-    }
-
     var resubmitNatively = function() {
       $('input', this).prop('readonly', true)
       $(this).submit()
@@ -99,6 +69,53 @@
       })
     }
 
+    var restyleAndSetClickHandlers = function() {
+      $('.dashdo-plotly-select .js-plotly-plot').each(function() {        
+        var axis = (this.data[0].orientation === 'h') ? 'y' : 'x'
+        var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
+          return this.value
+        }).get()
+        
+        var restyle = function() {
+          if (values.length === 0) {
+            // making all graph selected
+            // TODO: settings.colorSelected - barplots only. ?: maybe add alpha to deselect?
+            Plotly.restyle(this, { 'marker.color': settings.colorSelected })
+          } else {
+            var os = this.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
+              return (values.indexOf(p) !== -1) ? // p `elem` values == True
+                settings.colorSelected : 
+                settings.colorUnSelected
+            })
+            Plotly.restyle(this, {'marker.color' : [os]}, [0])
+          }
+        }.bind(this)
+        restyle()
+
+        var currentMultipleFieldName = $(this).siblings(settings.multiselectNamesSelector).val()
+        var isMultiple = !!currentMultipleFieldName
+
+        $(this).get(0).on('plotly_click', function(data) {
+          var selectedValueFromPlot = data.points[0][axis]
+
+          var inputSelector = 'input[name="' + currentMultipleFieldName + '"]' + 
+            (isMultiple) ? // if isMultiple, then look for input with exact value
+            '[value="' + selectedValueFromPlot + '"]' : 
+            ''
+
+          var currentInputs = $(this).siblings(inputSelector)
+          if (currentInputs.length > 0) {
+            $(currentInputs).remove()
+          } else {
+            $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
+          }
+
+          properReSubmit()
+        }.bind(this))
+      })
+    }
+    restyleAndSetClickHandlers()
+
     var resubmitWithAjax = function(onSuccessfulRender) {
       if(!!settings.containerElement) {
         requestHtmlFromServer(
@@ -107,52 +124,7 @@
           function(data) {
             $(settings.containerElement).html(data)
             
-            $('.dashdo-plotly-select .js-plotly-plot').each(function() {
-              var graph = $(this).get(0)
-              var axis = (graph.data[0].orientation === 'h') ? 'y' : 'x'
-
-              var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
-                return this.value
-              }).get()
-              
-              var restyle = function() {
-                if (values.length === 0) {
-                  // making all graph selected
-                  // TODO: settings.colorSelected - barplots only. ?: maybe add alpha to deselect?
-                  Plotly.restyle(graph, { 'marker.color': settings.colorSelected })
-                } else {
-                  var os = graph.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
-                    return (values.indexOf(p) !== -1) ? // p `elem` values == True
-                      settings.colorSelected : 
-                      settings.colorUnSelected
-                  })
-                  Plotly.restyle(graph, {'marker.color' : [os]}, [0])
-                }
-              }
-              restyle()
-
-              var currentMultipleFieldName = $(this).siblings(settings.multiselectNamesSelector).val()
-              var isMultiple = !!currentMultipleFieldName
-
-              $(this).get(0).on('plotly_click', function(data) {
-                var selectedValueFromPlot = data.points[0][axis]
-
-                var inputSelector = 'input[name="' + currentMultipleFieldName + '"]' + 
-                  (isMultiple) ? // if isMultiple, then look for input with exact value
-                  '[value="' + selectedValueFromPlot + '"]' : 
-                  ''
-
-                var currentInputs = $(this).siblings(inputSelector)
-                if (currentInputs.length > 0) {
-                  $(currentInputs).remove()
-                } else {
-                  $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
-                }
-
-                properReSubmit()
-              }.bind(this))
-            })
-
+            restyleAndSetClickHandlers()
             // if switched & rendered successfully, renew periodic submit loop
             clearInterval(submitTimer)
             periodicSubmitLoop()
