@@ -40,6 +40,36 @@
       multiselectNamesSelector: '.dashdo-plotly-multi-select-names',
     }, options)
 
+    var AbstractPlotRenderer = function() {}
+
+    AbstractPlotRenderer.prototype = {
+      pickValues: function() {
+        // should return list
+        // TODO: $(this).siblings('input[name]').map(function() { return this.value }).get()
+        throw new TypeError("Method not implemented")
+      },
+
+      restyleAll: function() {
+        throw new TypeError("Method not implemented")
+      },
+
+      restyleCurrent: function() {
+        throw new TypeError("Method not implemented")
+      },
+
+      isEmpty: function() {
+        return this.pickValues().length === 0
+      },
+
+      restyle: function(graph) {
+        if(this.isEmpty) {
+          this.restyleAll()
+        } else {
+          this.restyleCurrent()
+        }
+      },
+    }
+
     var resubmitNatively = function() {
       $('input', this).prop('readonly', true)
       $(this).submit()
@@ -107,21 +137,16 @@
               $(this).get(0).on('plotly_click', function(data) {
                 var selectedValueFromPlot = data.points[0][axis]
 
-                if(!isMultiple) {
-                  var input = $(this).siblings('input[name]').first()
-                  if (input.attr('value') == selectedValueFromPlot) { // if selected
-                    input.attr('value', '') // then deselect
-                  } else {
-                    input.attr('value', selectedValueFromPlot)  // if not selected, then select
-                  }
+                var inputSelector = 'input[name="' + currentMultipleFieldName + '"]' + 
+                  (isMultiple) ? // if isMultiple, then look for input with exact value
+                  '[value="' + selectedValueFromPlot + '"]' : 
+                  ''
+
+                var currentInputs = $(this).siblings(inputSelector)
+                if (currentInputs.length > 0) {
+                  $(currentInputs).remove()
                 } else {
-                  var currentInputs = $(this).siblings('input[name="' + currentMultipleFieldName + '"][value="' + selectedValueFromPlot + '"]')
-                  
-                  if (currentInputs.length > 0) {
-                    $(currentInputs).remove()
-                  } else {
-                    $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
-                  }
+                  $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
                 }
 
                 properReSubmit()
