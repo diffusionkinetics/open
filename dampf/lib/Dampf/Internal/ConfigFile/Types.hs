@@ -12,6 +12,7 @@ module Dampf.Internal.ConfigFile.Types
   ) where
 
 import           Control.Lens
+import           Data.Aeson.Types
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Yaml
@@ -30,24 +31,16 @@ data PostgresConfig = PostgresConfig
 makeClassy ''PostgresConfig
 
 
-instance ToJSON PostgresConfig
+instance ToJSON PostgresConfig where
+    toJSON = genericToJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
+
+
 instance FromJSON PostgresConfig where
-    parseJSON (Object x) = PostgresConfig
-        <$> x .:? "name"  .!= (defaultPostgres ^. name)
-        <*> x .:? "host"  .!= (defaultPostgres ^. host)
-        <*> x .:? "port"  .!= (defaultPostgres ^. port)
-        <*> x .:? "users" .!= (defaultPostgres ^. users)
-
-    parseJSON _          = error "Expecting Object"
-
-
-defaultPostgres :: PostgresConfig
-defaultPostgres = PostgresConfig
-    { _name  = "default"
-    , _host  = "localhost"
-    , _port  = 5432
-    , _users = Map.fromList [("postgres", "")]
-    }
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
 
 
 data DampfConfig = DampfConfig
@@ -58,22 +51,18 @@ data DampfConfig = DampfConfig
 makeClassy ''DampfConfig
 
 
-instance ToJSON DampfConfig
-instance FromJSON DampfConfig where
-    parseJSON (Object x) = DampfConfig
-        <$> x .:? "liveCertificate" .!= (defaultConfig ^. liveCertificate)
-        <*> x .:? "postgres"        .!= (defaultConfig ^. postgres)
+instance ToJSON DampfConfig where
+    toJSON = genericToJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
 
-    parseJSON _          = error "Expecting Object"
+
+instance FromJSON DampfConfig where
+    parseJSON = genericParseJSON opts
+      where
+        opts = defaultOptions { fieldLabelModifier = drop 1 }
 
 
 instance HasPostgresConfig DampfConfig where
     postgresConfig = postgres
-
-
-defaultConfig :: DampfConfig
-defaultConfig = DampfConfig
-    { _liveCertificate  = Nothing
-    , _postgres         = defaultPostgres
-    }
 

@@ -4,15 +4,18 @@
 module Main where
 
 import Options.Generic
-import Data.Maybe
 
 
 import Dampf
+import Dampf.AppFile
+import Dampf.ConfigFile
 import Dampf.Postgres
 
 data Cmd
     = Dump
-        { appFile :: Maybe FilePath }
+        { appFile :: Maybe FilePath
+        , configFile :: Maybe FilePath
+        }
     | RunMigrations
         { appFile :: Maybe FilePath
         , onlyDatabase :: Maybe String
@@ -45,9 +48,12 @@ main = do
 
 
 dispatch :: Cmd -> IO ()
-dispatch (Dump mfp) = do
-    dumpApp (fromMaybe "dampf.yaml" mfp)
-    dumpConfig (fromMaybe "dampf.yaml" mfp)
+dispatch (Dump ma mc) = do
+    app <- loadAppFile ma
+    cfg <- loadConfigFile mc
+
+    putStrLn $ pShowDampfs app
+    putStrLn $ pShowDampfConfig cfg
 
 dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm
 dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
