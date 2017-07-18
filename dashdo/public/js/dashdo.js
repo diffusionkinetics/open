@@ -89,6 +89,8 @@
         var restyle = function() {
           if (values.length !== 0) {
             var os
+            var colorContainer
+            var colorContainerKey
             switch(graphData.type) {
               case 'bar':
                 os = graphData[axis].map(function(p) {  // example: graphData['y']
@@ -96,18 +98,32 @@
                     settings.colorSelected :
                     settings.colorUnSelected
                 })
+
+                Plotly.restyle(this, {'marker.color' : [os]}, [0])
+                return  // we returning - barplot has nothing to do with the cycle below!
+
+              case 'pie':
+                colorContainer = graphData.marker.colors
+                colorContainerKey = 'marker.colors'
                 break
-              default:
-                os = []
-                for (var i = 0; i < graphData.marker.color.length; i++) {
-                  if(values.indexOf(graphData.customdata[i]) === -1) {
-                    os.push(shadeBlendConvert(0.7, graphData.marker.color[i])) // if not selected, it is lighter
-                  } else {
-                    os.push(graphData.marker.color[i]) // selected, leave it 'as is'
-                  }
-                }
+
+              case 'scatter':
+                colorContainer = graphData.marker.color
+                colorContainerKey = 'marker.color'
+                break
             }
-            Plotly.restyle(this, {'marker.color' : [os]}, [0])
+
+            os = []
+            for (var k = 0; k < colorContainer.length; k++) {
+              if(values.indexOf(graphData.customdata[k]) === -1) { // TODO: if no customdata?
+                os.push(shadeBlendConvert(0.7, colorContainer[k])) // if not selected, it is lighter
+              } else {
+                os.push(colorContainer[k]) // selected, leave it 'as is'
+              }
+            }
+            var plotlyRestyleOpts = {}
+            plotlyRestyleOpts[colorContainerKey] = [os]
+            Plotly.restyle(this, plotlyRestyleOpts, [0])
           }
         }.bind(this)
         restyle()
@@ -121,8 +137,13 @@
             case 'bar':
               selectedValueFromPlot = data.points[0][axis]
               break
+            case 'pie':
+              selectedValueFromPlot = ('customdata' in graphData) ?
+                graphData.customdata[data.points[0].i] :  // TODO: if no customdata?
+                graphData.values[data.points[0].i]
+              break
             default:
-              selectedValueFromPlot = ('customdata' in data.points[0]) ?
+              selectedValueFromPlot = ('customdata' in data.points[0]) ? // TODO: if no customdata?
                 data.points[0].customdata :
                 data.points[0].pointNumber
           }
