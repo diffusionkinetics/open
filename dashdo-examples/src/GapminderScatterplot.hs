@@ -13,6 +13,7 @@ import Lucid.Bootstrap3
 import Data.Monoid ((<>))
 import qualified Data.Foldable as DF
 import Data.Text (Text, unpack, pack)
+import Data.List
 import Data.Aeson.Types
 import GHC.Float
 import Lens.Micro.Platform
@@ -26,12 +27,13 @@ import Graphics.Plotly.Lucid
 data GmParams = GmParams
  {
    _selCountries :: [Text]
- , _selRegions  :: [Text]
+ , _selContinents  :: [Text]
+ , _selYear :: Text
  }
 
 makeLenses ''GmParams
 
-gm0 = GmParams [] []
+gm0 = GmParams [] [] "2007"
 
 data Continent = Africa | Americas | Asia | Europe | Oceania deriving (Eq, Show, Read, Enum)
 
@@ -88,16 +90,15 @@ countriesScatterPlot gms =
       , (10000, "$ 10,000")
       , (50000, "$ 50,000")]
 
-  in toHtml $
-    plotly "countries-scatterplot" [trace]
-      & layout %~ xaxis .~ (Just $ 
-        defAxis 
+  in plotlySelectMultiple
+    (plotly "countries-scatterplot" [trace]
+      & layout %~ xaxis ?~ (defAxis 
           & axistype  ?~ Log
           & axistitle ?~ "GDP Per Capita"
           & tickvals ?~ (toJSON . fst <$> xTicks)
           & ticktext ?~ (pack . snd <$> xTicks))
-      & layout %~ yaxis .~ (Just $ defAxis & axistitle .~ Just "Life Expectancy")
-      & layout %~ title .~ Just "GDP Per Capita and Life Exmectancy"
+      & layout %~ yaxis ?~ (defAxis & axistitle ?~ "Life Expectancy")
+      & layout %~ title ?~ "GDP Per Capita and Life Expectancy") selCountries
 
 gdp :: Gapminder -> Double
 gdp c = gdpPercap c * (fromIntegral $ pop c)
@@ -124,25 +125,44 @@ continentsGDPsPie gms =
       & customdata ?~ (toJSON <$> pieLabels)
       & hole ?~ (toJSON 0.4)
       & marker ?~ (defMarker
-        & markercolors .~ Just pieColors)
+        & markercolors ?~ pieColors)
 
   in toHtml $ 
     plotly "continents-gdp" [trace]
-      & layout %~ title .~ Just "World's GDP by continents"
+      & layout %~ title ?~ "World's GDP by Continents"
+
+average :: (Real a) => [a] -> Double
+average xs = realToFrac (sum xs) / genericLength xs
+
+yearsBarPlot :: [Gapminder] -> SHtml GmParams ()
+yearsBarPlot gms =
+  let
+    years = nub $ year <$> gms
+    trace = vbarChart [((pack . show) y, 
+                        average (lifeExp <$> (filter ((==y) . year) gms))) 
+                        | y <- years]
+  in plotlySelect
+    (plotly "years-lifeexp" [trace]
+      & layout %~ title ?~ "Average Life Expactancy by Years") selYear
 
 gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
 gmRenderer gms gmParams () =
   wrap plotlyCDN $ do
-    h1_ "Gapminder scatterplot example"
+    let selectedYear = read (unpack $ gmParams ^. selYear) :: Int
+        filteredGms = filter ((==selectedYear) . year) gms
+    h1_ "Gapminder Scatterplot Example"
     row_ $ do
       mkCol [(MD,8)] $ do
-        countriesScatterPlot gms
+        countriesScatterPlot filteredGms
       mkCol [(MD,4)] $ do
-        continentsGDPsPie gms
+        continentsGDPsPie filteredGms
     row_ $ do
       mkCol [(MD,12)] $ do
-        countriesTable gms
+        yearsBarPlot gms
+    row_ $ do
+      mkCol [(MD,12)] $ do
+        countriesTable filteredGms
 
 main = do
   gms <- getDataset gapminder
-  runDashdo $ Dashdo gm0 (return . const ()) (gmRenderer $ filter ((== 2007) . year) gms)
+  runDashdo $ Dashdo gm0 (return . const ()) (gmRenderer gms)
