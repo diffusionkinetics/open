@@ -12,24 +12,23 @@ import Dampf.Nginx
 
 goBuild :: Maybe FilePath -> IO ()
 goBuild mfp = do
-  setupDB mfp
-
-  withAppFile mfp $ \dampfs ->
-    withConfigFile Nothing $ \cfg -> do
-      buildDocker dampfs
-      createUsers dampfs cfg
-      createDatabases dampfs cfg
-      createExtensions dampfs cfg
-
+    setupDB mfp
+    
+    withAppFile mfp $ \dampfs ->
+        withConfigFile Nothing $ \cfg -> do
+            buildDocker dampfs
+            createUsers dampfs cfg
+            createDatabases dampfs cfg
+            createExtensions dampfs cfg
 
 
 goDeploy :: Maybe FilePath -> IO ()
 goDeploy mfp = do
-  goBuild mfp
+    goBuild mfp
 
-  withAppFile mfp $ \dampfs ->
-    withConfigFile Nothing $ \cfg -> do
-      deployDocker dampfs
-      runMigrations mfp Nothing
-      deployDomains cfg dampfs
+    withAppFile mfp $ \dampfs ->
+        withConfigFile Nothing $ \cfg -> do
+            deployDocker dampfs
+            runMigrations mfp Nothing
+            deployDomains cfg dampfs
 

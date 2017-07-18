@@ -9,6 +9,7 @@ import Data.Char
 import Data.List
 import Data.Maybe   (isJust, fromJust)
 import Data.String
+import qualified Data.Text as T
 import Data.Time
 import Database.PostgreSQL.Simple
 import System.Directory
@@ -29,15 +30,15 @@ getMigrations dir = do
 
 
 migrate :: (HasDampfConfig c) => String -> DatabaseSpec -> c -> IO ()
-migrate db dbSpec cfg
+migrate db dbSpec c
     | isJust mp = do
         exists <- doesDirectoryExist $ fromJust mp
 
         when exists $ do
             ms <- getMigrations (fromJust mp)
 
-            unless (null ms) $ do
-                conn <- createConn db dbSpec cfg
+            unless (null ms) . iforM_ (c ^. databaseServers) $ \server _ -> do
+                conn <- createConn (T.unpack server) db dbSpec c
                 done <- getAlreadyMigratedTimestamps conn
                 let ms' = filter ((`notElem` done) . fst) ms
 

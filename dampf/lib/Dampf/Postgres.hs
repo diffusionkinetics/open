@@ -14,11 +14,12 @@ import Dampf.Postgres.Setup
 
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
-runMigrations mfp mdbnm = withConfigFile Nothing $ \cfg ->
+runMigrations mfp mdbnm = withConfigFile Nothing $ \c ->
     withAppFile mfp $ \a ->
-        iforM_ (a ^. databases) $ \dbnm dbspec ->
-            when (maybe True (== T.unpack dbnm) mdbnm)
-                $ migrate (T.unpack dbnm) dbspec cfg
+        iforM_ (c ^. databaseServers) $ \_ cfg ->
+            iforM_ (a ^. databases) $ \dbnm dbspec ->
+                when (maybe True (== T.unpack dbnm) mdbnm)
+                    $ migrate (T.unpack dbnm) dbspec c
 
 
 newMigrationCmd :: Maybe FilePath -> Maybe String -> String -> IO ()
@@ -37,24 +38,25 @@ newMigrationCmd mfp mdbnm mignm =
 setupDB :: Maybe FilePath -> IO ()
 setupDB mfp = withAppFile mfp $ \dampfs ->
     withConfigFile Nothing $ \cfg -> do
-      createUsers dampfs cfg
-      createDatabases dampfs cfg
-      createExtensions dampfs cfg
+        createUsers dampfs cfg
+        createDatabases dampfs cfg
+        createExtensions dampfs cfg
 
 
 backupDB :: Maybe FilePath -> Maybe String -> IO ()
 backupDB mfp mdbnm = withAppFile mfp $ \a ->
-    withConfigFile Nothing $ \cfg ->
-      iforM_ (a ^. databases) $ \dbnm dbspec ->
-        when (maybe True (== T.unpack dbnm) mdbnm) $ do
-            let outfnm = "backup_"++ T.unpack dbnm ++".sqlc"
-                passwd = lookupPassword (dbspec ^. user) cfg
-                envs = [("PGPASSWORD", passwd)
-                       ,("PGDATABASE", T.unpack dbnm)
-                       ,("PGUSER", dbspec ^. user) ]
-                cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
+    withConfigFile Nothing $ \c ->
+        iforM_ (c ^. databaseServers) $ \_ cfg ->
+            iforM_ (a ^. databases) $ \dbnm dbspec ->
+                when (maybe True (== T.unpack dbnm) mdbnm) $ do
+                    let outfnm = "backup_"++ T.unpack dbnm ++".sqlc"
+                        passwd = lookupPassword (dbspec ^. user) cfg
+                        envs   = [("PGPASSWORD", passwd)
+                                 ,("PGDATABASE", T.unpack dbnm)
+                                 ,("PGUSER", dbspec ^. user)]
+                        cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
 
-            runProcess_ cmd
+                    runProcess_ cmd
 
 
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump

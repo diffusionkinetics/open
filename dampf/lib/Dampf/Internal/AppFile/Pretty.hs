@@ -7,7 +7,6 @@ module Dampf.Internal.AppFile.Pretty
 import           Control.Lens
 import           Data.List                      (intersperse)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe                     (fromMaybe)
 import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           Text.PrettyPrint
@@ -16,11 +15,11 @@ import           Dampf.Internal.AppFile.Types
 
 
 pShowDampfApp :: DampfApp -> String
-pShowDampfApp = render . hang (text "AppFile:") 4 . pprDampfApp
+pShowDampfApp = render . hang (text "App File:") 4 . pprDampfApp
 
 
 pprDampfApp :: DampfApp -> Doc
-pprDampfApp a = vcat $
+pprDampfApp a = vcat
     [ text "Docker Images:"
     , text ""
     , nest 4 (pprImages is)
@@ -107,8 +106,8 @@ pprDomainSpec spec = vcat
     ]
   where
     s  = spec ^. static . non ""
-    pc = spec ^. proxyContainer ^. to (T.unpack . fromMaybe "")
-    le = spec ^. letsEncrypt ^. to (show . fromMaybe False)
+    pc = spec ^. proxyContainer . non "" . to T.unpack
+    le = spec ^. letsEncrypt . non False . to show
 
 
 pprSpecs :: (a -> Doc) -> (Text, a) -> Doc

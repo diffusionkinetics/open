@@ -15,55 +15,55 @@ import           Dampf.Postgres.Connect
 
 
 createUsers :: (HasDampfConfig c, HasDampfApp a) => a -> c -> IO ()
-createUsers a cfg = do
-    conn <- createSuperUserConn cfg "postgres"
-    iforM_ (a ^. databases) $ \_ dbSpec -> do
-        let pass = lookupPassword (dbSpec ^. user) cfg
+createUsers a c = iforM_ (c ^. databaseServers) $ \server cfg ->
+    iforM_ (a ^. databases) $ \name spec -> do
+        conn <- createSuperUserConn (T.unpack server) (T.unpack name) c
+        let pass = lookupPassword (spec ^. user) cfg
 
         rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
-            (Only $ dbSpec ^. user)
+            (Only $ spec ^. user)
 
         case rls :: [Only String] of
             [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                (Identifier $ T.pack $ dbSpec ^. user, pass)
+                (Identifier $ T.pack $ spec ^. user, pass)
 
             _ -> return ()
 
-    destroyConn conn
+        destroyConn conn
 
 
 createExtensions :: (HasDampfConfig c, HasDampfApp a) => a -> c -> IO ()
-createExtensions a cfg = iforM_ (a ^. databases) $ \db dbSpec -> do
-    conn <- createSuperUserConn cfg (T.unpack db)
-    let exts = nub $ dbSpec ^. extensions
+createExtensions a c = iforM_ (c ^. databaseServers) $ \server _ ->
+    iforM_ (a ^. databases) $ \name spec -> do
+        conn <- createSuperUserConn (T.unpack server) (T.unpack name) c
+        let exts = nub $ spec ^. extensions
 
-    forM_ exts $ \ext -> void
-        $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
-            (Only $ Identifier $ T.pack ext)
+        forM_ exts $ \ext -> void
+            $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
+                (Only $ Identifier $ T.pack ext)
 
-    destroyConn conn
+        destroyConn conn
 
 
 createDatabases :: (HasDampfConfig c, HasDampfApp a) => a -> c -> IO ()
-createDatabases a cfg = do
-    conn <- createSuperUserConn cfg "postgres"
+createDatabases a c = iforM_ (c ^. databaseServers) $ \server _ ->
+    iforM_ (a ^. databases) $ \name spec -> do
+        conn <- createSuperUserConn (T.unpack server) (T.unpack name) c
 
-    iforM_ (a ^. databases) $ \db dbSpec -> do
         dbs <- query conn "SELECT datname FROM pg_database where datname = ?"
-            (Only $ T.unpack db)
+            (Only $ T.unpack name)
 
         case dbs :: [Only String] of
             [] -> do
                 _ <- execute conn "CREATE DATABASE ?"
-                    (Only $ Identifier db)
+                        (Only $ Identifier name)
 
                 _ <- execute conn "GRANT ALL PRIVILEGES ON DATABASE ? to ?"
-                    (Identifier db, Identifier . T.pack $ dbSpec ^. user)
+                        (Identifier name, Identifier . T.pack $ spec ^. user)
 
                 return ()
 
             _ -> return ()
 
-        return ()
-    destroyConn conn
+        destroyConn conn
 
