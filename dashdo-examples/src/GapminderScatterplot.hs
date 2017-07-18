@@ -56,7 +56,6 @@ countriesTable gms =
         th_ "Country"
         th_ "Population"
         th_ "GDP per capita"
-        th_ "GDP"
         th_ "Life expectancy"
     tbody_ $ do
       DF.for_ gms $ \(c) -> do
@@ -64,7 +63,6 @@ countriesTable gms =
           td_ $ toHtml (country          c)
           td_ $ toHtml (show $ pop       c)
           td_ $ toHtml (show $ gdpPercap c)
-          td_ $ toHtml (show $ gdp       c)
           td_ $ toHtml (show $ lifeExp   c)
 
 countriesScatterPlot :: [Gapminder] -> SHtml GmParams ()
@@ -127,9 +125,9 @@ continentsGDPsPie gms =
       & marker ?~ (defMarker
         & markercolors ?~ pieColors)
 
-  in toHtml $ 
-    plotly "continents-gdp" [trace]
-      & layout %~ title ?~ "World's GDP by Continents"
+  in plotlySelectMultiple
+    (plotly "continents-gdp" [trace]
+      & layout %~ title ?~ "World's GDP by Continents") selContinents
 
 average :: (Real a) => [a] -> Double
 average xs = realToFrac (sum xs) / genericLength xs
@@ -149,19 +147,31 @@ gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
 gmRenderer gms gmParams () =
   wrap plotlyCDN $ do
     let selectedYear = read (unpack $ gmParams ^. selYear) :: Int
-        filteredGms = filter ((==selectedYear) . year) gms
+        
+        yearFilter = filter ((==selectedYear) . year)
+
+        countriesFilter = case gmParams ^. selCountries of
+          [] -> id
+          cs -> filter ((`elem` cs) . country)
+        
+        continentsFilter = case gmParams ^. selContinents of
+          [] -> id
+          cs -> filter ((`elem` cs) . continent)
+
+        yearFilteredGMs = yearFilter gms
+        
     h1_ "Gapminder Scatterplot Example"
     row_ $ do
-      mkCol [(MD,8)] $ do
-        countriesScatterPlot filteredGms
       mkCol [(MD,4)] $ do
-        continentsGDPsPie filteredGms
+        continentsGDPsPie yearFilteredGMs
+      mkCol [(MD,8)] $ do
+        countriesScatterPlot $ continentsFilter yearFilteredGMs
     row_ $ do
       mkCol [(MD,12)] $ do
-        yearsBarPlot gms
+        yearsBarPlot $ (countriesFilter . continentsFilter) gms
     row_ $ do
       mkCol [(MD,12)] $ do
-        countriesTable filteredGms
+        countriesTable $ (countriesFilter . continentsFilter) yearFilteredGMs
 
 main = do
   gms <- getDataset gapminder
