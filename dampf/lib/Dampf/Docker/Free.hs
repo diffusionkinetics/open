@@ -1,19 +1,15 @@
 module Dampf.Docker.Free
-  ( -- * Run Docker DSL
+  ( -- * Docker Interpreter
     runDockerT
-    -- * Docker DSL
-  , build
-  , rm
-  , run
-  , stop
   ) where
 
 import           Control.Lens
 import           Control.Monad                  (void)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
-import           Control.Monad.Trans.Free       (liftF, iterT)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.Encoding as T
+import           Control.Monad.Trans.Free       (iterT)
+import           Data.Text                      (Text)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
 import           System.Process.Typed
 
 import           Dampf.AppFile
@@ -33,31 +29,31 @@ dockerIter (Run c s next)   = interpRun c s >> next
 dockerIter (Stop c next)    = interpStop c >> next
 
 
-interpBuild :: (MonadIO m) => String -> FilePath -> m ()
+interpBuild :: (MonadIO m) => Text -> FilePath -> m ()
 interpBuild t i = do
-    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ t
+    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
     void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
         $ setStderr closed
-        $ proc "docker" ["build", "-t", t, i]
+        $ proc "docker" ["build", "-t", show t, i]
 
 
-interpRm :: (MonadIO m) => String -> m String
+interpRm :: (MonadIO m) => Text -> m Text
 interpRm c = do
-    liftIO . putStrLn $ "Docker: Removing " ++ c
+    liftIO . putStrLn $ "Docker: Removing " ++ show c
     (_, o, _) <- readProcess process
-    return . T.unpack $ T.decodeUtf8 o
+    return . TL.toStrict $ TL.decodeUtf8 o
   where
     process = setStdin closed
         $ setStderr closed
-        $ proc "docker" ["rm", c]
+        $ proc "docker" ["rm", show c]
 
 
-interpRun :: (MonadIO m) => String -> ContainerSpec -> m ()
+interpRun :: (MonadIO m) => Text -> ContainerSpec -> m ()
 interpRun c s = do
-    liftIO . putStrLn $ "Docker: Running " ++ c ++ " '" ++ cmd ++ "'"
+    liftIO . putStrLn $ "Docker: Running " ++ show c ++ " '" ++ cmd ++ "'"
     void $ runProcess process
   where
     cmd     = s ^. command . non ""
@@ -70,38 +66,20 @@ interpRun c s = do
         $ proc "docker" args
 
     args = concat [
-        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ c]
+        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ show c]
         , ports
         , [s ^. image]
         , words cmd
         ]
 
 
-interpStop :: (MonadIO m) => String -> m ()
+interpStop :: (MonadIO m) => Text -> m ()
 interpStop c = do
-    liftIO . putStrLn $ "Docker: Stopping " ++ c
+    liftIO . putStrLn $ "Docker: Stopping " ++ show c
     void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
         $ setStderr closed
-        $ proc "docker" ["stop", c]
-
-
--- DSL
-
-build :: (MonadIO m) => String -> FilePath -> DockerT m ()
-build t i = liftF (Build t i ())
-
-
-rm :: (MonadIO m) => String -> DockerT m String
-rm c = liftF (Rm c id)
-
-
-run :: (MonadIO m) => String -> ContainerSpec -> DockerT m ()
-run c s = liftF (Run c s ())
-
-
-stop :: (MonadIO m) => String -> DockerT m ()
-stop c = liftF (Stop c ())
+        $ proc "docker" ["stop", show c]
 

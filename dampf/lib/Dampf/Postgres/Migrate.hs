@@ -28,7 +28,7 @@ getMigrations dir = do
         $ filter (isSuffixOf ".sql") files
 
 
-migrate :: (HasDampfConfig c) => String -> DBSpec -> c -> IO ()
+migrate :: (HasDampfConfig c) => String -> DatabaseSpec -> c -> IO ()
 migrate db dbSpec cfg
     | isJust mp = do
         exists <- doesDirectoryExist $ fromJust mp
@@ -62,7 +62,7 @@ getAlreadyMigratedTimestamps conn = do
     return $ head <$> rows
 
 
-newMigration :: String -> DBSpec -> IO ()
+newMigration :: String -> DatabaseSpec -> IO ()
 newMigration mig dbSpec = do
     now <- getCurrentTime
     let ts = formatTime defaultTimeLocale "%Y%m%d%H%M%S" now

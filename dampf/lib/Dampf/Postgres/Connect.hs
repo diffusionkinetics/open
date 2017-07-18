@@ -23,7 +23,7 @@ lookupPassword nm cfg = case cfg ^. postgres ^. users ^. at nm of
     Just pw -> pw
 
 
-createConn :: (HasDampfConfig c) => String -> DBSpec -> c -> IO Connection
+createConn :: (HasDampfConfig c) => String -> DatabaseSpec -> c -> IO Connection
 createConn dbnm dbspec cfg = do
    catch (createConn' dbnm dbspec cfg)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
@@ -33,14 +33,14 @@ createConn dbnm dbspec cfg = do
 
 createSuperUserConn :: (HasDampfConfig c) => c -> String -> IO Connection
 createSuperUserConn cfg dbnm = do
-   let dbspec = DBSpec Nothing "postgres" []
+   let dbspec = DatabaseSpec Nothing "postgres" []
    catch (createConn' dbnm dbspec cfg)
          (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
                                     threadDelay $ 10 * 1000 * 1000
                                     createConn' dbnm dbspec cfg)
 
 
-createConn' :: (HasDampfConfig c) => String -> DBSpec -> c -> IO Connection
+createConn' :: (HasDampfConfig c) => String -> DatabaseSpec -> c -> IO Connection
 createConn' db dbSpec cfg = connect ConnectInfo
     { connectHost     = cfg ^. postgres ^. host
     , connectUser     = userName
@@ -49,7 +49,7 @@ createConn' db dbSpec cfg = connect ConnectInfo
     , connectPort     = cfg ^. postgres ^. port ^. to fromIntegral
     }
   where
-    userName = dbSpec ^. dbUser
+    userName = dbSpec ^. user
 
 
 destroyConn :: Connection -> IO ()

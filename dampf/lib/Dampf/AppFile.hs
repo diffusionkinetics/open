@@ -3,20 +3,18 @@
 
 module Dampf.AppFile
   ( -- * App File Types
-    Dampf(..)
-  , AsDampf(..)
-  , Dampfs(..)
-  , HasDampfs(..)
+    DampfApp(..)
+  , HasDampfApp(..)
   , ImageSpec(..)
   , HasImageSpec(..)
   , ContainerSpec(..)
   , HasContainerSpec(..)
+  , DatabaseSpec(..)
+  , HasDatabaseSpec(..)
   , DomainSpec(..)
   , HasDomainSpec(..)
-  , DBSpec(..)
-  , HasDBSpec(..)
     -- * Pretty Printing
-  , pShowDampfs
+  , pShowDampfApp
     -- * Using App Files
   , loadAppFile
   , withAppFile
@@ -31,12 +29,12 @@ import           Dampf.Internal.Yaml
 
 -- Using App Files
 
-withAppFile :: Maybe FilePath -> (Dampfs -> IO ()) -> IO ()
+withAppFile :: Maybe FilePath -> (DampfApp -> IO ()) -> IO ()
 withAppFile mf action = loadAppFile mf >>= action
 {-# INLINE withAppFile #-}
 
 
-loadAppFile :: Maybe FilePath -> IO Dampfs
+loadAppFile :: Maybe FilePath -> IO DampfApp
 loadAppFile = parseYaml . fromMaybe "dampf.yaml"
 {-# INLINE loadAppFile #-}
 

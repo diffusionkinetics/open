@@ -38,15 +38,15 @@ instance Exception DampfException
 -- Dampf Context
 
 data DampfContext = DampfContext
-    { _app      :: Dampfs
+    { _app      :: DampfApp
     , _config   :: DampfConfig
     } deriving (Show)
 
 makeLenses ''DampfContext
 
 
-instance HasDampfs DampfContext where
-    dampfs = app
+instance HasDampfApp DampfContext where
+    dampfApp = app
 
 
 instance HasDampfConfig DampfContext where
@@ -69,7 +69,7 @@ newtype DampfT m a
         )
 
 
-runDampfT :: Dampfs -> DampfConfig -> DampfT m a -> m a
+runDampfT :: DampfApp -> DampfConfig -> DampfT m a -> m a
 runDampfT a c = flip runReaderT context . unDampfT
   where
     context = DampfContext a c

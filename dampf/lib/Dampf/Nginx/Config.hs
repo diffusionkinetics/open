@@ -32,8 +32,11 @@ domainToServer cfg nm dspec
 
 
 domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation nm (DomainSpec mstatic mproxy _) =
-  maybe [] (const $ staticAttrs nm) mstatic ++ maybe [] proxyAttrs mproxy
+domainToLocation n spec = maybe [] (const $ staticAttrs n) s
+    ++ maybe [] proxyAttrs p
+  where
+    s = spec ^. static
+    p = spec ^. proxyContainer
 
 
 staticAttrs :: Text -> [(Text, Text)]
@@ -44,7 +47,7 @@ staticAttrs nm =
 
 
 toEncrypt :: DomainSpec -> Bool
-toEncrypt ds = ds ^. letsencrypt . non False
+toEncrypt ds = ds ^. letsEncrypt . non False
 
 
 proxyAttrs :: Text -> [(Text, Text)]
@@ -57,6 +60,7 @@ proxyAttrs cname =
     ]
   where
     p = last $ T.splitOn ":" cname
+
 
 domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
 domainConfig c t s = T.pack

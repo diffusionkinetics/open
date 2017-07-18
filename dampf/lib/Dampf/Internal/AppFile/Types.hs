@@ -4,25 +4,25 @@
 {-# LANGUAGE TemplateHaskell    #-}
 
 module Dampf.Internal.AppFile.Types
-  ( -- * App File Types
-    Dampf(..)
-  , AsDampf(..)
-  , Dampfs(..)
-  , HasDampfs(..)
+  ( -- * Application Type
+    DampfApp(..)
+  , HasDampfApp(..)
+    -- * Specification Types
   , ImageSpec(..)
   , HasImageSpec(..)
   , ContainerSpec(..)
   , HasContainerSpec(..)
+  , DatabaseSpec(..)
+  , HasDatabaseSpec(..)
   , DomainSpec(..)
   , HasDomainSpec(..)
-  , DBSpec(..)
-  , HasDBSpec(..)
   ) where
 
 import           Control.Lens
 import           Control.Monad
 import           Data.Aeson
 import qualified Data.HashMap.Lazy as HM
+import           Data.Map.Strict            (Map)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
@@ -32,7 +32,7 @@ import           Dampf.Internal.Yaml
 
 data ImageSpec = ImageSpec
     { _dockerFile :: FilePath
-    } deriving (Show, Generic)
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''ImageSpec
 
@@ -42,10 +42,10 @@ instance FromJSON ImageSpec where
 
 
 data ContainerSpec = ContainerSpec
-    { _image     :: String
-    , _expose    :: Maybe [Int]
-    , _command   :: Maybe String
-    } deriving (Show, Generic)
+    { _image    :: String
+    , _expose   :: Maybe [Int]
+    , _command  :: Maybe String
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''ContainerSpec
 
@@ -54,11 +54,24 @@ instance FromJSON ContainerSpec where
     parseJSON = gDecode
 
 
+data DatabaseSpec = DatabaseSpec
+    { _migrations   :: Maybe FilePath
+    , _user         :: String
+    , _extensions   :: [String]
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''DatabaseSpec
+
+
+instance FromJSON DatabaseSpec where
+    parseJSON = gDecode
+
+
 data DomainSpec = DomainSpec
-    { _static            :: Maybe FilePath
-    , _proxyContainer    :: Maybe Text
-    , _letsencrypt       :: Maybe Bool
-    } deriving (Show, Generic)
+    { _static           :: Maybe FilePath
+    , _proxyContainer   :: Maybe Text
+    , _letsEncrypt      :: Maybe Bool
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''DomainSpec
 
@@ -67,55 +80,43 @@ instance FromJSON DomainSpec where
     parseJSON = gDecode
 
 
-data DBSpec = DBSpec
-    { _migrations    :: Maybe FilePath
-    , _dbUser        :: String
-    , _dbExtensions  :: [String]
-    } deriving (Show, Generic)
+data DampfApp = DA
+    { _images     :: Map Text ImageSpec
+    , _containers :: Map Text ContainerSpec
+    , _databases  :: Map Text DatabaseSpec
+    , _domains    :: Map Text DomainSpec
+    } deriving (Eq, Show, Generic)
 
-makeClassy ''DBSpec
-
-
-instance FromJSON DBSpec where
-    parseJSON = gDecode
+makeClassy ''DampfApp
 
 
-data Dampf
-    = Image String ImageSpec
-    | Domain String DomainSpec
-    | PostgresDB String DBSpec
-    | Container String ContainerSpec
-    deriving (Show, Generic)
-
-makeClassyPrisms ''Dampf
+instance Monoid DampfApp where
+    mempty = DA mempty mempty mempty mempty
 
 
-newtype Dampfs = Dampfs
-    { _specs :: [Dampf]
-    } deriving (Show, Generic)
-
-makeClassy ''Dampfs
+    mappend (DA a b c d) (DA a' b' c' d') = DA
+        (mappend a a') (mappend b b') (mappend c c') (mappend d d')
 
 
-instance FromJSON Dampfs where
-  parseJSON = withObject "Dampf config" $ \hm ->
-    fmap Dampfs $ forM (HM.toList hm) $ \(k,v) ->
-      case T.words k of
-        ["image", imname] -> Image
-            <$> return (T.unpack imname)
-            <*> parseJSON v
+instance FromJSON DampfApp where
+    parseJSON = withObject "Application File" $ \m ->
+        fmap mconcat $ forM (HM.toList m) $ \(k,v) ->
+            case T.words k of
+                ["image",     name] -> do
+                    spec <- parseJSON v
+                    return $ (images . at name ?~ spec) mempty
 
-        ["container", cname] -> Container
-            <$> return (T.unpack cname)
-            <*> parseJSON v
+                ["container", name] -> do
+                    spec <- parseJSON v
+                    return $ (containers . at name ?~ spec) mempty
 
-        ["postgresdb", dbname] -> PostgresDB
-            <$> return (T.unpack dbname)
-            <*> parseJSON v
+                ["postgresdb",  name] -> do
+                    spec <- parseJSON v
+                    return $ (databases . at name ?~ spec) mempty
 
-        ["domain", dname] -> Domain
-            <$> return (T.unpack dname)
-            <*> parseJSON v
+                ["domain",    name] -> do
+                    spec <- parseJSON v
+                    return $ (domains . at name ?~ spec) mempty
 
-        _ -> fail $ "unknown dampf spec: "++ T.unpack k
+                _                   -> fail "Invalid specification type"
 

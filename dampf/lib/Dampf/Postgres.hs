@@ -1,7 +1,9 @@
 module Dampf.Postgres where
 
 import Control.Lens
-import Control.Monad (forM_, when)
+import Control.Monad (when)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 import System.Process.Typed
 
 import Dampf.AppFile
@@ -13,18 +15,19 @@ import Dampf.Postgres.Setup
 
 runMigrations :: Maybe FilePath -> Maybe String -> IO ()
 runMigrations mfp mdbnm = withConfigFile Nothing $ \cfg ->
-    withAppFile mfp $ \(Dampfs dampfs) ->
-        forM_ [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs] $ \(dbnm, dbspec) ->
-            when (maybe True (==dbnm) mdbnm) $ migrate dbnm dbspec cfg
+    withAppFile mfp $ \a ->
+        iforM_ (a ^. databases) $ \dbnm dbspec ->
+            when (maybe True (== T.unpack dbnm) mdbnm)
+                $ migrate (T.unpack dbnm) dbspec cfg
 
 
 newMigrationCmd :: Maybe FilePath -> Maybe String -> String -> IO ()
 newMigrationCmd mfp mdbnm mignm =
-  withAppFile mfp $ \(Dampfs dampfs) -> do
-    let dbs = [( dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs]
+  withAppFile mfp $ \a -> do
+    let dbs = a ^. databases ^. to Map.toList
     case (dbs, mdbnm) of
         ([db], Nothing) -> newMigration mignm $ snd db
-        (_, Just dbnm)  -> case lookup dbnm dbs of
+        (_, Just dbnm)  -> case lookup (T.pack dbnm) dbs of
             Just dbspec -> newMigration mignm dbspec
             Nothing     -> error "cannot find database in appfile"
 
@@ -40,18 +43,18 @@ setupDB mfp = withAppFile mfp $ \dampfs ->
 
 
 backupDB :: Maybe FilePath -> Maybe String -> IO ()
-backupDB mfp mdbnm = withAppFile mfp $ \(Dampfs dampfs) ->
-    withConfigFile Nothing $ \cfg -> do
-      let dbs = [(dbnm, dbspec) | PostgresDB dbnm dbspec <- dampfs, maybe True (==dbnm) mdbnm]
-      forM_ dbs $ \( dbnm, dbspec) -> do
-        let outfnm = "backup_"++dbnm++".sqlc"
-            passwd = lookupPassword (dbspec ^. dbUser) cfg
-            envs = [("PGPASSWORD", passwd)
-                   ,("PGDATABASE",dbnm )
-                   ,("PGUSER", dbspec ^. dbUser) ]
-            cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
+backupDB mfp mdbnm = withAppFile mfp $ \a ->
+    withConfigFile Nothing $ \cfg ->
+      iforM_ (a ^. databases) $ \dbnm dbspec ->
+        when (maybe True (== T.unpack dbnm) mdbnm) $ do
+            let outfnm = "backup_"++ T.unpack dbnm ++".sqlc"
+                passwd = lookupPassword (dbspec ^. user) cfg
+                envs = [("PGPASSWORD", passwd)
+                       ,("PGDATABASE", T.unpack dbnm)
+                       ,("PGUSER", dbspec ^. user) ]
+                cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
 
-        runProcess_ cmd
+            runProcess_ cmd
 
 
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump

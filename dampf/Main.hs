@@ -5,35 +5,38 @@ module Main where
 
 import Options.Generic
 
-
 import Dampf
 import Dampf.AppFile
 import Dampf.ConfigFile
 import Dampf.Postgres
 
+
 data Cmd
     = Dump
-        { appFile :: Maybe FilePath
-        , configFile :: Maybe FilePath
+        { appFile       :: Maybe FilePath
+        , configFile    :: Maybe FilePath
         }
     | RunMigrations
-        { appFile :: Maybe FilePath
-        , onlyDatabase :: Maybe String
+        { appFile       :: Maybe FilePath
+        , onlyDatabase  :: Maybe String
         }
     | NewMigration
-        { appFile :: Maybe FilePath
-        , database :: Maybe String
-        , name :: String
+        { appFile       :: Maybe FilePath
+        , database      :: Maybe String
+        , name          :: String
         }
     | Build
-        { appFile :: Maybe FilePath }
+        { appFile       :: Maybe FilePath
+        }
     | Deploy
-        { appFile :: Maybe FilePath }
+        { appFile       :: Maybe FilePath
+        }
     | SetupDB
-        { appFile :: Maybe FilePath }
+        { appFile       :: Maybe FilePath
+        }
     | Backup
-        { appFile :: Maybe FilePath
-        , database :: Maybe String
+        { appFile       :: Maybe FilePath
+        , database      :: Maybe String
         }
     deriving (Show, Generic)
 
@@ -52,7 +55,7 @@ dispatch (Dump ma mc) = do
     app <- loadAppFile ma
     cfg <- loadConfigFile mc
 
-    putStrLn $ pShowDampfs app
+    putStrLn $ pShowDampfApp app
     putStrLn $ pShowDampfConfig cfg
 
 dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm

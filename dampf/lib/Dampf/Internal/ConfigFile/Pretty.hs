@@ -1,4 +1,6 @@
-module Dampf.Internal.ConfigFile.Pretty where
+module Dampf.Internal.ConfigFile.Pretty
+  ( pShowDampfConfig
+  ) where
 
 import           Control.Lens
 import qualified Data.Map.Strict as Map

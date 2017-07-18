@@ -1,47 +1,66 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Dampf.Internal.AppFile.Pretty
-  ( pShowDampfs
+  ( pShowDampfApp
   ) where
 
 import           Control.Lens
-import           Data.Maybe         (fromMaybe)
+import           Data.List                      (intersperse)
+import qualified Data.Map.Strict as Map
+import           Data.Maybe                     (fromMaybe)
+import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           Text.PrettyPrint
 
 import           Dampf.Internal.AppFile.Types
 
 
-pShowDampfs :: Dampfs -> String
-pShowDampfs = render . hang (text "AppFile:") 4 . pprDampfs
+pShowDampfApp :: DampfApp -> String
+pShowDampfApp = render . hang (text "AppFile:") 4 . pprDampfApp
 
 
-pprDampfs :: Dampfs -> Doc
-pprDampfs = vcat . fmap pprDampf . view specs
+pprDampfApp :: DampfApp -> Doc
+pprDampfApp a = vcat $
+    [ text "Docker Images:"
+    , text ""
+    , nest 4 (pprImages is)
+    , text ""
+    , text "Docker Containers:"
+    , text ""
+    , nest 4 (pprContainers cs)
+    , text ""
+    , text "Databases:"
+    , text ""
+    , nest 4 (pprDatabases bs)
+    , text ""
+    , text "Domains:"
+    , text ""
+    , nest 4 (pprDomains ds)
+    , text ""
+    ]
+  where
+    is = a ^. images . to Map.toList
+    cs = a ^. containers . to Map.toList
+    bs = a ^. databases . to Map.toList
+    ds = a ^. domains . to Map.toList
 
 
-pprDampf :: Dampf -> Doc
-pprDampf (Image n s)      = text "image" <+> text n <> colon
-    $+$ nest 4 (pprImageSpec s)
-    $+$ text ""
-
-pprDampf (Container n s)  = text "container" <+> text n <> colon
-    $+$ nest 4 (pprContainerSpec s)
-    $+$ text ""
-
-pprDampf (Domain n s)     = text "domain" <+> text n <> colon
-    $+$ nest 4 (pprDomainSpec s)
-    $+$ text ""
-
-pprDampf (PostgresDB n s) = text "postgresdb" <+> text n <> colon
-    $+$ nest 4 (pprDBSpec s)
-    $+$ text ""
+pprImages :: [(Text, ImageSpec)] -> Doc
+pprImages = vcat
+    . intersperse (text "")
+    . fmap (pprSpecs pprImageSpec)
 
 
 pprImageSpec :: ImageSpec -> Doc
 pprImageSpec spec = text "dockerFile:" <+> text df
   where
     df = spec ^. dockerFile
+
+
+pprContainers :: [(Text, ContainerSpec)] -> Doc
+pprContainers = vcat
+    . intersperse (text "")
+    . fmap (pprSpecs pprContainerSpec)
 
 
 pprContainerSpec :: ContainerSpec -> Doc
@@ -56,6 +75,30 @@ pprContainerSpec spec = vcat
     c = spec ^. command . non ""
 
 
+pprDatabases :: [(Text, DatabaseSpec)] -> Doc
+pprDatabases = vcat
+    . intersperse (text "")
+    . fmap (pprSpecs pprDatabaseSpec)
+
+
+pprDatabaseSpec :: DatabaseSpec -> Doc
+pprDatabaseSpec spec = vcat
+    [ text "migrations:"   <+> text m
+    , text "dbUser:"       <+> text u
+    , text "dbExtensions:" <+> pprList e
+    ]
+  where
+    m = spec ^. migrations . non ""
+    u = spec ^. user
+    e = spec ^. extensions
+
+
+pprDomains :: [(Text, DomainSpec)] -> Doc
+pprDomains = vcat
+    . intersperse (text "")
+    . fmap (pprSpecs pprDomainSpec)
+
+
 pprDomainSpec :: DomainSpec -> Doc
 pprDomainSpec spec = vcat
     [ text "static:"         <+> text s
@@ -65,19 +108,11 @@ pprDomainSpec spec = vcat
   where
     s  = spec ^. static . non ""
     pc = spec ^. proxyContainer ^. to (T.unpack . fromMaybe "")
-    le = spec ^. letsencrypt ^. to (show . fromMaybe False)
+    le = spec ^. letsEncrypt ^. to (show . fromMaybe False)
 
 
-pprDBSpec :: DBSpec -> Doc
-pprDBSpec spec = vcat
-    [ text "migrations:"   <+> text m
-    , text "dbUser:"       <+> text u
-    , text "dbExtensions:" <+> pprList e
-    ]
-  where
-    m = spec ^. migrations . non ""
-    u = spec ^. dbUser
-    e = spec ^. dbExtensions
+pprSpecs :: (a -> Doc) -> (Text, a) -> Doc
+pprSpecs f (n, s) = hang (text (T.unpack n) <> colon) 4 (f s)
 
 
 pprList :: (Show a) => [a] -> Doc

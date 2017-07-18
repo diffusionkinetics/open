@@ -16,20 +16,18 @@ import           Dampf.ConfigFile
 import           Dampf.Nginx.Config
 
 
-deployDomains :: (HasDampfConfig c) => c -> Dampfs -> IO ()
-deployDomains cfg (Dampfs ss) = forM_ ds $ \(d,dSpec) -> do
-    moveStaticItems (dSpec ^. static) d
+deployDomains :: (HasDampfConfig c, HasDampfApp a) => c -> a -> IO ()
+deployDomains cfg a = iforM_ (a ^. domains) $ \n spec -> do
+    moveStaticItems (spec ^. static) (T.unpack n)
 
-    let fl = domainConfig cfg (T.pack d) dSpec
-    T.writeFile ("/etc/nginx/sites-available" </> d) fl
+    let fl = domainConfig cfg n spec
+    T.writeFile ("/etc/nginx/sites-available" </> T.unpack n) fl
 
-    removeIfExists ("/etc/nginx/sites-enabled"</> d)
-    createSymbolicLink ("/etc/nginx/sites-available"</> d)
-        ("/etc/nginx/sites-enabled" </> d)
+    removeIfExists ("/etc/nginx/sites-enabled"</> T.unpack n)
+    createSymbolicLink ("/etc/nginx/sites-available"</> T.unpack n)
+        ("/etc/nginx/sites-enabled" </> T.unpack n)
 
     void $ system "service nginx reload"
-  where
-    ds = [(d, dSpec) | Domain d dSpec <- ss]
 
 
 moveStaticItems :: Maybe FilePath -> String -> IO ()
