@@ -45,6 +45,14 @@
       $(this).submit()
     }.bind(this)
 
+    var properReSubmit = function() {
+      if(settings.ajax) { 
+        resubmitWithAjax()
+      } else {
+        resubmitNatively()
+      }
+    }
+
     $(this).on('change', ':input', function() {
       if (typeof(manual_submit) === 'undefined' || !manual_submit) {
         $(':input').prop('readonly', true)
@@ -70,8 +78,9 @@
     }
 
     var restyleAndSetClickHandlers = function() {
-      $('.dashdo-plotly-select .js-plotly-plot').each(function() {        
-        var axis = (this.data[0].orientation === 'h') ? 'y' : 'x'
+      $('.dashdo-plotly-select .js-plotly-plot').each(function() {
+        var graphData = this.data[0]
+        var axis = (graphData.orientation === 'h') ? 'y' : 'x'
         var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
           return this.value
         }).get()
@@ -82,7 +91,7 @@
             // TODO: settings.colorSelected - barplots only. ?: maybe add alpha to deselect?
             Plotly.restyle(this, { 'marker.color': settings.colorSelected })
           } else {
-            var os = this.data[0][axis].map(function(p) {  // example: graph.data[0]['y']
+            var os = graphData[axis].map(function(p) {  // example: graphData['y']
               return (values.indexOf(p) !== -1) ? // p `elem` values == True
                 settings.colorSelected : 
                 settings.colorUnSelected
@@ -96,18 +105,32 @@
         var isMultiple = !!currentMultipleFieldName
 
         $(this).get(0).on('plotly_click', function(data) {
-          var selectedValueFromPlot = data.points[0][axis]
+          var selectedValueFromPlot
+          switch(graphData.type) {
+            case 'bar':
+              selectedValueFromPlot = data.points[0][axis]
+              break
+            default:
+              selectedValueFromPlot = ('customdata' in data.points[0]) ?
+                data.points[0].customdata :
+                data.points[0].pointNumber
+          }
 
-          var inputSelector = 'input[name="' + currentMultipleFieldName + '"]' + 
-            (isMultiple) ? // if isMultiple, then look for input with exact value
-            '[value="' + selectedValueFromPlot + '"]' : 
-            ''
-
-          var currentInputs = $(this).siblings(inputSelector)
-          if (currentInputs.length > 0) {
-            $(currentInputs).remove()
+          if(!isMultiple) {
+            var input = $(this).siblings('input[name]').first()
+            if (input.attr('value') == selectedValueFromPlot) { // if selected
+              input.attr('value', '') // then deselect
+            } else {
+              input.attr('value', selectedValueFromPlot)  // if not selected, then select
+            }
           } else {
-            $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
+            var currentInputs = $(this).siblings('input[name="' + currentMultipleFieldName + '"][value="' + selectedValueFromPlot + '"]')
+
+            if (currentInputs.length > 0) {
+              $(currentInputs).remove()
+            } else {
+              $(this).after('<input type="hidden" name="' + currentMultipleFieldName + '" value="' + selectedValueFromPlot + '">')
+            }
           }
 
           properReSubmit()
@@ -132,10 +155,6 @@
         )
       }
     }.bind(this)
-
-    var properReSubmit = (settings.ajax) ?
-          resubmitWithAjax :
-          resubmitNatively
 
     var uuid = null
     var uuidLoop = function() {
