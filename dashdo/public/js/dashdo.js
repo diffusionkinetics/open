@@ -39,6 +39,7 @@
       dashdoTitleSelector: '#dashdo-title',
 
       multiselectNamesSelector: '.dashdo-plotly-multi-select-names',
+      resetLinkSelector: '.dashdo-resetlink',
     }, options)
 
     var resubmitNatively = function() {
@@ -68,6 +69,15 @@
       }
       e.preventDefault()  // no 'native' submitting on ajax versions
     })
+
+    if(!!settings.resetLinkSelector) {
+      $(settings.resetLinkSelector).each(function() {
+        $(this).on('click', function() {
+          $(this).siblings('input[name]').remove()
+          properReSubmit()
+        })
+      })
+    }
 
     var requestHtmlFromServer = function(url, data, onSuccess) {
       $.ajax({
