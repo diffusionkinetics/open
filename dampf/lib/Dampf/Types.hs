@@ -18,6 +18,7 @@ import Control.Lens
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
+import Data.Text                (Text)
 import Data.Typeable
 
 import Dampf.AppFile
@@ -27,8 +28,7 @@ import Dampf.ConfigFile
 -- Dampf Exceptions
 
 data DampfException
-    = AppFileNotFound
-    | ConfigFileNotFound
+    = InvalidDatabase Text
     deriving (Eq, Show, Typeable)
 
 

@@ -1,34 +1,37 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Dampf where
+
+import Control.Lens
+import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import Dampf.AppFile
 import Dampf.ConfigFile
 import Dampf.Docker
-import Dampf.Postgres
-import Dampf.Postgres.Setup
 import Dampf.Nginx
+import Dampf.Postgres
+import Dampf.Types
 
 
-goBuild :: Maybe FilePath -> IO ()
-goBuild mfp = do
-    setupDB mfp
-    
-    withAppFile mfp $ \dampfs ->
-        withConfigFile Nothing $ \cfg -> do
-            buildDocker dampfs
-            createUsers dampfs cfg
-            createDatabases dampfs cfg
-            createExtensions dampfs cfg
+dump :: (MonadIO m) => DampfT m ()
+dump = do
+    a <- view app
+    c <- view config
+
+    liftIO $ do
+        putStrLn $ pShowDampfApp a
+        putStrLn $ pShowDampfConfig c
 
 
-goDeploy :: Maybe FilePath -> IO ()
-goDeploy mfp = do
-    goBuild mfp
+goBuild :: (MonadIO m, MonadThrow m) => DampfT m ()
+goBuild = do
+    setupDB
+    buildDocker
 
-    withAppFile mfp $ \dampfs ->
-        withConfigFile Nothing $ \cfg -> do
-            deployDocker dampfs
-            runMigrations mfp Nothing
-            deployDomains cfg dampfs
+
+goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
+goDeploy = do
+    goBuild
+    deployDocker
+    runMigrations Nothing
+    deployDomains
 

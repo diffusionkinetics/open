@@ -1,63 +1,63 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Dampf.Postgres where
 
-import Control.Lens
-import Control.Monad (when)
-import qualified Data.Map.Strict as Map
+import           Control.Lens
+import           Control.Monad              (when)
+import           Control.Monad.Catch        (MonadThrow, throwM)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Data.Text                  (Text)
 import qualified Data.Text as T
-import System.Process.Typed
+import           System.Process.Typed
 
-import Dampf.AppFile
-import Dampf.ConfigFile
-import Dampf.Postgres.Connect
-import Dampf.Postgres.Migrate
-import Dampf.Postgres.Setup
-
-
-runMigrations :: Maybe FilePath -> Maybe String -> IO ()
-runMigrations mfp mdbnm = withConfigFile Nothing $ \c ->
-    withAppFile mfp $ \a ->
-        iforM_ (c ^. databaseServers) $ \_ cfg ->
-            iforM_ (a ^. databases) $ \dbnm dbspec ->
-                when (maybe True (== T.unpack dbnm) mdbnm)
-                    $ migrate (T.unpack dbnm) dbspec c
+import           Dampf.AppFile
+import           Dampf.ConfigFile
+import           Dampf.Postgres.Connect
+import           Dampf.Postgres.Migrate
+import           Dampf.Postgres.Setup
+import           Dampf.Types
 
 
-newMigrationCmd :: Maybe FilePath -> Maybe String -> String -> IO ()
-newMigrationCmd mfp mdbnm mignm =
-  withAppFile mfp $ \a -> do
-    let dbs = a ^. databases ^. to Map.toList
-    case (dbs, mdbnm) of
-        ([db], Nothing) -> newMigration mignm $ snd db
-        (_, Just dbnm)  -> case lookup (T.pack dbnm) dbs of
-            Just dbspec -> newMigration mignm dbspec
-            Nothing     -> error "cannot find database in appfile"
+runMigrations :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
+runMigrations mdb = do
+    ds <- view (app . databases)
 
-        _ -> error "newmigration: database not specified"
+    iforM_ ds $ \name spec ->
+        when (maybe True (== name) mdb) $ migrate name spec
 
 
-setupDB :: Maybe FilePath -> IO ()
-setupDB mfp = withAppFile mfp $ \dampfs ->
-    withConfigFile Nothing $ \cfg -> do
-        createUsers dampfs cfg
-        createDatabases dampfs cfg
-        createExtensions dampfs cfg
+newMigrationCmd :: (MonadIO m, MonadThrow m)
+    => Text -> FilePath -> DampfT m ()
+newMigrationCmd name mig = view (app . databases . at name) >>= \case
+    Just spec -> liftIO $ newMigration mig spec
+    Nothing   -> throwM $ InvalidDatabase name
 
 
-backupDB :: Maybe FilePath -> Maybe String -> IO ()
-backupDB mfp mdbnm = withAppFile mfp $ \a ->
-    withConfigFile Nothing $ \c ->
-        iforM_ (c ^. databaseServers) $ \_ cfg ->
-            iforM_ (a ^. databases) $ \dbnm dbspec ->
-                when (maybe True (== T.unpack dbnm) mdbnm) $ do
-                    let outfnm = "backup_"++ T.unpack dbnm ++".sqlc"
-                        passwd = lookupPassword (dbspec ^. user) cfg
-                        envs   = [("PGPASSWORD", passwd)
-                                 ,("PGDATABASE", T.unpack dbnm)
-                                 ,("PGUSER", dbspec ^. user)]
-                        cmd = setEnv envs $ shell $ "pg_dump -Fc  >"++outfnm
+setupDB :: (MonadIO m, MonadThrow m) => DampfT m ()
+setupDB = do
+    createUsers
+    createDatabases
+    createExtensions
 
-                    runProcess_ cmd
 
+backupDB :: (MonadIO m) => Maybe Text -> DampfT m ()
+backupDB mdb = do
+    ss <- view (config . databaseServers)
+    ds <- view (app . databases)
+
+    iforM_ ss $ \_ cfg ->
+        iforM_ ds $ \name spec ->
+            when (maybe True (== name) mdb) $ do
+                let fileName = "backup_" ++ T.unpack name ++ ".sqlc"
+                let passwd   = lookupPassword (spec ^. user) cfg
+                let envs     = [("PGDATABASE", T.unpack name)
+                                , ("PGUSER", spec ^. user)
+                                , ("PGPASSWORD", passwd)
+                                ]
+
+                let cmd  = setEnv envs $ shell $ "pg_dump -Fc >" ++ fileName
+
+                runProcess_ cmd
 
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump
 

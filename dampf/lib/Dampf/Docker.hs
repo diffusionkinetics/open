@@ -11,18 +11,23 @@ import Control.Monad.IO.Class   (MonadIO)
 import Dampf.AppFile
 import Dampf.Docker.Free
 import Dampf.Docker.Types
+import Dampf.Types
 
 
 -- TODO: Rename this buildImages?
-buildDocker :: (MonadIO m, HasDampfApp a) => a -> m ()
-buildDocker a = runDockerT . iforM_ (a ^. images) $ \n spec ->
-    build n (spec ^. dockerFile)
+buildDocker :: (MonadIO m) => DampfT m ()
+buildDocker = do
+    is <- view (app . images)
+    runDockerT . iforM_ is $ \n spec ->
+        build n (spec ^. dockerFile)
 
 
 -- TODO: Rename this deployContainers?
-deployDocker :: (MonadIO m, HasDampfApp a) => a -> m ()
-deployDocker a = runDockerT . iforM_ (a ^. containers) $ \n spec -> do
-    stop n
-    void (rm n)
-    run n spec
+deployDocker :: (MonadIO m) => DampfT m ()
+deployDocker = do
+    cs <- view (app . containers)
+    runDockerT . iforM_ cs $ \n spec -> do
+        stop n
+        void (rm n)
+        run n spec
 

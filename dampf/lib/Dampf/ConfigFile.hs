@@ -11,7 +11,6 @@ module Dampf.ConfigFile
   , pShowDampfConfig
     -- * Using Configurations
   , loadConfigFile
-  , withConfigFile
   ) where
 
 import Data.Maybe                 (fromMaybe)
@@ -24,11 +23,6 @@ import Dampf.Internal.Yaml
 
 
 -- Using Configurations
-
-withConfigFile :: Maybe FilePath -> (DampfConfig -> IO ()) -> IO ()
-withConfigFile mf action = loadConfigFile mf >>= action
-{-# INLINE withConfigFile #-}
-
 
 loadConfigFile :: Maybe FilePath -> IO DampfConfig
 loadConfigFile mf = do

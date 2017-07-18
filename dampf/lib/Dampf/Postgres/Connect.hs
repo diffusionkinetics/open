@@ -1,21 +1,19 @@
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Dampf.Postgres.Connect
-  ( createConn
-  , destroyConn
-  , createSuperUserConn
-  , lookupPassword
-  ) where
+module Dampf.Postgres.Connect where
 
-import           Control.Exception
 import           Control.Lens
+import           Control.Monad.Catch        (MonadThrow, throwM)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           Database.PostgreSQL.Simple
-import           GHC.Conc
 
 import           Dampf.AppFile
 import           Dampf.ConfigFile
+import           Dampf.Types
 
 
 lookupPassword :: (HasPostgresConfig c) => String -> c -> String
@@ -24,38 +22,28 @@ lookupPassword name cfg = case cfg ^. users . at (T.pack name) of
     Just pw -> T.unpack pw
 
 
-createSuperUserConn :: (HasDampfConfig c)
-    => String -> String -> c -> IO Connection
+createSuperUserConn :: (MonadIO m, MonadThrow m)
+    => Text -> Text -> DampfT m Connection
 createSuperUserConn server name = createConn server name spec
   where
     spec = DatabaseSpec Nothing "postgres" []
 
 
-createConn :: (HasDampfConfig c)
-    => String -> String -> DatabaseSpec -> c -> IO Connection
-createConn server name spec cfg = catch (createConn' server name spec cfg) $
-    \(_::SomeException) -> do
-        putStrLn "Failed to connect to to database, retrying in 10s.."
-        threadDelay $ 10 * 1000 * 1000
-        createConn' server name spec cfg
+createConn :: (MonadIO m, MonadThrow m)
+    => Text -> Text -> DatabaseSpec -> DampfT m Connection
+createConn server name spec =
+    view (config . databaseServers . at server) >>= \case
+        Just c  -> liftIO $ connect ConnectInfo
+            { connectHost     = c ^. host
+            , connectUser     = spec ^. user
+            , connectPassword = lookupPassword (spec ^. user) c
+            , connectDatabase = T.unpack name
+            , connectPort     = c ^. port ^. to fromIntegral
+            }
+
+        Nothing -> throwM $ InvalidDatabase name
 
 
-createConn' :: (HasDampfConfig c)
-    => String -> String -> DatabaseSpec -> c -> IO Connection
-createConn' server name spec cfg = case dbCfg of
-    Just c  -> connect ConnectInfo
-        { connectHost     = c ^. host
-        , connectUser     = spec ^. user
-        , connectPassword = lookupPassword (spec ^. user) c
-        , connectDatabase = name
-        , connectPort     = c ^. port ^. to fromIntegral
-        }
-
-    Nothing -> error "Database does not exist"
-  where
-    dbCfg = cfg ^. databaseServers . at (T.pack server)
-
-
-destroyConn :: Connection -> IO ()
-destroyConn = close
+destroyConn :: (MonadIO m) => Connection -> DampfT m ()
+destroyConn = liftIO . close
 

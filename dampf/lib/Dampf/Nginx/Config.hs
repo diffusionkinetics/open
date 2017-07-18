@@ -3,6 +3,7 @@
 module Dampf.Nginx.Config where
 
 import           Control.Lens
+import           Control.Monad.IO.Class         (MonadIO)
 import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           System.FilePath
@@ -10,48 +11,62 @@ import           System.FilePath
 import           Dampf.AppFile
 import           Dampf.ConfigFile hiding        (port)
 import           Dampf.Nginx.Types
+import           Dampf.Types
 
 
-encryptDecls :: (HasDampfConfig c) => c -> [ServerDecl]
-encryptDecls cfg = maybe [] f $ cfg ^. liveCertificate
+domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
+domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
+
+
+domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
+domainToServer name spec
+    | isSSL     = do
+        decls <- (http ++) <$> sslDecls
+        return (Server decls)
+
+    | otherwise = return (Server http)
   where
-    f liveCert = [ Listen 443 ["ssl"]
-                 , SSLCertificate $ liveCert</>"fullchain.pem"
-                 , SSLCertificateKey $ liveCert</>"privkey.pem"
-                 , Include "/etc/letsencrypt/options-ssl-nginx.conf"
-                 ]
+    isSSL = spec ^. letsEncrypt . non False
+    http  = httpDecls name spec
 
 
-domainToServer :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Server
-domainToServer cfg nm dspec
-  = Server $
-      [ Listen 80 []
-      , ServerName [nm, "www." `T.append` nm] --TODO: only if it is a root domain
-      , Location "/" $ domainToLocation nm dspec
-      ] ++ if toEncrypt dspec then encryptDecls cfg else []
-
-
-domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation n spec = maybe [] (const $ staticAttrs n) s
-    ++ maybe [] proxyAttrs p
+domainToLocation :: DomainSpec -> [(Text, Text)]
+domainToLocation spec = maybe [] staticAttrs s ++ maybe [] proxyAttrs p
   where
-    s = spec ^. static
+    s = T.pack <$> spec ^. static
     p = spec ^. proxyContainer
 
 
+sslDecls :: (MonadIO m) => DampfT m [ServerDecl]
+sslDecls = do
+    live <- view (config . liveCertificate)
+    return (maybe [] f live)
+  where
+    f live =
+        [ Listen 443 ["ssl"]
+        , SSLCertificate $ live </> "fullchain.pem"
+        , SSLCertificateKey $ live </> "privkey.pem"
+        , Include "/etc/letsencrypt/options-ssl-nginx.conf"
+        ]
+
+
+httpDecls :: Text -> DomainSpec -> [ServerDecl]
+httpDecls name spec =
+    [ Listen 80 []
+    , ServerName [name, "www." `T.append` name]
+    , Location "/" $ domainToLocation spec
+    ]
+
+
 staticAttrs :: Text -> [(Text, Text)]
-staticAttrs nm =
-    [ ("root", "/var/www/" `T.append` nm)
+staticAttrs x =
+    [ ("root", "/var/www/" `T.append` x)
     , ("index", "index.html")
     ]
 
 
-toEncrypt :: DomainSpec -> Bool
-toEncrypt ds = ds ^. letsEncrypt . non False
-
-
 proxyAttrs :: Text -> [(Text, Text)]
-proxyAttrs cname =
+proxyAttrs x =
     [ ("proxy_pass",       "http://127.0.0.1:" `T.append` p)
     , ("proxy_set_header", "Host $host")
     , ("proxy_set_header", "X-Real-IP $remote_addr")
@@ -59,11 +74,5 @@ proxyAttrs cname =
     , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]
   where
-    p = last $ T.splitOn ":" cname
-
-
-domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
-domainConfig c t s = T.pack
-    . pShowServer
-    $ domainToServer c t s
+    p = last $ T.splitOn ":" x
 

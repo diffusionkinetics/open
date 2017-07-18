@@ -34,6 +34,7 @@ library
       , Dampf.Postgres.Connect
       , Dampf.Postgres.Setup
       , Dampf.Postgres
+      , Dampf.Types
 
     other-modules:
         Dampf.Internal.AppFile.Pretty
@@ -80,4 +81,5 @@ executable dampf
         base >=4.7 && <5
       , dampf
       , optparse-generic
+      , text
 
