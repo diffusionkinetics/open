@@ -78,6 +78,6 @@ executable dampf
     build-depends:
         base >=4.7 && <5
       , dampf
-      , optparse-generic
+      , optparse-applicative
       , text
 
