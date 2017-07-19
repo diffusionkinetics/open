@@ -2,17 +2,15 @@
 {-# LANGUAGE LambdaCase         #-}
 
 module Dampf.Internal.Yaml
-  ( -- * Encoding and Decoding
-    gDecode
-    -- * Parsing
-  , parseYaml
+  ( gDecode
+  , catchYamlException
   ) where
 
+import Control.Monad.Catch
+import Control.Monad.IO.Class
 import Data.Aeson.Types
 import Data.Yaml
 import GHC.Generics
-
-import Dampf.Internal.Env
 
 
 gDecode :: (Generic a, GFromJSON Zero (Rep a)) => Value -> Parser a
@@ -24,8 +22,9 @@ options = defaultOptions
     { fieldLabelModifier = drop 1 }
 
 
-parseYaml :: (FromJSON a) => FilePath -> IO a
-parseYaml f = decodeFile f >>= \case
-    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
-    Nothing -> error "Failed to parse YAML"
+catchYamlException :: (MonadIO m, MonadThrow m, Exception e)
+    => (String -> e) -> ParseException -> m a
+catchYamlException f e = throwM $ f e'
+  where
+    e' = prettyPrintParseException e
 

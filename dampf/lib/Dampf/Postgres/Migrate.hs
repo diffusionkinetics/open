@@ -16,8 +16,6 @@ import Database.PostgreSQL.Simple
 import System.Directory
 import System.FilePath
 
-import Dampf.AppFile
-import Dampf.ConfigFile
 import Dampf.Postgres.Connect
 import Dampf.Types
 

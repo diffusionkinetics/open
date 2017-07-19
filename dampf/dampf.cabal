@@ -22,18 +22,16 @@ library
 
     exposed-modules:
         Dampf
-      , Dampf.AppFile
-      , Dampf.ConfigFile
       , Dampf.Docker
       , Dampf.Docker.Free
       , Dampf.Docker.Types
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
+      , Dampf.Postgres
       , Dampf.Postgres.Migrate
       , Dampf.Postgres.Connect
       , Dampf.Postgres.Setup
-      , Dampf.Postgres
       , Dampf.Types
 
     other-modules:

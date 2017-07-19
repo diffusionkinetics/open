@@ -8,7 +8,6 @@ import Control.Lens
 import Control.Monad            (void)
 import Control.Monad.IO.Class   (MonadIO)
 
-import Dampf.AppFile
 import Dampf.Docker.Free
 import Dampf.Docker.Types
 import Dampf.Types

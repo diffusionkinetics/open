@@ -12,8 +12,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           System.Process.Typed
 
-import           Dampf.AppFile
 import           Dampf.Docker.Types
+import           Dampf.Types
 
 
 -- Interpreter

@@ -7,8 +7,6 @@ import Data.Text        (Text)
 import Options.Generic
 
 import Dampf
-import Dampf.AppFile
-import Dampf.ConfigFile
 import Dampf.Postgres
 import Dampf.Types
 

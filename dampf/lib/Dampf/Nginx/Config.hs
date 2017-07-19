@@ -8,8 +8,6 @@ import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           System.FilePath
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile hiding        (port)
 import           Dampf.Nginx.Types
 import           Dampf.Types
 

@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Dampf.Types
@@ -12,23 +14,40 @@ module Dampf.Types
     -- * Dampf Monad Transformer
   , DampfT
   , runDampfT
+    -- * Application Files
+  , module AppFile
+  , loadAppFile
+    -- * Configuration Files
+  , module ConfigFile
+  , loadConfigFile
   ) where
 
 import Control.Lens
 import Control.Monad.Catch
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class                           (MonadIO, liftIO)
 import Control.Monad.Reader
-import Data.Text                (Text)
+import Data.Aeson.Types
+import Data.Maybe                                       (fromMaybe)
+import Data.Text                                        (Text)
 import Data.Typeable
+import Data.Yaml
+import System.Directory
+import System.FilePath
 
-import Dampf.AppFile
-import Dampf.ConfigFile
+import Dampf.Internal.AppFile.Pretty as AppFile
+import Dampf.Internal.AppFile.Types as AppFile
+import Dampf.Internal.ConfigFile.Pretty as ConfigFile
+import Dampf.Internal.ConfigFile.Types as ConfigFile
+import Dampf.Internal.Env
+import Dampf.Internal.Yaml
 
 
 -- Dampf Exceptions
 
 data DampfException
-    = InvalidDatabase Text
+    = BadAppFile FilePath String
+    | BadConfigFile FilePath String
+    | InvalidDatabase Text
     deriving (Eq, Show, Typeable)
 
 
@@ -73,4 +92,28 @@ runDampfT :: DampfApp -> DampfConfig -> DampfT m a -> m a
 runDampfT a c = flip runReaderT context . unDampfT
   where
     context = DampfContext a c
+
+
+-- Loading YAML Files
+
+loadAppFile :: (MonadIO m, MonadCatch m) => Maybe FilePath -> m DampfApp
+loadAppFile mf = liftIO (decodeFile f >>= \case
+    Just y  -> resolveEnvVars y >>= parseMonad parseJSON
+    Nothing -> throwM $ BadAppFile f "") `catch`
+
+    catchYamlException (BadAppFile f)
+  where
+    f = fromMaybe "dampf.yaml" mf
+
+
+loadConfigFile :: (MonadIO m, MonadCatch m) => Maybe FilePath -> m DampfConfig
+loadConfigFile mf = do
+    homeCfg <- liftIO $ fmap (</> ".dampfcfg.yaml") getHomeDirectory
+    let f = fromMaybe homeCfg mf
+
+    liftIO (decodeFile f >>= \case
+        Just y  -> resolveEnvVars y >>= parseMonad parseJSON
+        Nothing -> throwM $ BadConfigFile f "") `catch`
+        
+        catchYamlException (BadConfigFile f)
 

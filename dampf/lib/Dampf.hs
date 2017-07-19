@@ -4,8 +4,6 @@ import Control.Lens
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
-import Dampf.AppFile
-import Dampf.ConfigFile
 import Dampf.Docker
 import Dampf.Nginx
 import Dampf.Postgres

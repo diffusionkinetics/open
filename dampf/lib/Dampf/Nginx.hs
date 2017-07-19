@@ -12,7 +12,6 @@ import           System.FilePath
 import           System.Posix.Files
 import           System.Process
 
-import           Dampf.AppFile
 import           Dampf.Nginx.Config
 import           Dampf.Types
 

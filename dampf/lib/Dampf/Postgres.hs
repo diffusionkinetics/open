@@ -10,8 +10,6 @@ import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           System.Process.Typed
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile
 import           Dampf.Postgres.Connect
 import           Dampf.Postgres.Migrate
 import           Dampf.Postgres.Setup

@@ -15,7 +15,7 @@ import Control.Monad.IO.Class   (MonadIO)
 import Control.Monad.Trans.Free (FreeT, liftF)
 import Data.Text                (Text)
 
-import Dampf.AppFile
+import Dampf.Types
 
 
 -- Docker Monad

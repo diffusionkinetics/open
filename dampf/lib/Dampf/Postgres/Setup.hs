@@ -11,8 +11,6 @@ import qualified Data.Text as T
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.Types
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile
 import           Dampf.Postgres.Connect
 import           Dampf.Types
 
