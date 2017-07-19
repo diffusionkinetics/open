@@ -2,76 +2,77 @@
 
 module Dampf.Postgres.Migrate where
 
-import Control.Arrow
-import Control.Monad
-import Data.Char
-import Data.List
-import Data.Maybe   (isJust, fromJust)
-import Data.String
+import Control.Arrow              ((&&&))
+import Control.Lens
+import Control.Monad              (forM_, unless, void, when)
+import Control.Monad.Catch        (MonadThrow)
+import Control.Monad.IO.Class     (MonadIO, liftIO)
+import Data.Char                  (isDigit)
+import Data.List                  (isSuffixOf, sort)
+import Data.String                (fromString)
+import Data.Text                  (Text)
 import Data.Time
 import Database.PostgreSQL.Simple
 import System.Directory
 import System.FilePath
 
-import Dampf.AppFile
-import Dampf.ConfigFile
 import Dampf.Postgres.Connect
+import Dampf.Types
 
 
-digits :: String
-digits = "0123456789"
+newMigration :: String -> DatabaseSpec -> IO ()
+newMigration mig spec = case spec ^. migrations of
+    Just m  -> do
+        ts <- formatTime defaultTimeLocale "%Y%m%d%H%M%S" <$> getCurrentTime
+        let f = m </> ts ++ "_" ++ mig ++ ".sql"
+
+        writeFile f ""
+        putStrLn f
+
+    Nothing -> error "Database does not have a migrations directory"
 
 
-getMigrations :: FilePath -> IO [(String, FilePath)]
-getMigrations dir = do
-    files <- getDirectoryContents dir
-    return
-        . fmap (takeWhile isDigit &&& (dir </>))
-        . sort
-        $ filter (isSuffixOf ".sql") files
-
-
-migrate :: (HasDampfConfig c) => String -> DBSpec -> c -> IO ()
-migrate db dbSpec cfg
-    | isJust mp = do
-        exists <- doesDirectoryExist $ fromJust mp
+migrate :: (MonadIO m, MonadThrow m) => Text -> DatabaseSpec -> DampfT m ()
+migrate name spec = case spec ^. migrations of
+    Just m  -> do
+        ss     <- view (config . databaseServers)
+        exists <- liftIO $ doesDirectoryExist m
 
         when exists $ do
-            ms <- getMigrations (fromJust mp)
+            ms <- liftIO $ getMigrations m
 
-            unless (null ms) $ do
-                conn <- createConn db dbSpec cfg
-                done <- getAlreadyMigratedTimestamps conn
+            unless (null ms) . iforM_ ss $ \server _ -> do
+                conn <- createConn server name spec
+                done <- liftIO $ getAppliedMigrations conn
+
                 let ms' = filter ((`notElem` done) . fst) ms
 
-                forM_ ms' $ \(t, p) -> do
-                    content <- readFile p
-                    putStrLn $ "Migrating: " ++ t
+                liftIO . forM_ ms' $ \(t, f) -> do
+                    content <- readFile f
+                    putStrLn $ "Applying migration: " ++ t
 
-                    let qStr = content ++ "; INSERT INTO migrations (timestamp) VALUES ('" ++ t ++ "')"
+                    let qStr = content
+                            ++ "; INSERT INTO migrations (timestamp) VALUES ('"
+                            ++ t
+                            ++ "')"
 
                     execute_ conn $ fromString qStr
 
-    | otherwise = return ()
-  where
-    mp = migrations dbSpec
+
+    Nothing -> return ()
 
 
-getAlreadyMigratedTimestamps :: Connection -> IO [String]
-getAlreadyMigratedTimestamps conn = do
-    _    <- execute_ conn "CREATE TABLE IF NOT EXISTS migrations ( timestamp varchar(15) PRIMARY KEY)"
+getAppliedMigrations :: Connection -> IO [String]
+getAppliedMigrations conn = do
+    void $ execute_ conn
+        "CREATE TABLE IF NOT EXISTS migrations (timestamp varchar(15) PRIMARY KEY)"
+
     rows <- query_ conn "SELECT timestamp FROM migrations"
+    return (fmap head rows)
 
-    return $ head <$> rows
 
-
-newMigration :: String -> DBSpec -> IO ()
-newMigration mig dbSpec = do
-    now <- getCurrentTime
-    let ts = formatTime defaultTimeLocale "%Y%m%d%H%M%S" now
-    let fp = path </> ts ++ "_" ++ mig ++ ".sql"
-    writeFile fp ""
-    putStrLn fp
-  where
-    path = fromJust $ migrations dbSpec
+getMigrations :: FilePath -> IO [(String, FilePath)]
+getMigrations d =
+    fmap (takeWhile isDigit &&& (d </>)) . sort . filter (isSuffixOf ".sql")
+        <$> getDirectoryContents d
 

@@ -2,50 +2,47 @@
 
 module Dampf.Nginx where
 
+import           Control.Lens
 import           Control.Monad
-import qualified Data.Text as T
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Data.Text                  (Text)
 import qualified Data.Text.IO as T
 import           System.Directory
 import           System.FilePath
 import           System.Posix.Files
 import           System.Process
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile
 import           Dampf.Nginx.Config
+import           Dampf.Types
 
 
-deployDomains :: (HasDampfConfig c) => c -> Dampfs -> IO ()
-deployDomains cfg (Dampfs dampfs) = forM_ ds $ \(d,dSpec) -> do
-    moveStaticItems (static dSpec) d
+deployDomains :: (MonadIO m) => DampfT m ()
+deployDomains = do
+    ds <- view (app . domains)
+    
+    iforM_ ds $ \name spec -> do
+        moveStaticItems name (spec ^. static)
+        fl <- domainConfig name spec
 
-    let fl = domainConfig cfg (T.pack d) dSpec
-    T.writeFile ("/etc/nginx/sites-available" </> d) fl
+        liftIO $ do
+            T.writeFile ("/etc/nginx/sites-available" </> show name) fl
 
-    removeIfExists ("/etc/nginx/sites-enabled"</> d)
-    createSymbolicLink ("/etc/nginx/sites-available"</> d)
-        ("/etc/nginx/sites-enabled" </> d)
+            removePathForcibly ("/etc/nginx/sites-enabled" </> show name)
+            createSymbolicLink ("/etc/nginx-sites-available" </> show name)
+                ("/etc/nginx/sites-enabled" </> show name)
 
-    void $ system "service nginx reload"
-  where
-    ds = [(d, dSpec) | Domain d dSpec <- dampfs]
+            void $ system "service nginx reload"
 
 
-moveStaticItems :: Maybe FilePath -> String -> IO ()
-moveStaticItems (Just src) s = do
+moveStaticItems :: (MonadIO m) => Text -> Maybe FilePath -> DampfT m ()
+moveStaticItems s (Just src) = liftIO $ do
     exists <- doesDirectoryExist dest
     when exists $ removeDirectoryRecursive dest
 
     createDirectoryIfMissing True dest
     void . system $ "cp -R " ++ (src </> ".") ++ " " ++ dest
   where
-    dest = "/var/www" </> s
+    dest = "/var/www" </> show s
 
-moveStaticItems _        _ = return ()
-
-
-removeIfExists :: FilePath -> IO ()
-removeIfExists fp = do
-    ex <- doesFileExist fp
-    when ex $ removeFile fp
+moveStaticItems _ Nothing    = return ()
 

@@ -1,93 +1,122 @@
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module Dampf.Internal.AppFile.Types
-  ( -- * App File Types
-    Dampf(..)
-  , Dampfs(..)
+  ( -- * Application Type
+    DampfApp(..)
+  , HasDampfApp(..)
+    -- * Specification Types
   , ImageSpec(..)
+  , HasImageSpec(..)
   , ContainerSpec(..)
+  , HasContainerSpec(..)
+  , DatabaseSpec(..)
+  , HasDatabaseSpec(..)
   , DomainSpec(..)
-  , DBSpec(..)
+  , HasDomainSpec(..)
   ) where
 
+import           Control.Lens
 import           Control.Monad
 import           Data.Aeson
 import qualified Data.HashMap.Lazy as HM
+import           Data.Map.Strict            (Map)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
 
-
-data Dampf
-    = Image String ImageSpec
-    | Domain String DomainSpec
-    | PostgresDB String DBSpec
-    | Container String ContainerSpec
-    deriving (Show)
+import           Dampf.Internal.Yaml
 
 
-newtype Dampfs = Dampfs { unDampfs :: [Dampf] }
-    deriving (Show)
+data ImageSpec = ImageSpec
+    { _dockerFile :: FilePath
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''ImageSpec
 
 
-instance FromJSON Dampfs where
-  parseJSON = withObject "Dampf config" $ \hm ->
-    fmap Dampfs $ forM (HM.toList hm) $ \(k,v) ->
-      case T.words k of
-        ["image", imname] -> Image
-            <$> return (T.unpack imname)
-            <*> parseJSON v
-
-        ["container", cname] -> Container
-            <$> return (T.unpack cname)
-            <*> parseJSON v
-
-        ["postgresdb", dbname] -> PostgresDB
-            <$> return (T.unpack dbname)
-            <*> parseJSON v
-
-        ["domain", dname] -> Domain
-            <$> return (T.unpack dname)
-            <*> parseJSON v
-
-        _ -> fail $ "unknown dampf spec: "++ T.unpack k
-
-
-data ImageSpec = ImageSpec { dockerFile :: FilePath }
-    deriving (Show, Generic)
-
-
-instance FromJSON ImageSpec
+instance FromJSON ImageSpec where
+    parseJSON = gDecode
 
 
 data ContainerSpec = ContainerSpec
-    { image     :: String
-    , expose    :: Maybe [Int]
-    , command   :: Maybe String
-    } deriving (Show, Generic)
+    { _image    :: String
+    , _expose   :: Maybe [Int]
+    , _command  :: Maybe String
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''ContainerSpec
 
 
-instance FromJSON ContainerSpec
+instance FromJSON ContainerSpec where
+    parseJSON = gDecode
+
+
+data DatabaseSpec = DatabaseSpec
+    { _migrations   :: Maybe FilePath
+    , _user         :: String
+    , _extensions   :: [String]
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''DatabaseSpec
+
+
+instance FromJSON DatabaseSpec where
+    parseJSON = gDecode
 
 
 data DomainSpec = DomainSpec
-    { static            :: Maybe FilePath
-    , proxyContainer    :: Maybe Text
-    , letsencrypt       :: Maybe Bool
-    } deriving (Show, Generic)
+    { _static           :: Maybe FilePath
+    , _proxyContainer   :: Maybe Text
+    , _letsEncrypt      :: Maybe Bool
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''DomainSpec
 
 
-instance FromJSON DomainSpec
+instance FromJSON DomainSpec where
+    parseJSON = gDecode
 
 
-data DBSpec = DBSpec
-    { migrations    :: Maybe FilePath
-    , dbUser        :: String
-    , dbExtensions  :: [String]
-    } deriving (Show, Generic)
+data DampfApp = DA
+    { _images     :: Map Text ImageSpec
+    , _containers :: Map Text ContainerSpec
+    , _databases  :: Map Text DatabaseSpec
+    , _domains    :: Map Text DomainSpec
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''DampfApp
 
 
-instance FromJSON DBSpec
+instance Monoid DampfApp where
+    mempty = DA mempty mempty mempty mempty
+
+
+    mappend (DA a b c d) (DA a' b' c' d') = DA
+        (mappend a a') (mappend b b') (mappend c c') (mappend d d')
+
+
+instance FromJSON DampfApp where
+    parseJSON = withObject "Application File" $ \m ->
+        fmap mconcat $ forM (HM.toList m) $ \(k,v) ->
+            case T.words k of
+                ["image",     name] -> do
+                    spec <- parseJSON v
+                    return $ (images . at name ?~ spec) mempty
+
+                ["container", name] -> do
+                    spec <- parseJSON v
+                    return $ (containers . at name ?~ spec) mempty
+
+                ["postgresdb",  name] -> do
+                    spec <- parseJSON v
+                    return $ (databases . at name ?~ spec) mempty
+
+                ["domain",    name] -> do
+                    spec <- parseJSON v
+                    return $ (domains . at name ?~ spec) mempty
+
+                _                   -> fail "Invalid specification type"
 

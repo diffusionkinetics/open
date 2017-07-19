@@ -1,67 +1,64 @@
 module Dampf.Docker.Free
-  ( -- * Run Docker DSL
+  ( -- * Docker Interpreter
     runDockerT
-    -- * Docker DSL
-  , build
-  , rm
-  , run
-  , stop
   ) where
 
+import           Control.Lens
 import           Control.Monad                  (void)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
-import           Control.Monad.Trans.Free       (liftF, iterT)
-import           Data.Maybe                     (fromMaybe)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.Encoding as T
+import           Control.Monad.Trans.Free       (iterT)
+import           Data.Text                      (Text)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
 import           System.Process.Typed
 
 import           Dampf.Docker.Types
+import           Dampf.Types
 
 
 -- Interpreter
 
-runDockerT :: (MonadIO m) => DockerT m a -> m a
+runDockerT :: (MonadIO m) => DockerT (DampfT m) a -> DampfT m a
 runDockerT = iterT dockerIter
 
 
-dockerIter :: (MonadIO m) => DockerF (m a) -> m a
-dockerIter (Build t i next)   = interpBuild t i >> next
-dockerIter (Rm c next)        = interpRm c >>= next
-dockerIter (Run c i p e next) = interpRun c i p e >> next
-dockerIter (Stop c next)      = interpStop c >> next
+dockerIter :: (MonadIO m) => DockerF (DampfT m a) -> DampfT m a
+dockerIter (Build t i next) = interpBuild t i >> next
+dockerIter (Rm c next)      = interpRm c >>= next
+dockerIter (Run c s next)   = interpRun c s >> next
+dockerIter (Stop c next)    = interpStop c >> next
 
 
-interpBuild :: (MonadIO m) => String -> FilePath -> m ()
+interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
 interpBuild t i = do
-    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ t
+    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
     void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
         $ setStderr closed
-        $ proc "docker" ["build", "-t", t, i]
+        $ proc "docker" ["build", "-t", show t, i]
 
 
-interpRm :: (MonadIO m) => String -> m String
+interpRm :: (MonadIO m) => Text -> DampfT m Text
 interpRm c = do
-    liftIO . putStrLn $ "Docker: Removing " ++ c
+    liftIO . putStrLn $ "Docker: Removing " ++ show c
     (_, o, _) <- readProcess process
-    return . T.unpack $ T.decodeUtf8 o
+    return . TL.toStrict $ TL.decodeUtf8 o
   where
     process = setStdin closed
         $ setStderr closed
-        $ proc "docker" ["rm", c]
+        $ proc "docker" ["rm", show c]
 
 
-interpRun :: (MonadIO m)
-    => String -> String -> Maybe [Int] -> Maybe String -> m ()
-interpRun c i p e = do
-    liftIO . putStrLn $ "Docker: Running " ++ c ++ " '" ++ cmd ++ "'"
+interpRun :: (MonadIO m) => Text -> ContainerSpec -> DampfT m ()
+interpRun c s = do
+    liftIO . putStrLn $ "Docker: Running " ++ show c ++ " '" ++ cmd ++ "'"
     void $ runProcess process
   where
-    ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x]) (fromMaybe [] p)
-    cmd     = fromMaybe "" e
+    cmd     = s ^. command . non ""
+    ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
+        (s ^. expose . non [])
 
     process = setStdin closed
         $ setStdout closed
@@ -69,39 +66,20 @@ interpRun c i p e = do
         $ proc "docker" args
 
     args = concat [
-        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ c]
+        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ show c]
         , ports
-        , [i]
+        , [s ^. image]
         , words cmd
         ]
 
 
-interpStop :: (MonadIO m) => String -> m ()
+interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = do
-    liftIO . putStrLn $ "Docker: Stopping " ++ c
+    liftIO . putStrLn $ "Docker: Stopping " ++ show c
     void $ runProcess process
   where
     process = setStdin closed
         $ setStdout closed
         $ setStderr closed
-        $ proc "docker" ["stop", c]
-
-
--- DSL
-
-build :: (MonadIO m) => String -> FilePath -> DockerT m ()
-build t i = liftF (Build t i ())
-
-
-rm :: (MonadIO m) => String -> DockerT m String
-rm c = liftF (Rm c id)
-
-
-run :: (MonadIO m)
-    => String -> String -> Maybe [Int] -> Maybe String -> DockerT m ()
-run c i p e = liftF (Run c i p e ())
-
-
-stop :: (MonadIO m) => String -> DockerT m ()
-stop c = liftF (Stop c ())
+        $ proc "docker" ["stop", show c]
 

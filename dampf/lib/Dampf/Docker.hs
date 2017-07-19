@@ -2,37 +2,31 @@ module Dampf.Docker
   ( -- * Actions
     buildDocker
   , deployDocker
-    -- * Docker Monad
-  , DockerT
-    -- * Docker DSL
-  , build
-  , rm
-  , run
-  , stop
   ) where
 
-import Control.Monad            (forM_, void)
+import Control.Lens
+import Control.Monad            (void)
 import Control.Monad.IO.Class   (MonadIO)
 
-import Dampf.AppFile
 import Dampf.Docker.Free
 import Dampf.Docker.Types
+import Dampf.Types
 
 
 -- TODO: Rename this buildImages?
-buildDocker :: (MonadIO m) => Dampfs -> m ()
-buildDocker (Dampfs d) = runDockerT $ forM_ is $ \(n, iSpec) ->
-    build n (dockerFile iSpec)
-  where
-    is = [(n, iSpec) | Image n iSpec <- d]
+buildDocker :: (MonadIO m) => DampfT m ()
+buildDocker = do
+    is <- view (app . images)
+    runDockerT . iforM_ is $ \n spec ->
+        build n (spec ^. dockerFile)
 
 
 -- TODO: Rename this deployContainers?
-deployDocker :: (MonadIO m) => Dampfs -> m ()
-deployDocker (Dampfs d) = runDockerT $ forM_ cs $ \(n, cSpec) -> do
-    stop n
-    void $ rm n
-    run n (image cSpec) (expose cSpec) (command cSpec)
-  where
-    cs = [(n, cSpec) | Container n cSpec <- d]
+deployDocker :: (MonadIO m) => DampfT m ()
+deployDocker = do
+    cs <- view (app . containers)
+    runDockerT . iforM_ cs $ \n spec -> do
+        stop n
+        void (rm n)
+        run n spec
 

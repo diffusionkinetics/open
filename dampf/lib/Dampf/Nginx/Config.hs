@@ -3,95 +3,68 @@
 module Dampf.Nginx.Config where
 
 import           Control.Lens
+import           Control.Monad.IO.Class         (MonadIO)
 import           Data.Text                      (Text)
 import qualified Data.Text as T
-import           Data.Maybe                     (fromMaybe)
 import           System.FilePath
-import           Text.PrettyPrint.HughesPJClass
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile hiding        (port)
-
-
-data Server = Server [ServerDecl]
+import           Dampf.Nginx.Types
+import           Dampf.Types
 
 
-data ServerDecl
-  = Listen Int [String]
-  | ServerName [Text]
-  | Location Text [(Text, Text)]
-  | Include FilePath
-  | SSLCertificate FilePath
-  | SSLCertificateKey FilePath
+domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
+domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
 
 
-instance Pretty Server where
-  pPrint (Server sds)
-     = text "server {"
-       $$ nest 2 (vcat (map pPrint sds))
-       $$ char '}'
+domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
+domainToServer name spec
+    | isSSL     = do
+        decls <- (http ++) <$> sslDecls
+        return (Server decls)
 
-
-instance Pretty ServerDecl where
-  pPrint (Listen p ss)
-    = text "listen" <+> int p <+> vcat (map text ss) <> char ';'
-  pPrint (ServerName nms)
-    = text "server_name" <+> hsep (map ttext nms)<> char ';'
-  pPrint (Location path kvs)
-    = text "location" <+> ttext path
-                      <+> char '{'
-        $$ nest 2 (vcat (map ppKV kvs))
-        $$ char '}'
-          where ppKV (k,v) = ttext k <+> ttext v <> char ';'
-  pPrint (Include fp)
-    = text "include" <+> text fp <> char ';'
-  pPrint (SSLCertificate fp)
-    = text "ssl_certificate" <+> text fp <> char ';'
-  pPrint (SSLCertificateKey fp)
-    = text "ssl_certificate_key" <+> text fp <> char ';'
-
-
-encryptDecls :: (HasDampfConfig c) => c -> [ServerDecl]
-encryptDecls cfg = maybe [] f $ cfg ^. liveCertificate
+    | otherwise = return (Server http)
   where
-    f liveCert = [ Listen 443 ["ssl"]
-                 , SSLCertificate $ liveCert</>"fullchain.pem"
-                 , SSLCertificateKey $ liveCert</>"privkey.pem"
-                 , Include "/etc/letsencrypt/options-ssl-nginx.conf"
-                 ]
+    isSSL = spec ^. letsEncrypt . non False
+    http  = httpDecls name spec
 
 
-ttext :: Text -> Doc
-ttext = text . T.unpack
+domainToLocation :: DomainSpec -> [(Text, Text)]
+domainToLocation spec = maybe [] staticAttrs s ++ maybe [] proxyAttrs p
+  where
+    s = T.pack <$> spec ^. static
+    p = spec ^. proxyContainer
 
 
-domainToServer :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Server
-domainToServer cfg nm dspec
-  = Server $
-      [ Listen 80 []
-      , ServerName [nm, "www." `T.append` nm] --TODO: only if it is a root domain
-      , Location "/" $ domainToLocation nm dspec
-      ] ++ if toEncrypt dspec then encryptDecls cfg else []
+sslDecls :: (MonadIO m) => DampfT m [ServerDecl]
+sslDecls = do
+    live <- view (config . liveCertificate)
+    return (maybe [] f live)
+  where
+    f live =
+        [ Listen 443 ["ssl"]
+        , SSLCertificate $ live </> "fullchain.pem"
+        , SSLCertificateKey $ live </> "privkey.pem"
+        , Include "/etc/letsencrypt/options-ssl-nginx.conf"
+        ]
 
 
-domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation nm (DomainSpec mstatic mproxy _) =
-  maybe [] (const $ staticAttrs nm) mstatic ++ maybe [] proxyAttrs mproxy
+httpDecls :: Text -> DomainSpec -> [ServerDecl]
+httpDecls name spec =
+    [ Listen 80 []
+    , ServerName [name, "www." `T.append` name]
+    , Location "/" $ domainToLocation spec
+    ]
 
 
 staticAttrs :: Text -> [(Text, Text)]
-staticAttrs nm =
-    [ ("root", "/var/www/" `T.append` nm)
+staticAttrs x =
+    [ ("root", "/var/www/" `T.append` x)
     , ("index", "index.html")
     ]
 
 
-toEncrypt :: DomainSpec -> Bool
-toEncrypt ds = fromMaybe False $ letsencrypt ds
-
-
 proxyAttrs :: Text -> [(Text, Text)]
-proxyAttrs cname =
+proxyAttrs x =
     [ ("proxy_pass",       "http://127.0.0.1:" `T.append` p)
     , ("proxy_set_header", "Host $host")
     , ("proxy_set_header", "X-Real-IP $remote_addr")
@@ -99,8 +72,5 @@ proxyAttrs cname =
     , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]
   where
-    p = last $ T.splitOn ":" cname
-
-domainConfig :: (HasDampfConfig c) => c -> Text -> DomainSpec -> Text
-domainConfig cfg nm spec = T.pack $ render $ pPrint $ domainToServer cfg nm spec
+    p = last $ T.splitOn ":" x
 

@@ -1,42 +1,35 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Dampf where
 
-import Dampf.AppFile
-import Dampf.ConfigFile
+import Control.Lens
+import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.IO.Class   (MonadIO, liftIO)
+
 import Dampf.Docker
-import Dampf.Postgres
-import Dampf.Postgres.Setup
 import Dampf.Nginx
+import Dampf.Postgres
+import Dampf.Types
 
 
-dumpApp :: FilePath -> IO ()
-dumpApp f = loadAppFile (Just f) >>= putStrLn . pShowDampfs
+dump :: (MonadIO m) => DampfT m ()
+dump = do
+    a <- view app
+    c <- view config
+
+    liftIO $ do
+        putStrLn $ pShowDampfApp a
+        putStrLn $ pShowDampfConfig c
 
 
-dumpConfig :: FilePath -> IO ()
-dumpConfig f = loadConfigFile (Just f) >>= putStrLn . pShowDampfConfig
+goBuild :: (MonadIO m, MonadThrow m) => DampfT m ()
+goBuild = do
+    setupDB
+    buildDocker
 
 
-goBuild :: Maybe FilePath -> IO ()
-goBuild mfp = do
-  setupDB mfp
+goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
+goDeploy = do
+    goBuild
+    deployDocker
+    runMigrations Nothing
+    deployDomains
 
-  withAppFile mfp $ \dampfs ->
-    withConfigFile Nothing $ \cfg -> do
-      buildDocker dampfs
-      createUsers dampfs cfg
-      createDatabases dampfs cfg
-      createExtensions dampfs cfg
-
-
-
-goDeploy :: Maybe FilePath -> IO ()
-goDeploy mfp = do
-  goBuild mfp
-
-  withAppFile mfp $ \dampfs ->
-    withConfigFile Nothing $ \cfg -> do
-      deployDocker dampfs
-      runMigrations mfp Nothing
-      deployDomains cfg dampfs

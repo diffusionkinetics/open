@@ -3,35 +3,29 @@
 
 module Main where
 
+import Data.Text        (Text)
 import Options.Generic
-import Data.Maybe
-
 
 import Dampf
 import Dampf.Postgres
+import Dampf.Types
+
 
 data Cmd
-    = Dump
-        { appFile :: Maybe FilePath }
-    | RunMigrations
-        { appFile :: Maybe FilePath
-        , onlyDatabase :: Maybe String
-        }
-    | NewMigration
-        { appFile :: Maybe FilePath
-        , database :: Maybe String
-        , name :: String
+    = Backup
+        { onlyDatabase  :: Maybe Text
         }
     | Build
-        { appFile :: Maybe FilePath }
     | Deploy
-        { appFile :: Maybe FilePath }
-    | SetupDB
-        { appFile :: Maybe FilePath }
-    | Backup
-        { appFile :: Maybe FilePath
-        , database :: Maybe String
+    | Dump
+    | NewMigration
+        { database      :: Text
+        , name          :: FilePath
         }
+    | RunMigrations
+        { onlyDatabase  :: Maybe Text
+        }
+    | SetupDB
     deriving (Show, Generic)
 
 
@@ -40,19 +34,16 @@ instance ParseRecord Cmd
 
 main :: IO ()
 main = do
-    x <- getRecord "Test program"
-    dispatch x
-
-
-dispatch :: Cmd -> IO ()
-dispatch (Dump mfp) = do
-    dumpApp (fromMaybe "dampf.yaml" mfp)
-    dumpConfig (fromMaybe "dampf.yaml" mfp)
-
-dispatch (RunMigrations mfp mdbnm) = runMigrations mfp mdbnm
-dispatch (NewMigration mfp mdbnm mignm) = newMigrationCmd mfp mdbnm mignm
-dispatch (Build mfp) = goBuild mfp
-dispatch (Deploy mfp) = goDeploy mfp
-dispatch (SetupDB mfp) = setupDB mfp
-dispatch (Backup mfp mdbnm) = backupDB mfp mdbnm
+    cmd <- getRecord "Test program"
+    a   <- loadAppFile Nothing
+    c   <- loadConfigFile Nothing
+    
+    case cmd of
+        Backup db           -> runDampfT a c (backupDB db)
+        Build               -> runDampfT a c goBuild
+        Deploy              -> runDampfT a c goDeploy
+        Dump                -> runDampfT a c dump
+        NewMigration db mig -> runDampfT a c (newMigrationCmd db mig)
+        RunMigrations db    -> runDampfT a c (runMigrations db)
+        SetupDB             -> runDampfT a c setupDB
 

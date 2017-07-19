@@ -2,73 +2,83 @@
 
 module Dampf.Postgres.Setup where
 
+import           Control.Lens
 import           Control.Monad
+import           Control.Monad.Catch        (MonadThrow)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.List
 import qualified Data.Text as T
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.Types
 
-import           Dampf.AppFile
-import           Dampf.ConfigFile
 import           Dampf.Postgres.Connect
+import           Dampf.Types
 
 
-createUsers :: (HasDampfConfig c) => Dampfs -> c -> IO ()
-createUsers (Dampfs dampfs) cfg = do
-    conn <- createSuperUserConn cfg "postgres"
-    forM_ ds $ \dbSpec -> do
-        let pass = lookupPassword (dbUser dbSpec) cfg
+createUsers :: (MonadIO m, MonadThrow m) => DampfT m ()
+createUsers = do
+    ss <- view (config . databaseServers)
+    ds <- view (app . databases)
 
-        rls <- query conn "SELECT rolname FROM pg_roles where rolname = ?"
-            (Only $ dbUser dbSpec)
+    iforM_ ss $ \server cfg ->
+        iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn server name
+            let pass = lookupPassword (spec ^. user) cfg
 
-        case rls :: [Only String] of
-            [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                (Identifier $ T.pack $ dbUser dbSpec, pass)
+            liftIO $ do
+                rls <- query conn "SELECT rolname FROM pg_roles WHERE rolname = ?"
+                    (Only $ spec ^. user)
 
-            _ -> return ()
+                case rls :: [Only String] of
+                    [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
+                        (Identifier $ T.pack $ spec ^. user, pass)
 
-    destroyConn conn
-  where
-    ds = [spec | PostgresDB _ spec <- dampfs]
+                    _  -> return ()
 
-
-createExtensions :: (HasDampfConfig c) => Dampfs -> c -> IO ()
-createExtensions (Dampfs dampfs) cfg = forM_ ds $ \(db, dbSpec) -> do
-    conn <- createSuperUserConn cfg db
-    let exts = nub $ dbExtensions dbSpec
-
-    forM_ exts $ \ext -> void
-        $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
-            (Only $ Identifier $ T.pack ext)
-
-    destroyConn conn
-  where
-    ds = [(db, dbSpec) | PostgresDB db dbSpec <- dampfs]
+            destroyConn conn
 
 
-createDatabases :: (HasDampfConfig c) => Dampfs -> c -> IO ()
-createDatabases (Dampfs dampfs) cfg = do
-    conn <- createSuperUserConn cfg "postgres"
+createExtensions :: (MonadIO m, MonadThrow m) => DampfT m ()
+createExtensions = do
+    ss <- view (config . databaseServers)
+    ds <- view (app . databases)
 
-    forM_ ds $ \(db, dbSpec) -> do
-        dbs <- query conn "SELECT datname FROM pg_database where datname = ?"
-            (Only db)
+    iforM_ ss $ \server _ ->
+        iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn server name
+            let exts = nub $ spec ^. extensions
 
-        case dbs :: [Only String] of
-            [] -> do
-                _ <- execute conn "CREATE DATABASE ?"
-                    (Only . Identifier $ T.pack db)
+            liftIO . forM_ exts $ \ext -> void
+                $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
+                    (Only $ Identifier $ T.pack ext)
 
-                _ <- execute conn "GRANT ALL PRIVILEGES ON DATABASE ? to ?"
-                    (Identifier $ T.pack db, Identifier . T.pack $ dbUser dbSpec)
+            destroyConn conn
+            
 
-                return ()
+createDatabases :: (MonadIO m, MonadThrow m) => DampfT m ()
+createDatabases = do
+    ss <- view (config . databaseServers)
+    ds <- view (app . databases)
 
-            _ -> return ()
+    iforM_ ss $ \server _ ->
+        iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn server name
 
-        return ()
-    destroyConn conn
-  where
-    ds = [(db, dbSpec) | PostgresDB db dbSpec <- dampfs]
+            liftIO $ do
+                dbs  <- query conn
+                    "SELECT datname FROM pg_database WHERE datname = ?"
+                    (Only $ T.unpack name)
+
+                case dbs :: [Only String] of
+                    [] -> do
+                        void $ execute conn "CREATE DATABASE ?"
+                            (Only $ Identifier name)
+
+                        void $ execute conn
+                            "GRANT ALL PRIVILEGES ON DATABASE ? TO ?"
+                            (Identifier name, Identifier . T.pack $ spec ^. user)
+
+                    _  -> return ()
+
+            destroyConn conn
 

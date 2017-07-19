@@ -12,68 +12,58 @@ module Dampf.Internal.ConfigFile.Types
   ) where
 
 import           Control.Lens
+import           Control.Monad              (forM)
+import           Data.Aeson
+import qualified Data.HashMap.Lazy as HM
 import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict as Map
-import           Data.Yaml
-import           GHC.Generics               (Generic)
+import           Data.Text                  (Text)
+import qualified Data.Text as T
+import           GHC.Generics
+
+import           Dampf.Internal.Yaml
 
 
 -- Configuration Types
 
 data PostgresConfig = PostgresConfig
-    { _name  :: String
-    , _host  :: String
+    { _host  :: String
     , _port  :: Int
-    , _users :: Map String String
-    } deriving (Show, Generic)
+    , _users :: Map Text Text
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''PostgresConfig
 
 
-instance ToJSON PostgresConfig
 instance FromJSON PostgresConfig where
-    parseJSON (Object x) = PostgresConfig
-        <$> x .:? "name"  .!= (defaultPostgres ^. name)
-        <*> x .:? "host"  .!= (defaultPostgres ^. host)
-        <*> x .:? "port"  .!= (defaultPostgres ^. port)
-        <*> x .:? "users" .!= (defaultPostgres ^. users)
-
-    parseJSON _          = error "Expecting Object"
+    parseJSON = gDecode
 
 
-defaultPostgres :: PostgresConfig
-defaultPostgres = PostgresConfig
-    { _name  = "default"
-    , _host  = "localhost"
-    , _port  = 5432
-    , _users = Map.fromList [("postgres", "")]
-    }
-
-
-data DampfConfig = DampfConfig
-    { _liveCertificate :: Maybe FilePath
-    , _postgres :: PostgresConfig
-    } deriving (Show, Generic)
+data DampfConfig = DC
+    { _liveCertificate  :: Maybe FilePath
+    , _databaseServers  :: Map Text PostgresConfig
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''DampfConfig
 
 
-instance ToJSON DampfConfig
+instance Monoid DampfConfig where
+    mempty = DC mempty mempty
+
+
+    mappend (DC l d) (DC l' d') = DC (mappend l l') (mappend d d')
+
+
 instance FromJSON DampfConfig where
-    parseJSON (Object x) = DampfConfig
-        <$> x .:? "liveCertificate" .!= (defaultConfig ^. liveCertificate)
-        <*> x .:? "postgres"        .!= (defaultConfig ^. postgres)
+    parseJSON = withObject "Configuration File" $ \m ->
+        fmap mconcat $ forM (HM.toList m) $ \(k, v) ->
+            case T.words k of
+                ["liveCertificate"] -> do
+                    path <- parseJSON v
+                    return $ (liveCertificate .~ path) mempty
 
-    parseJSON _          = error "Expecting Object"
+                ["postgres", name]  -> do
+                    spec <- parseJSON v
+                    return $ (databaseServers . at name ?~ spec) mempty
 
-
-instance HasPostgresConfig DampfConfig where
-    postgresConfig = postgres
-
-
-defaultConfig :: DampfConfig
-defaultConfig = DampfConfig
-    { _liveCertificate  = Nothing
-    , _postgres         = defaultPostgres
-    }
+                _                   -> fail "Invalid configuration type"
 
