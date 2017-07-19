@@ -18,18 +18,18 @@ import           Dampf.Types
 
 -- Interpreter
 
-runDockerT :: (MonadIO m) => DockerT m a -> m a
+runDockerT :: (MonadIO m) => DockerT (DampfT m) a -> DampfT m a
 runDockerT = iterT dockerIter
 
 
-dockerIter :: (MonadIO m) => DockerF (m a) -> m a
+dockerIter :: (MonadIO m) => DockerF (DampfT m a) -> DampfT m a
 dockerIter (Build t i next) = interpBuild t i >> next
 dockerIter (Rm c next)      = interpRm c >>= next
 dockerIter (Run c s next)   = interpRun c s >> next
 dockerIter (Stop c next)    = interpStop c >> next
 
 
-interpBuild :: (MonadIO m) => Text -> FilePath -> m ()
+interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
 interpBuild t i = do
     liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
     void $ runProcess process
@@ -40,7 +40,7 @@ interpBuild t i = do
         $ proc "docker" ["build", "-t", show t, i]
 
 
-interpRm :: (MonadIO m) => Text -> m Text
+interpRm :: (MonadIO m) => Text -> DampfT m Text
 interpRm c = do
     liftIO . putStrLn $ "Docker: Removing " ++ show c
     (_, o, _) <- readProcess process
@@ -51,7 +51,7 @@ interpRm c = do
         $ proc "docker" ["rm", show c]
 
 
-interpRun :: (MonadIO m) => Text -> ContainerSpec -> m ()
+interpRun :: (MonadIO m) => Text -> ContainerSpec -> DampfT m ()
 interpRun c s = do
     liftIO . putStrLn $ "Docker: Running " ++ show c ++ " '" ++ cmd ++ "'"
     void $ runProcess process
@@ -73,7 +73,7 @@ interpRun c s = do
         ]
 
 
-interpStop :: (MonadIO m) => Text -> m ()
+interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = do
     liftIO . putStrLn $ "Docker: Stopping " ++ show c
     void $ runProcess process
