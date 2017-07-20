@@ -3,6 +3,7 @@
 
 module Dampf.Internal.Yaml
   ( gDecode
+  , options
   , catchYamlException
   ) where
 
@@ -19,7 +20,9 @@ gDecode = genericParseJSON options
 
 options :: Options
 options = defaultOptions
-    { fieldLabelModifier = drop 1 }
+    { fieldLabelModifier = drop 1
+    , sumEncoding        = UntaggedValue
+    }
 
 
 catchYamlException :: (MonadIO m, MonadThrow m, Exception e)

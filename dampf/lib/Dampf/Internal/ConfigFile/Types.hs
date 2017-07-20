@@ -64,9 +64,6 @@ instance FromJSON DampfProfiles where
     parseJSON = withObject "Configuration File" $ \o ->
         fmap (DP . Map.fromList) $ forM (HM.toList o) $ \(k, v) ->
             case T.words k of
-                ["profile", name] -> do
-                    cfg <- parseJSON v
-                    return (name, cfg)
-
+                ["profile", name] -> (,) <$> return name <*> parseJSON v
                 _                 -> fail "Invalid profile specification"
 

@@ -109,13 +109,13 @@ loadAppFile mf = liftIO (decodeFile f >>= \case
 
 
 loadConfigFile :: (MonadIO m, MonadCatch m)
-    => Maybe FilePath -> m (Either DampfConfig DampfProfiles)
+    => Maybe FilePath -> m (Either DampfProfiles DampfConfig)
 loadConfigFile mf = do
     homeCfg <- liftIO $ fmap (</> ".dampfcfg.yaml") getHomeDirectory
     let f = fromMaybe homeCfg mf
 
     liftIO (decodeFile f >>= \case
-        Just y  -> resolveEnvVars y >>= parseMonad parseJSON
+        Just y  -> resolveEnvVars y >>= parseMonad (genericParseJSON options)
         Nothing -> throwM $ BadConfigFile f "") `catch`
         
         catchYamlException (BadConfigFile f)

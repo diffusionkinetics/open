@@ -31,10 +31,14 @@ main = O.execParser parser >>= run
 
 run :: Options -> IO ()
 run (Options af cf p cmd) = do
-    a <- loadAppFile af
-    c <- loadConfigFile cf >>= \case
-        Left cfg -> return cfg
-        Right ps -> return (ps ^. profiles . at p . to fromJust)
+    a   <- loadAppFile af
+    epc <- loadConfigFile cf
+
+    print epc
+    
+    c   <- case epc of
+        Left ps   -> return (ps ^. profiles . at p . to fromJust)
+        Right cfg -> return cfg
 
     case cmd of
         Backup db           -> runDampfT a c (backupDB db)
