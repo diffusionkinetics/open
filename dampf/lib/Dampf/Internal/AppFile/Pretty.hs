@@ -64,14 +64,16 @@ pprContainers = vcat
 
 pprContainerSpec :: ContainerSpec -> Doc
 pprContainerSpec spec = vcat
-    [ text "image:"   <+> text i
-    , text "expose:"  <+> pprList e
-    , text "command:" <+> text c
+    [ text "image:"        <+> text i
+    , text "expose:"       <+> pprList e
+    , text "command:"      <+> text c
+    , text "useDatabase:" <+> text d
     ]
   where
     i = spec ^. image
     e = spec ^. expose . non []
     c = spec ^. command . non ""
+    d = spec ^. useDatabase . non "" . to T.unpack
 
 
 pprDatabases :: [(Text, DatabaseSpec)] -> Doc
@@ -82,9 +84,9 @@ pprDatabases = vcat
 
 pprDatabaseSpec :: DatabaseSpec -> Doc
 pprDatabaseSpec spec = vcat
-    [ text "migrations:"   <+> text m
-    , text "dbUser:"       <+> text u
-    , text "dbExtensions:" <+> pprList e
+    [ text "migrations:" <+> text m
+    , text "user:"       <+> text u
+    , text "extensions:" <+> pprList e
     ]
   where
     m = spec ^. migrations . non ""
@@ -102,7 +104,7 @@ pprDomainSpec :: DomainSpec -> Doc
 pprDomainSpec spec = vcat
     [ text "static:"         <+> text s
     , text "proxyContainer:" <+> text pc
-    , text "letsencrypt:"    <+> text le
+    , text "letsEncrypt:"    <+> text le
     ]
   where
     s  = spec ^. static . non ""
