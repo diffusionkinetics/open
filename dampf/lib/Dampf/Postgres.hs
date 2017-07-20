@@ -38,16 +38,16 @@ setupDB = do
     createExtensions
 
 
-backupDB :: (MonadIO m) => Maybe Text -> DampfT m ()
+backupDB :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
 backupDB mdb = do
-    ss <- view (config . databaseServers)
+    ms <- view (config . databaseServer)
     ds <- view (app . databases)
 
-    iforM_ ss $ \_ cfg ->
-        iforM_ ds $ \name spec ->
+    case ms of
+        Just s  -> iforM_ ds $ \name spec ->
             when (maybe True (== name) mdb) $ do
                 let fileName = "backup_" ++ T.unpack name ++ ".sqlc"
-                let passwd   = lookupPassword (spec ^. user) cfg
+                let passwd   = lookupPassword (spec ^. user) s
                 let envs     = [("PGDATABASE", T.unpack name)
                                 , ("PGUSER", spec ^. user)
                                 , ("PGPASSWORD", passwd)
@@ -57,5 +57,7 @@ backupDB mdb = do
 
                 runProcess_ cmd
 
+        Nothing -> throwM NoDatabaseServer
+            
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump
 

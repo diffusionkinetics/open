@@ -47,6 +47,8 @@ import Dampf.Internal.Yaml
 data DampfException
     = BadAppFile FilePath String
     | BadConfigFile FilePath String
+    | NoDatabaseServer
+    | NoMigrations
     | InvalidDatabase Text
     deriving (Eq, Show, Typeable)
 

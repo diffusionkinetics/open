@@ -16,6 +16,7 @@ import           Control.Monad              (forM)
 import           Data.Aeson
 import qualified Data.HashMap.Lazy as HM
 import           Data.Map.Strict            (Map)
+import qualified Data.Map.Strict as Map
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
@@ -40,30 +41,32 @@ instance FromJSON PostgresConfig where
 
 data DampfConfig = DC
     { _liveCertificate  :: Maybe FilePath
-    , _databaseServers  :: Map Text PostgresConfig
+    , _databaseServer   :: Maybe PostgresConfig
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DampfConfig
 
 
-instance Monoid DampfConfig where
-    mempty = DC mempty mempty
-
-
-    mappend (DC l d) (DC l' d') = DC (mappend l l') (mappend d d')
-
-
 instance FromJSON DampfConfig where
-    parseJSON = withObject "Configuration File" $ \m ->
-        fmap mconcat $ forM (HM.toList m) $ \(k, v) ->
+    parseJSON = withObject "Configuration File" $ \o -> DC
+        <$> o .:? "liveCertificate"
+        <*> o .:? "postgres"
+
+
+data DampfProfiles = DP
+    { _profiles :: Map Text DampfConfig
+    } deriving (Eq, Show, Generic)
+
+makeClassy ''DampfProfiles
+
+
+instance FromJSON DampfProfiles where
+    parseJSON = withObject "Configuration File" $ \o ->
+        fmap (DP . Map.fromList) $ forM (HM.toList o) $ \(k, v) ->
             case T.words k of
-                ["liveCertificate"] -> do
-                    path <- parseJSON v
-                    return $ (liveCertificate .~ path) mempty
+                ["profile", name] -> do
+                    cfg <- parseJSON v
+                    return (name, cfg)
 
-                ["postgres", name]  -> do
-                    spec <- parseJSON v
-                    return $ (databaseServers . at name ?~ spec) mempty
-
-                _                   -> fail "Invalid configuration type"
+                _                 -> fail "Invalid profile specification"
 

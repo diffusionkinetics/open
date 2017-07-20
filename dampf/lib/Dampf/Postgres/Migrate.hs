@@ -5,7 +5,7 @@ module Dampf.Postgres.Migrate where
 import Control.Arrow              ((&&&))
 import Control.Lens
 import Control.Monad              (forM_, unless, void, when)
-import Control.Monad.Catch        (MonadThrow)
+import Control.Monad.Catch        (MonadThrow, throwM)
 import Control.Monad.IO.Class     (MonadIO, liftIO)
 import Data.Char                  (isDigit)
 import Data.List                  (isSuffixOf, sort)
@@ -29,35 +29,37 @@ newMigration mig spec = case spec ^. migrations of
         writeFile f ""
         putStrLn f
 
-    Nothing -> error "Database does not have a migrations directory"
+    Nothing -> throwM NoMigrations
 
 
 migrate :: (MonadIO m, MonadThrow m) => Text -> DatabaseSpec -> DampfT m ()
 migrate name spec = case spec ^. migrations of
     Just m  -> do
-        ss     <- view (config . databaseServers)
+        ms     <- view (config . databaseServer)
         exists <- liftIO $ doesDirectoryExist m
 
-        when exists $ do
-            ms <- liftIO $ getMigrations m
+        case ms of
+            Just _  -> when exists $ do
+                migs <- liftIO $ getMigrations m
 
-            unless (null ms) . iforM_ ss $ \server _ -> do
-                conn <- createConn server name spec
-                done <- liftIO $ getAppliedMigrations conn
+                unless (null migs) $ do
+                    conn <- createConn name spec
+                    done <- liftIO $ getAppliedMigrations conn
 
-                let ms' = filter ((`notElem` done) . fst) ms
+                    let migs' = filter ((`notElem` done) . fst) migs
 
-                liftIO . forM_ ms' $ \(t, f) -> do
-                    content <- readFile f
-                    putStrLn $ "Applying migration: " ++ t
+                    liftIO . forM_ migs' $ \(t, f) -> do
+                        content <- readFile f
+                        putStrLn $ "Applying migration: " ++ t
 
-                    let qStr = content
-                            ++ "; INSERT INTO migrations (timestamp) VALUES ('"
-                            ++ t
-                            ++ "')"
+                        let qStr = content
+                                    ++ "; INSERT INTO migrations (timestamp) VALUES ('"
+                                    ++ t
+                                    ++ "')"
 
-                    execute_ conn $ fromString qStr
+                        execute_ conn $ fromString qStr
 
+            Nothing -> throwM NoDatabaseServer
 
     Nothing -> return ()
 

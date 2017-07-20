@@ -21,25 +21,24 @@ lookupPassword name cfg = case cfg ^. users . at (T.pack name) of
 
 
 createSuperUserConn :: (MonadIO m, MonadThrow m)
-    => Text -> Text -> DampfT m Connection
-createSuperUserConn server name = createConn server name spec
+    => Text -> DampfT m Connection
+createSuperUserConn name = createConn name spec
   where
     spec = DatabaseSpec Nothing "postgres" []
 
 
 createConn :: (MonadIO m, MonadThrow m)
-    => Text -> Text -> DatabaseSpec -> DampfT m Connection
-createConn server name spec =
-    view (config . databaseServers . at server) >>= \case
-        Just c  -> liftIO $ connect ConnectInfo
-            { connectHost     = c ^. host
-            , connectUser     = spec ^. user
-            , connectPassword = lookupPassword (spec ^. user) c
-            , connectDatabase = T.unpack name
-            , connectPort     = c ^. port ^. to fromIntegral
-            }
+    => Text -> DatabaseSpec -> DampfT m Connection
+createConn name spec = view (config . databaseServer) >>= \case
+    Just s  -> liftIO $ connect ConnectInfo
+        { connectHost       = s ^. host
+        , connectPort       = s ^. port ^. to fromIntegral
+        , connectUser       = spec ^. user
+        , connectPassword   = lookupPassword (spec ^. user) s
+        , connectDatabase   = T.unpack name
+        }
 
-        Nothing -> throwM $ InvalidDatabase name
+    Nothing -> throwM NoDatabaseServer
 
 
 destroyConn :: (MonadIO m) => Connection -> DampfT m ()

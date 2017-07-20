@@ -4,7 +4,7 @@ module Dampf.Postgres.Setup where
 
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Catch        (MonadThrow)
+import           Control.Monad.Catch        (MonadThrow, throwM)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.List
 import qualified Data.Text as T
@@ -17,13 +17,13 @@ import           Dampf.Types
 
 createUsers :: (MonadIO m, MonadThrow m) => DampfT m ()
 createUsers = do
-    ss <- view (config . databaseServers)
+    ms <- view (config . databaseServer)
     ds <- view (app . databases)
 
-    iforM_ ss $ \server cfg ->
-        iforM_ ds $ \name spec -> do
-            conn <- createSuperUserConn server name
-            let pass = lookupPassword (spec ^. user) cfg
+    case ms of
+        Just s  -> iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn name
+            let pass = lookupPassword (spec ^. user) s
 
             liftIO $ do
                 rls <- query conn "SELECT rolname FROM pg_roles WHERE rolname = ?"
@@ -37,15 +37,17 @@ createUsers = do
 
             destroyConn conn
 
+        Nothing -> throwM NoDatabaseServer
 
+            
 createExtensions :: (MonadIO m, MonadThrow m) => DampfT m ()
 createExtensions = do
-    ss <- view (config . databaseServers)
+    ms <- view (config . databaseServer)
     ds <- view (app . databases)
 
-    iforM_ ss $ \server _ ->
-        iforM_ ds $ \name spec -> do
-            conn <- createSuperUserConn server name
+    case ms of
+        Just _  -> iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn name
             let exts = nub $ spec ^. extensions
 
             liftIO . forM_ exts $ \ext -> void
@@ -53,16 +55,18 @@ createExtensions = do
                     (Only $ Identifier $ T.pack ext)
 
             destroyConn conn
-            
+
+        Nothing -> throwM NoDatabaseServer
+
 
 createDatabases :: (MonadIO m, MonadThrow m) => DampfT m ()
 createDatabases = do
-    ss <- view (config . databaseServers)
+    ms <- view (config . databaseServer)
     ds <- view (app . databases)
 
-    iforM_ ss $ \server _ ->
-        iforM_ ds $ \name spec -> do
-            conn <- createSuperUserConn server name
+    case ms of
+        Just _  -> iforM_ ds $ \name spec -> do
+            conn <- createSuperUserConn name
 
             liftIO $ do
                 dbs  <- query conn
@@ -81,4 +85,6 @@ createDatabases = do
                     _  -> return ()
 
             destroyConn conn
+
+        Nothing -> throwM NoDatabaseServer
 

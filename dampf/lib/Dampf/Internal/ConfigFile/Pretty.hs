@@ -3,10 +3,7 @@ module Dampf.Internal.ConfigFile.Pretty
   ) where
 
 import           Control.Lens
-import           Data.List                          (intersperse)
 import qualified Data.Map.Strict as Map
-import           Data.Text                          (Text)
-import qualified Data.Text as T
 import           Text.PrettyPrint
 
 import           Dampf.Internal.ConfigFile.Types
@@ -18,24 +15,34 @@ pShowDampfConfig = render . hang (text "Config File:") 4 . pprDampfConfig
 
 pprDampfConfig :: DampfConfig -> Doc
 pprDampfConfig cfg = vcat
+    [ pprLiveCertificate l
+    , pprDatabaseServer d
+    ]
+  where
+    l = cfg ^. liveCertificate
+    d = cfg ^. databaseServer
+
+
+pprLiveCertificate :: Maybe FilePath -> Doc
+pprLiveCertificate (Just l) = vcat
     [ text "Live Certificate:"
     , text ""
     , nest 4 (text l)
     , text ""
-    , text "Database Servers:"
+    ]
+
+pprLiveCertificate Nothing  = empty
+
+
+pprDatabaseServer :: Maybe PostgresConfig -> Doc
+pprDatabaseServer (Just s) = vcat
+    [ text "Database Server:"
     , text ""
-    , nest 4 (pprDatabaseServers ds)
+    , nest 4 (pprPostgresConfig s)
     , text ""
     ]
-  where
-    l  = cfg ^. liveCertificate . non ""
-    ds = cfg ^. databaseServers . to Map.toList
 
-
-pprDatabaseServers :: [(Text, PostgresConfig)] -> Doc
-pprDatabaseServers = vcat
-    . intersperse (text "")
-    . fmap (pprConfigs pprPostgresConfig)
+pprDatabaseServer Nothing  = empty
 
 
 pprPostgresConfig :: PostgresConfig -> Doc
@@ -49,10 +56,6 @@ pprPostgresConfig cfg = vcat
     h = cfg ^. host
     p = cfg ^. port
     u = cfg ^. users . to Map.toList
-
-
-pprConfigs :: (a -> Doc) -> (Text, a) -> Doc
-pprConfigs f (n, c) = hang (text (T.unpack n) <> colon) 4 (f c)
 
 
 pprMap :: (Show a) => [(a, a)] -> Doc
