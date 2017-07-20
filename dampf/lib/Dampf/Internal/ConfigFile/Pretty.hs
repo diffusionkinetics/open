@@ -20,7 +20,7 @@ pprDampfConfig cfg = vcat
     ]
   where
     l = cfg ^. liveCertificate
-    d = cfg ^. databaseServer
+    d = cfg ^. postgres
 
 
 pprLiveCertificate :: Maybe FilePath -> Doc

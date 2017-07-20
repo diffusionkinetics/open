@@ -40,7 +40,7 @@ setupDB = do
 
 backupDB :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
 backupDB mdb = do
-    ms <- view (config . databaseServer)
+    ms <- view (config . postgres)
     ds <- view (app . databases)
 
     case ms of

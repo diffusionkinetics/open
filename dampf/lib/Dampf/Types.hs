@@ -108,7 +108,8 @@ loadAppFile mf = liftIO (decodeFile f >>= \case
     f = fromMaybe "dampf.yaml" mf
 
 
-loadConfigFile :: (MonadIO m, MonadCatch m) => Maybe FilePath -> m DampfConfig
+loadConfigFile :: (MonadIO m, MonadCatch m)
+    => Maybe FilePath -> m (Either DampfConfig DampfProfiles)
 loadConfigFile mf = do
     homeCfg <- liftIO $ fmap (</> ".dampfcfg.yaml") getHomeDirectory
     let f = fromMaybe homeCfg mf

@@ -35,7 +35,7 @@ newMigration mig spec = case spec ^. migrations of
 migrate :: (MonadIO m, MonadThrow m) => Text -> DatabaseSpec -> DampfT m ()
 migrate name spec = case spec ^. migrations of
     Just m  -> do
-        ms     <- view (config . databaseServer)
+        ms     <- view (config . postgres)
         exists <- liftIO $ doesDirectoryExist m
 
         case ms of

@@ -17,7 +17,7 @@ import           Dampf.Types
 
 createUsers :: (MonadIO m, MonadThrow m) => DampfT m ()
 createUsers = do
-    ms <- view (config . databaseServer)
+    ms <- view (config . postgres)
     ds <- view (app . databases)
 
     case ms of
@@ -42,7 +42,7 @@ createUsers = do
             
 createExtensions :: (MonadIO m, MonadThrow m) => DampfT m ()
 createExtensions = do
-    ms <- view (config . databaseServer)
+    ms <- view (config . postgres)
     ds <- view (app . databases)
 
     case ms of
@@ -61,7 +61,7 @@ createExtensions = do
 
 createDatabases :: (MonadIO m, MonadThrow m) => DampfT m ()
 createDatabases = do
-    ms <- view (config . databaseServer)
+    ms <- view (config . postgres)
     ds <- view (app . databases)
 
     case ms of

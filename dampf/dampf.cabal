@@ -78,6 +78,7 @@ executable dampf
     build-depends:
         base >=4.7 && <5
       , dampf
+      , lens
       , optparse-applicative
       , text
 

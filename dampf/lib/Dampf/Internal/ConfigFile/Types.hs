@@ -5,7 +5,9 @@
 
 module Dampf.Internal.ConfigFile.Types
   ( -- * Configuration Types
-    DampfConfig(..)
+    DampfProfiles(..)
+  , HasDampfProfiles(..)
+  , DampfConfig(..)
   , HasDampfConfig(..)
   , PostgresConfig(..)
   , HasPostgresConfig(..)
@@ -41,16 +43,14 @@ instance FromJSON PostgresConfig where
 
 data DampfConfig = DC
     { _liveCertificate  :: Maybe FilePath
-    , _databaseServer   :: Maybe PostgresConfig
+    , _postgres         :: Maybe PostgresConfig
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DampfConfig
 
 
 instance FromJSON DampfConfig where
-    parseJSON = withObject "Configuration File" $ \o -> DC
-        <$> o .:? "liveCertificate"
-        <*> o .:? "postgres"
+    parseJSON = gDecode
 
 
 data DampfProfiles = DP

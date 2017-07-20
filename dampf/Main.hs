@@ -1,13 +1,17 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Main where
 
 import           Control.Applicative
+import           Control.Lens
+import           Data.Maybe                     (fromJust)
 import           Data.Semigroup
-import           Data.Text                  (Text)
+import           Data.Text                      (Text)
 import qualified Data.Text as T
-import           Options.Applicative        (Parser)
+import           Options.Applicative            (Parser, ReadM)
 import qualified Options.Applicative as O
+import qualified Options.Applicative.Types as O
 
 import           Dampf
 import           Dampf.Postgres
@@ -26,9 +30,11 @@ main = O.execParser parser >>= run
 
 
 run :: Options -> IO ()
-run (Options af cf cmd) = do
+run (Options af cf p cmd) = do
     a <- loadAppFile af
-    c <- loadConfigFile cf
+    c <- loadConfigFile cf >>= \case
+        Left cfg -> return cfg
+        Right ps -> return (ps ^. profiles . at p . to fromJust)
 
     case cmd of
         Backup db           -> runDampfT a c (backupDB db)
@@ -45,6 +51,7 @@ run (Options af cf cmd) = do
 data Options = Options
     { appFile   :: Maybe FilePath
     , cfgFile   :: Maybe FilePath
+    , profile   :: Text
     , command   :: Command
     } deriving (Show)
 
@@ -62,18 +69,24 @@ data Command
 
 parseOptions :: Parser Options
 parseOptions = Options
-    <$> optional (O.strOption $ mconcat
-            [ O.short 'a'
-            , O.long "appFile"
-            , O.metavar "FILE"
-            , O.help "The file which specifies the application"
-            ])
+    <$> optional (O.strOption $
+           O.short 'a'
+        <> O.long "appFile"
+        <> O.metavar "FILE"
+        <> O.help "The file which specifies the application")
 
     <*> optional (O.strOption $
            O.short 'c'
         <> O.long "configFile"
         <> O.metavar "FILE"
         <> O.help "The file which specifies the configuration")
+
+    <*> O.option readerText
+           (O.short 'p'
+        <> O.long "profile"
+        <> O.metavar "PROFILE"
+        <> O.help "The configuration profile (default: default)"
+        <> O.value "default")
 
     <*> parseCommand
 
@@ -118,16 +131,20 @@ parseCommand = O.subparser $
 
 parseBackup :: Parser Command
 parseBackup = Backup
-    <$> optional (T.pack <$> O.strArgument (O.metavar "DATABASE"))
+    <$> optional (O.argument readerText (O.metavar "DATABASE"))
 
 
 parseNewMigration :: Parser Command
 parseNewMigration = NewMigration
-    <$> fmap T.pack (O.strArgument $ O.metavar "DATABASE")
+    <$> O.argument readerText (O.metavar "DATABASE")
     <*> O.strArgument (O.metavar "NAME")
 
 
 parseRunMigrations :: Parser Command
 parseRunMigrations = RunMigrations
-    <$> optional (T.pack <$> O.strArgument (O.metavar "DATABASE"))
+    <$> optional (O.argument readerText (O.metavar "DATABASE"))
+
+
+readerText :: ReadM Text
+readerText = T.pack <$> O.readerAsk
 

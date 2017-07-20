@@ -29,7 +29,7 @@ createSuperUserConn name = createConn name spec
 
 createConn :: (MonadIO m, MonadThrow m)
     => Text -> DatabaseSpec -> DampfT m Connection
-createConn name spec = view (config . databaseServer) >>= \case
+createConn name spec = view (config . postgres) >>= \case
     Just s  -> liftIO $ connect ConnectInfo
         { connectHost       = s ^. host
         , connectPort       = s ^. port ^. to fromIntegral
