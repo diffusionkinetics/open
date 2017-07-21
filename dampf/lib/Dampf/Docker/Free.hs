@@ -7,7 +7,7 @@ module Dampf.Docker.Free
 
 import           Control.Lens
 import           Control.Monad                  (void)
-import           Control.Monad.Catch            (MonadThrow, throwM)
+import           Control.Monad.Catch            (MonadThrow)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
 import           Control.Monad.Trans.Free       (iterT)
 import           Data.Text                      (Text)
@@ -16,6 +16,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           System.Process.Typed
 
+import           Dampf.Docker.Args
 import           Dampf.Docker.Types
 import           Dampf.Types
 
@@ -39,8 +40,8 @@ interpBuild t i = do
     void $ runProcess process
   where
     process = setStdin closed
-        $ setStdout closed
-        $ setStderr closed
+        . setStdout closed
+        . setStderr closed
         $ proc "docker" ["build", "-t", show t, i]
 
 
@@ -51,49 +52,22 @@ interpRm c = do
     return . TL.toStrict $ TL.decodeUtf8 o
   where
     process = setStdin closed
-        $ setStderr closed
+        . setStderr closed
         $ proc "docker" ["rm", show c]
 
 
 interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
-interpRun name spec = do
-    ms <- view (config . postgres)
-    md <- view (app . databases . at (spec ^. useDatabase . non ""))
+interpRun n spec = do
+    args <- mkRunArgs n spec
+    liftIO . putStrLn $ "Docker: Running "
+        ++ T.unpack n ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
 
-    case ms of
-        Just s  -> do
-            liftIO . putStrLn $ "Docker: Running "
-                ++ T.unpack name ++ " '" ++ cmd ++ "'"
-
-            void . runProcess $ process (concat
-                [args, envs s md, [spec ^. image . to T.unpack], words cmd])
-
-        Nothing -> throwM NoDatabaseServer
+    void . runProcess . process $ toArgs args
   where
-    process as  = setStdin closed
-        $ setStdout closed
-        $ setStderr closed
-        $ proc "docker" as
-
-    cmd         = spec ^. command . non "" . to T.unpack
-    ports       = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
-        (spec ^. expose . non [])
-
-    envs s md   = case md of
-        Just d  ->
-            [ "-e", "PGHOST=" ++ (s ^. host . to T.unpack)
-            , "-e", "PGPORT=" ++ (s ^. port . to show)
-            , "-e", "PGDATABASE=" ++ (spec ^. useDatabase . non "" . to T.unpack)
-            , "-e", "PGUSER=" ++ (d ^. user . to T.unpack)
-            , "-e", "PGPASSWORD=" ++ (s ^. users . at (d ^. user)
-                . non "" . to T.unpack)
-            ]
-
-        Nothing -> []
-
-    args        =
-        ["run", "-d", "--restart=always", "--net=host"
-        , "--name=" ++ T.unpack name] ++ ports
+    process = setStdin closed
+        . setStdout closed
+        . setStderr closed
+        . proc "docker"
 
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
@@ -102,7 +76,7 @@ interpStop c = do
     void $ runProcess process
   where
     process = setStdin closed
-        $ setStdout closed
-        $ setStderr closed
+        . setStdout closed
+        . setStderr closed
         $ proc "docker" ["stop", show c]
 

@@ -23,6 +23,7 @@ library
     exposed-modules:
         Dampf
       , Dampf.Docker
+      , Dampf.Docker.Args
       , Dampf.Docker.Free
       , Dampf.Docker.Types
       , Dampf.Nginx
