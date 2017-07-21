@@ -62,11 +62,11 @@ interpRun name spec = do
 
     case ms of
         Just s  -> do
-            liftIO . putStrLn $
-                "Docker: Running " ++ T.unpack name ++ " '" ++ cmd ++ "'"
+            liftIO . putStrLn $ "Docker: Running "
+                ++ T.unpack name ++ " '" ++ cmd ++ "'"
 
             void . runProcess $ process (concat
-                [args, envs s md, [spec ^. image], words cmd])
+                [args, envs s md, [spec ^. image . to T.unpack], words cmd])
 
         Nothing -> throwM NoDatabaseServer
   where
@@ -75,17 +75,17 @@ interpRun name spec = do
         $ setStderr closed
         $ proc "docker" as
 
-    cmd         = spec ^. command . non ""
+    cmd         = spec ^. command . non "" . to T.unpack
     ports       = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
         (spec ^. expose . non [])
 
     envs s md   = case md of
         Just d  ->
-            [ "-e", "PGHOST=" ++ (s ^. host)
+            [ "-e", "PGHOST=" ++ (s ^. host . to T.unpack)
             , "-e", "PGPORT=" ++ (s ^. port . to show)
             , "-e", "PGDATABASE=" ++ (spec ^. useDatabase . non "" . to T.unpack)
-            , "-e", "PGUSER=" ++ (d ^. user)
-            , "-e", "PGPASSWORD=" ++ (s ^. users . at (d ^. user . to T.pack)
+            , "-e", "PGUSER=" ++ (d ^. user . to T.unpack)
+            , "-e", "PGPASSWORD=" ++ (s ^. users . at (d ^. user)
                 . non "" . to T.unpack)
             ]
 

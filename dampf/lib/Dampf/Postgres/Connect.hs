@@ -14,9 +14,9 @@ import           Database.PostgreSQL.Simple
 import           Dampf.Types
 
 
-lookupPassword :: (HasPostgresConfig c) => String -> c -> String
-lookupPassword name cfg = case cfg ^. users . at (T.pack name) of
-    Nothing -> error $ "no password for user "++ name ++ " in .dampf.cfg"
+lookupPassword :: (HasPostgresConfig c) => Text -> c -> String
+lookupPassword name cfg = case cfg ^. users . at name of
+    Nothing -> error $ "no password for user "++ T.unpack name ++ " in .dampf.cfg"
     Just pw -> T.unpack pw
 
 
@@ -31,9 +31,9 @@ createConn :: (MonadIO m, MonadThrow m)
     => Text -> DatabaseSpec -> DampfT m Connection
 createConn name spec = view (config . postgres) >>= \case
     Just s  -> liftIO $ connect ConnectInfo
-        { connectHost       = s ^. host
-        , connectPort       = s ^. port ^. to fromIntegral
-        , connectUser       = spec ^. user
+        { connectHost       = s ^. host . to T.unpack
+        , connectPort       = s ^. port . to fromIntegral
+        , connectUser       = spec ^. user . to T.unpack
         , connectPassword   = lookupPassword (spec ^. user) s
         , connectDatabase   = T.unpack name
         }

@@ -42,9 +42,9 @@ instance FromJSON ImageSpec where
 
 
 data ContainerSpec = ContainerSpec
-    { _image        :: String
+    { _image        :: Text
     , _expose       :: Maybe [Int]
-    , _command      :: Maybe String
+    , _command      :: Maybe Text
     , _useDatabase  :: Maybe Text
     } deriving (Eq, Show, Generic)
 
@@ -57,8 +57,8 @@ instance FromJSON ContainerSpec where
 
 data DatabaseSpec = DatabaseSpec
     { _migrations   :: Maybe FilePath
-    , _user         :: String
-    , _extensions   :: [String]
+    , _user         :: Text
+    , _extensions   :: [Text]
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DatabaseSpec

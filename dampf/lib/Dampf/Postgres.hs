@@ -49,7 +49,7 @@ backupDB mdb = do
                 let fileName = "backup_" ++ T.unpack name ++ ".sqlc"
                 let passwd   = lookupPassword (spec ^. user) s
                 let envs     = [("PGDATABASE", T.unpack name)
-                                , ("PGUSER", spec ^. user)
+                                , ("PGUSER", T.unpack $ spec ^. user)
                                 , ("PGPASSWORD", passwd)
                                 ]
 

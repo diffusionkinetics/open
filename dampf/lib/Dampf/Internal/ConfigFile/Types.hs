@@ -29,7 +29,7 @@ import           Dampf.Internal.Yaml
 -- Configuration Types
 
 data PostgresConfig = PostgresConfig
-    { _host  :: String
+    { _host  :: Text
     , _port  :: Int
     , _users :: Map Text Text
     } deriving (Eq, Show, Generic)

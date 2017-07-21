@@ -4,6 +4,7 @@ module Dampf.Internal.ConfigFile.Pretty
 
 import           Control.Lens
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 import           Text.PrettyPrint
 
 import           Dampf.Internal.ConfigFile.Types
@@ -53,7 +54,7 @@ pprPostgresConfig cfg = vcat
     , nest 4 (pprMap u)
     ]
   where
-    h = cfg ^. host
+    h = cfg ^. host . to T.unpack
     p = cfg ^. port
     u = cfg ^. users . to Map.toList
 

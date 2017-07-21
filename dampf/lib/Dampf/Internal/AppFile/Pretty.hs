@@ -64,15 +64,15 @@ pprContainers = vcat
 
 pprContainerSpec :: ContainerSpec -> Doc
 pprContainerSpec spec = vcat
-    [ text "image:"        <+> text i
-    , text "expose:"       <+> pprList e
-    , text "command:"      <+> text c
+    [ text "image:"       <+> text i
+    , text "expose:"      <+> pprList e
+    , text "command:"     <+> text c
     , text "useDatabase:" <+> text d
     ]
   where
-    i = spec ^. image
+    i = spec ^. image . to T.unpack
     e = spec ^. expose . non []
-    c = spec ^. command . non ""
+    c = spec ^. command . non "" . to T.unpack
     d = spec ^. useDatabase . non "" . to T.unpack
 
 
@@ -86,11 +86,11 @@ pprDatabaseSpec :: DatabaseSpec -> Doc
 pprDatabaseSpec spec = vcat
     [ text "migrations:" <+> text m
     , text "user:"       <+> text u
-    , text "extensions:" <+> pprList e
+    , text "extensions:" <+> pprTextList e
     ]
   where
     m = spec ^. migrations . non ""
-    u = spec ^. user
+    u = spec ^. user . to T.unpack
     e = spec ^. extensions
 
 
@@ -118,4 +118,8 @@ pprSpecs f (n, s) = hang (text (T.unpack n) <> colon) 4 (f s)
 
 pprList :: (Show a) => [a] -> Doc
 pprList = brackets . hsep . punctuate comma . fmap (text . show)
+
+
+pprTextList :: [Text] -> Doc
+pprTextList = brackets . hsep . punctuate comma . fmap (text . T.unpack)
 

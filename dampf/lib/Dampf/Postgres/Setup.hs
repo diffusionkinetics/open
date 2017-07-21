@@ -31,7 +31,7 @@ createUsers = do
 
                 case rls :: [Only String] of
                     [] -> void $ execute conn "CREATE USER ? WITH PASSWORD ?"
-                        (Identifier $ T.pack $ spec ^. user, pass)
+                        (Identifier $ spec ^. user, pass)
 
                     _  -> return ()
 
@@ -52,7 +52,7 @@ createExtensions = do
 
             liftIO . forM_ exts $ \ext -> void
                 $ execute conn "CREATE EXTENSION IF NOT EXISTS ?"
-                    (Only $ Identifier $ T.pack ext)
+                    (Only $ Identifier ext)
 
             destroyConn conn
 
@@ -80,7 +80,7 @@ createDatabases = do
 
                         void $ execute conn
                             "GRANT ALL PRIVILEGES ON DATABASE ? TO ?"
-                            (Identifier name, Identifier . T.pack $ spec ^. user)
+                            (Identifier name, Identifier $ spec ^. user)
 
                     _  -> return ()
 
