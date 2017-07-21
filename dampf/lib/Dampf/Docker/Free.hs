@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Dampf.Docker.Free
   ( -- * Docker Interpreter
     runDockerT
@@ -5,9 +7,11 @@ module Dampf.Docker.Free
 
 import           Control.Lens
 import           Control.Monad                  (void)
+import           Control.Monad.Catch            (MonadThrow, throwM)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
 import           Control.Monad.Trans.Free       (iterT)
 import           Data.Text                      (Text)
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           System.Process.Typed
@@ -18,11 +22,11 @@ import           Dampf.Types
 
 -- Interpreter
 
-runDockerT :: (MonadIO m) => DockerT (DampfT m) a -> DampfT m a
+runDockerT :: (MonadIO m, MonadThrow m) => DockerT (DampfT m) a -> DampfT m a
 runDockerT = iterT dockerIter
 
 
-dockerIter :: (MonadIO m) => DockerF (DampfT m a) -> DampfT m a
+dockerIter :: (MonadIO m, MonadThrow m) => DockerF (DampfT m a) -> DampfT m a
 dockerIter (Build t i next) = interpBuild t i >> next
 dockerIter (Rm c next)      = interpRm c >>= next
 dockerIter (Run c s next)   = interpRun c s >> next
@@ -51,26 +55,45 @@ interpRm c = do
         $ proc "docker" ["rm", show c]
 
 
-interpRun :: (MonadIO m) => Text -> ContainerSpec -> DampfT m ()
-interpRun c s = do
-    liftIO . putStrLn $ "Docker: Running " ++ show c ++ " '" ++ cmd ++ "'"
-    void $ runProcess process
-  where
-    cmd     = s ^. command . non ""
-    ports   = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
-        (s ^. expose . non [])
+interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
+interpRun name spec = do
+    ms <- view (config . postgres)
+    md <- view (app . databases . at (spec ^. useDatabase . non ""))
 
-    process = setStdin closed
+    case ms of
+        Just s  -> do
+            liftIO . putStrLn $
+                "Docker: Running " ++ T.unpack name ++ " '" ++ cmd ++ "'"
+
+            void . runProcess $ process (concat
+                [args, envs s md, [spec ^. image], words cmd])
+
+        Nothing -> throwM NoDatabaseServer
+  where
+    process as  = setStdin closed
         $ setStdout closed
         $ setStderr closed
-        $ proc "docker" args
+        $ proc "docker" as
 
-    args = concat [
-        [ "run", "-d", "--restart=always", "--net=host", "--name=" ++ show c]
-        , ports
-        , [s ^. image]
-        , words cmd
-        ]
+    cmd         = spec ^. command . non ""
+    ports       = concatMap (\x -> ["-p", show x ++ ":" ++ show x])
+        (spec ^. expose . non [])
+
+    envs s md   = case md of
+        Just d  ->
+            [ "-e", "PGHOST=" ++ (s ^. host)
+            , "-e", "PGPORT=" ++ (s ^. port . to show)
+            , "-e", "PGDATABASE=" ++ (spec ^. useDatabase . non "" . to T.unpack)
+            , "-e", "PGUSER=" ++ (d ^. user)
+            , "-e", "PGPASSWORD=" ++ (s ^. users . at (d ^. user . to T.pack)
+                . non "" . to T.unpack)
+            ]
+
+        Nothing -> []
+
+    args        =
+        ["run", "-d", "--restart=always", "--net=host"
+        , "--name=" ++ T.unpack name] ++ ports
 
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()

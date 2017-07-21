@@ -6,6 +6,7 @@ module Dampf.Docker
 
 import Control.Lens
 import Control.Monad            (void)
+import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO)
 
 import Dampf.Docker.Free
@@ -14,7 +15,7 @@ import Dampf.Types
 
 
 -- TODO: Rename this buildImages?
-buildDocker :: (MonadIO m) => DampfT m ()
+buildDocker :: (MonadIO m, MonadThrow m) => DampfT m ()
 buildDocker = do
     is <- view (app . images)
     runDockerT . iforM_ is $ \n spec ->
@@ -22,7 +23,7 @@ buildDocker = do
 
 
 -- TODO: Rename this deployContainers?
-deployDocker :: (MonadIO m) => DampfT m ()
+deployDocker :: (MonadIO m, MonadThrow m) => DampfT m ()
 deployDocker = do
     cs <- view (app . containers)
     runDockerT . iforM_ cs $ \n spec -> do

@@ -32,22 +32,18 @@ main = O.execParser parser >>= run
 run :: Options -> IO ()
 run (Options af cf p cmd) = do
     a   <- loadAppFile af
-    epc <- loadConfigFile cf
-
-    print epc
-    
-    c   <- case epc of
+    c   <- loadConfigFile cf >>= \case
         Left ps   -> return (ps ^. profiles . at p . to fromJust)
         Right cfg -> return cfg
 
-    case cmd of
-        Backup db           -> runDampfT a c (backupDB db)
-        Build               -> runDampfT a c goBuild
-        Deploy              -> runDampfT a c goDeploy
-        Dump                -> runDampfT a c dump
-        NewMigration db mig -> runDampfT a c (newMigrationCmd db mig)
-        RunMigrations db    -> runDampfT a c (runMigrations db)
-        SetupDatabase       -> runDampfT a c setupDB
+    runDampfT a c $ case cmd of
+        Backup db           -> backupDB db
+        Build               -> goBuild
+        Deploy              -> goDeploy
+        Dump                -> dump
+        NewMigration db mig -> newMigrationCmd db mig
+        RunMigrations db    -> runMigrations db
+        SetupDatabase       -> setupDB
 
 
 -- Command Line Options
