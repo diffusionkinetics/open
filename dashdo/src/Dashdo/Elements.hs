@@ -111,12 +111,17 @@ checkbox text vTrue vFalse f = do
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
 
+resetLink :: SHtml a ()
+resetLink = do
+  a_ [href_ "#", class_"dashdo-resetlink"] "reset"
+
 plotlySelect :: Plotly -> Lens' a Text -> SHtml a ()
 plotlySelect plot f = do
   (val, n) <- freshAndValue
   putFormField (n, lensSetter f)
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
+    resetLink
     input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
 
 plotlySelectMultiple :: Plotly -> Lens' a [Text] -> SHtml a ()
@@ -125,6 +130,7 @@ plotlySelectMultiple plot f = do
   putFormField (n, lensPusher f)
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
+    resetLink
     input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ mkFieldNameMultiple n]
     forM_ (val ^. f) $ \(v) ->
       input_ [type_ "hidden", fieldNameMultiple n, value_ v]

@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Mode" . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Scatter3D | Bar | Mesh3D deriving Show
+data TraceType = Scatter | Scatter3D | Bar | Mesh3D | Pie deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -95,10 +95,18 @@ instance ToJSON a => ToJSON (ListOrElem a) where
   toJSON (List xs) = toJSON xs
   toJSON (All x) = toJSON x
 
+data Sizemode = Diameter | Area deriving (Show, Eq)
+
+instance ToJSON Sizemode where
+  toJSON = toJSON . map toLower . show
+
 -- | Marker specification
 data Marker = Marker
   { _size :: Maybe (ListOrElem Value)
+  , _sizeref :: Maybe Value
+  , _sizeMode :: Maybe Sizemode
   , _markercolor :: Maybe (ListOrElem Value)
+  , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
   , _symbol :: Maybe Symbol
   , _opacity :: Maybe Double
   } deriving (Generic, Eq)
@@ -110,7 +118,7 @@ instance ToJSON Marker where
 
 -- | default marker specification
 defMarker :: Marker
-defMarker  = Marker Nothing Nothing Nothing Nothing
+defMarker  = Marker Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 
 -- | Dash type specification
@@ -176,6 +184,9 @@ data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
   , _y :: Maybe [Value] -- ^ y values, as numbers
   , _z :: Maybe [Value] -- ^ z values, as numbers
+  , _values :: Maybe [Value] -- values for pie chart
+  , _labels :: Maybe [Text] -- labels for pie chart
+  , _hole :: Maybe Value -- pie chart hole property
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
@@ -188,6 +199,7 @@ data Trace = Trace
   , _visible :: Maybe Value
   , _traceshowlegend :: Maybe Bool
   , _legendgroup :: Maybe Text
+  , _customdata :: Maybe [Value]
   , _hoverinfo :: Maybe HoverInfo
   , _hovertext :: Maybe (ListOrElem Text)
   , _hoveron :: Maybe [HoverOn]
@@ -204,7 +216,7 @@ data Trace = Trace
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
@@ -222,14 +234,23 @@ bars = mkTrace Bar
 mesh3d :: Trace
 mesh3d = mkTrace Mesh3D
 
+-- | an empty pie chart
+pie :: Trace
+pie = mkTrace Pie
 
 instance ToJSON Trace where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
     where renamer = dropInitial "trace" . unLens
 
+data AxisType = Log | Date | Category deriving Show
+
+instance ToJSON AxisType where
+  toJSON = toJSON . map toLower . show
+
 -- |Options for axes
 data Axis = Axis
   { _range :: Maybe (Double,Double)
+  , _axistype :: Maybe AxisType
   , _axistitle :: Maybe Text
   , _showgrid :: Maybe Bool
   , _zeroline :: Maybe Bool
@@ -244,7 +265,7 @@ instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
