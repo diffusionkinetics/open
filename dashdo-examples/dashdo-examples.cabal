@@ -59,3 +59,17 @@ executable statview-dashdo
                      , statgrab
                      , lucid-extras
                      , unix
+
+executable gapminder-dashdo
+  main-is: GapminderScatterplot.hs
+  default-language:  Haskell2010
+  hs-source-dirs:    src
+  build-depends:       base >=4.6 && <5
+                     , plotlyhs
+                     , datasets
+                     , lucid
+                     , aeson
+                     , text
+                     , dashdo
+                     , microlens-platform
+                     , lucid-extras

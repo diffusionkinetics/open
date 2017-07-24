@@ -29,7 +29,7 @@ instance FromJSON DatabaseConfig
 createConn :: DatabaseConfig -> IO Connection
 createConn config = do
    catch (createConn' config)
-         (\(_::SomeException) -> do putStrLn "Failed to connect to the database, retrying in 10s ..."
+         (\(e::SomeException) -> do putStrLn $ "Failed to connect to the database, retrying in 10s ... ("++show e++")"
                                     threadDelay $ 10 * 1000 * 1000
                                     createConn' config)
 

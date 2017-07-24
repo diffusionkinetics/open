@@ -40,12 +40,12 @@ wrap hdr h =  doctypehtml_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
+    cdnJqueryJS
     hdr
 
   body_ $ do
     container_ $ form_ [action_ "/", method_ "post", id_ "dashdoform"] $ do
       h
-    cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
@@ -111,14 +111,30 @@ checkbox text vTrue vFalse f = do
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
 
-plotlySelect :: Plotly -> Text -> Lens' a Text -> SHtml a ()
-plotlySelect plot attr f = do
+resetLink :: SHtml a ()
+resetLink = do
+  a_ [href_ "#", class_"dashdo-resetlink"] "reset"
+
+plotlySelect :: Plotly -> Lens' a Text -> SHtml a ()
+plotlySelect plot f = do
   (val, n) <- freshAndValue
   putFormField (n, lensSetter f)
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
+    resetLink
     input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
     input_ [type_ "hidden", class_ "dashdo-plotly-select-attr", value_ attr]
+
+plotlySelectMultiple :: Plotly -> Lens' a [Text] -> SHtml a ()
+plotlySelectMultiple plot f = do
+  (val, n) <- freshAndValue
+  putFormField (n, lensPusher f)
+  div_ [class_ "dashdo-plotly-select"] $ do
+    toHtml plot
+    resetLink
+    input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ mkFieldNameMultiple n]
+    forM_ (val ^. f) $ \(v) ->
+      input_ [type_ "hidden", fieldNameMultiple n, value_ v]
 
 (~>) :: SimpleGetter t b -> (b -> Html ()) -> SHtml t ()
 g ~> f = do

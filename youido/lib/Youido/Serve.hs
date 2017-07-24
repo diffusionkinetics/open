@@ -12,7 +12,11 @@ import Network.Wai.Middleware.HttpAuth
 import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
+import qualified Lucid.Rdash as RD
+
 import Data.Text (Text)
+import Data.Monoid
+
 
 
 import Database.PostgreSQL.Simple
@@ -59,10 +63,42 @@ stdWrapper hdrMore sidebar h = doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
 
+rdashWrapper :: Text -> Html () -> Html () -> Html () -> Html ()
+rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
+  head_ $ do
+    meta_ [charset_ "utf-8"]
+    cdnCSS
+    cdnThemeCSS
+    hdrMore
+  body_ $ do
+    RD.mkIndexPage (RD.mkHead hdTxt) $ RD.mkBody $ do
+      let cw = RD.mkPageContent h
+
+      RD.mkPageWrapperOpen sidebar cw
+    cdnJqueryJS
+    cdnBootstrapJS
+    script_ [src_ "/js/dashdo.js"] ""
+    script_ [src_ "/js/runners/base.js"] ""
+
+rdashSidebar :: Text -> [((Text, Text), Text)] -> Html ()
+rdashSidebar title links = do
+  let mklink :: ((Text, Text),Text) -> Html ()
+      mklink ((title, fa), dest) =
+        a_ [href_ dest] $
+          toHtml title <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
+      sidebar = map mklink links
+      sidebarMain  = a_ [href_ "#"] $ do
+          toHtml title
+          span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
+      sb = RD.mkSidebar sidebarMain (span_ "Dashboards") $ sidebar
+      sbfoot = ""
+  RD.mkSidebarWrapper sb sbfoot
+
+
 mkSidebar :: [(Text, Text)] -> Html ()
 mkSidebar links = ul_ $ mapM_ f links where
   f (title, dest) = li_ $ a_ [href_ dest] $: title
 
 infixl 0 *~
-(*~) :: ToURL a => Text -> a -> (Text, Text)
+(*~) :: ToURL a => b -> a -> (b, Text)
 t *~ x = (t, toURL x)

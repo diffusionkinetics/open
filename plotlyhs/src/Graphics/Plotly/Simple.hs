@@ -28,8 +28,14 @@ linePlot xys    = scatter & x ?~ map (toJSON .fst) xys
 -- |Generate a horizontal bar chart from pairs of text and value.
 hbarChart :: [(Text, Double)] -> Trace
 hbarChart tvs = bars & y ?~ map (toJSON . fst) tvs
-                     & x ?~ map (toJSON .snd) tvs
+                     & x ?~ map (toJSON . snd) tvs
                      & orientation ?~ Horizontal
+
+-- |Generate a horizontal bar chart from pairs of text and value.
+vbarChart :: [(Text, Double)] -> Trace
+vbarChart tvs = bars & x ?~ map (toJSON . fst) tvs
+                     & y ?~ map (toJSON . snd) tvs
+                     & orientation ?~ Vertical
 
 -- |Generate a fan plot with a given width in standard deviations and
 --  (x,(y,sd)) data

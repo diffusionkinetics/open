@@ -1,61 +1,87 @@
-Name:                dampf
-Version:             0.1.0
-Synopsis:            Declarative DevOps for busy developers
-Description:
-                     Declarative DevOps for busy developers
+name:               dampf
+version:            0.1.0
+synopsis:           Declarative DevOps for busy developers
+description:        Declarative DevOps for busy developers
+author:             Tom Nielsen
+maintainer:         tanielsen@gmail.com
+homepage:           https://github.com/diffusionkinetics/open/dampf
+bug-reports:        https://github.com/diffusionkinetics/open/issues
+license:            MIT
+license-file:       LICENSE
 
-License:             MIT
-License-file:        LICENSE
-Author:              Tom Nielsen
-Maintainer:          tanielsen@gmail.com
-build-type:          Simple
-Cabal-Version: 	     >= 1.8
-homepage:            https://github.com/diffusionkinetics/open/dampf
-bug-reports:         https://github.com/diffusionkinetics/open/issues
-category:            Control, Statistics
-Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+build-type:         Simple
+category:           Control, Statistics
+cabal-version: 	    >= 1.8
+tested-with:        GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
 
-
-extra-source-files:
-                   changelog.md
+extra-source-files: changelog.md
 
 
-Library
-   ghc-options:       -Wall -fno-warn-type-defaults
-   hs-source-dirs:    lib
+library
+    hs-source-dirs: lib
 
-   Exposed-modules:
-                   Dampf
-                   Dampf.AppFile
-                   Dampf.ConfigFile
-                   Dampf.Common
-                   Dampf.Docker
-                   Dampf.Nginx
-                   Dampf.Nginx.Config
-                   Dampf.Postgres.Migrate
-                   Dampf.Postgres.Connect
-                   Dampf.Postgres.Setup
-                   Dampf.Postgres
+    exposed-modules:
+        Dampf
+      , Dampf.Docker
+      , Dampf.Docker.Free
+      , Dampf.Docker.Types
+      , Dampf.Nginx
+      , Dampf.Nginx.Config
+      , Dampf.Nginx.Types
+      , Dampf.Postgres
+      , Dampf.Postgres.Migrate
+      , Dampf.Postgres.Connect
+      , Dampf.Postgres.Setup
+      , Dampf.Types
 
+    other-modules:
+        Dampf.Internal.AppFile.Pretty
+      , Dampf.Internal.AppFile.Types
+      , Dampf.Internal.ConfigFile.Pretty
+      , Dampf.Internal.ConfigFile.Types
+      , Dampf.Internal.Docker.Args
+      , Dampf.Internal.Docker.Args.Class
+      , Dampf.Internal.Docker.Args.Run
+      , Dampf.Internal.Env
+      , Dampf.Internal.Yaml
 
-   Build-depends:
-                 base                    >= 4.7
-               , yaml
-               , aeson
-               , unordered-containers
-               , text
-               , time
-               , directory
-               , filepath
-               , process
-               , postgresql-simple
-               , pretty
-               , containers
-               , unix
-               , typed-process
+    ghc-options:
+        -Wall
+        -fwarn-incomplete-patterns
+        -fwarn-missing-signatures
+        -fwarn-overlapping-patterns
+        -fwarn-tabs
+        -fwarn-warnings-deprecations
+
+    build-depends:
+        base >= 4.7 && < 5
+      , aeson
+      , containers
+      , directory
+      , exceptions
+      , filepath
+      , free
+      , lens
+      , mtl
+      , postgresql-simple
+      , pretty
+      , process
+      , text
+      , time
+      , typed-process
+      , unix
+      , unordered-containers
+      , vector
+      , yaml
+
 
 executable dampf
-  main-is: Main.hs
-  build-depends:       base >=4.6 && <5
-                     , optparse-generic
-                     , dampf
+    main-is: Main.hs
+    
+    build-depends:
+        base >=4.7 && <5
+      , dampf
+      , lens
+      , optparse-applicative
+      , text
+

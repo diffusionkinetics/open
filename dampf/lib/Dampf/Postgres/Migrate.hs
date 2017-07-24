@@ -2,61 +2,79 @@
 
 module Dampf.Postgres.Migrate where
 
-import Control.Monad
-
-import Data.List
-import Data.String
+import Control.Arrow              ((&&&))
+import Control.Lens
+import Control.Monad              (forM_, unless, void, when)
+import Control.Monad.Catch        (MonadThrow, throwM)
+import Control.Monad.IO.Class     (MonadIO, liftIO)
+import Data.Char                  (isDigit)
+import Data.List                  (isSuffixOf, sort)
+import Data.String                (fromString)
+import Data.Text                  (Text)
 import Data.Time
+import Database.PostgreSQL.Simple
 import System.Directory
 import System.FilePath
-import Dampf.ConfigFile
-import Dampf.AppFile
+
 import Dampf.Postgres.Connect
-
-import Database.PostgreSQL.Simple
-
-digits :: String
-digits = "0123456789"
-
-migrate :: DampfConfig -> String -> DBSpec -> IO ()
-migrate cfg dbnm dbspec = do
-  let Just migrationsPath = migrations dbspec
-  ex <- doesDirectoryExist migrationsPath
-  when ex $ do
-    fileNames <- getDirectoryContents migrationsPath
-    let possibles = sortBy (\(a,_) (b,_) -> compare a b)
-                    . filter ((".sql" `isSuffixOf`) . snd)
-                    . map (\n -> (takeWhile (`elem` digits) n, migrationsPath </> n))
-                    $ fileNames
-
-    when (not $ null possibles) $ do
-
-      conn   <- createConn dbnm dbspec cfg
-
-      alreadyMigratedTimestamps <- getAlreadyMigratedTimestamps conn
+import Dampf.Types
 
 
-      let toMigrate = filter ((`notElem` alreadyMigratedTimestamps) . fst) possibles
+newMigration :: String -> DatabaseSpec -> IO ()
+newMigration mig spec = case spec ^. migrations of
+    Just m  -> do
+        ts <- formatTime defaultTimeLocale "%Y%m%d%H%M%S" <$> getCurrentTime
+        let f = m </> ts ++ "_" ++ mig ++ ".sql"
 
-      forM_ toMigrate $ \(t,p) -> do
-        content <- readFile p
-        putStrLn $ "Migrating: "++t
-        let qStr = content ++ "; INSERT INTO migrations ( timestamp ) VALUES ('" ++ t ++ "')"
-            q    = fromString qStr
-        execute_ conn q
+        writeFile f ""
+        putStrLn f
 
-getAlreadyMigratedTimestamps :: Connection -> IO [String]
-getAlreadyMigratedTimestamps conn = do
-  _ <- execute_ conn "CREATE TABLE IF NOT EXISTS migrations ( timestamp varchar(15) PRIMARY KEY)"
+    Nothing -> throwM NoMigrations
 
-  rows <- query_ conn "SELECT timestamp FROM migrations"
-  return $ map head rows
 
-newMigration :: String -> DBSpec -> IO ()
-newMigration mignm dbspec = do
-  let Just migrationsPath = migrations dbspec
-  now <- getCurrentTime
-  let ts = formatTime defaultTimeLocale "%Y%m%d%H%M%S" now
-  let fp = migrationsPath </> ts ++ "_" ++ mignm ++ ".sql"
-  writeFile fp ""
-  putStrLn fp
+migrate :: (MonadIO m, MonadThrow m) => Text -> DatabaseSpec -> DampfT m ()
+migrate name spec = case spec ^. migrations of
+    Just m  -> do
+        ms     <- view (config . postgres)
+        exists <- liftIO $ doesDirectoryExist m
+
+        case ms of
+            Just _  -> when exists $ do
+                migs <- liftIO $ getMigrations m
+
+                unless (null migs) $ do
+                    conn <- createConn name spec
+                    done <- liftIO $ getAppliedMigrations conn
+
+                    let migs' = filter ((`notElem` done) . fst) migs
+
+                    liftIO . forM_ migs' $ \(t, f) -> do
+                        content <- readFile f
+                        putStrLn $ "Applying migration: " ++ t
+
+                        let qStr = content
+                                    ++ "; INSERT INTO migrations (timestamp) VALUES ('"
+                                    ++ t
+                                    ++ "')"
+
+                        execute_ conn $ fromString qStr
+
+            Nothing -> throwM NoDatabaseServer
+
+    Nothing -> return ()
+
+
+getAppliedMigrations :: Connection -> IO [String]
+getAppliedMigrations conn = do
+    void $ execute_ conn
+        "CREATE TABLE IF NOT EXISTS migrations (timestamp varchar(15) PRIMARY KEY)"
+
+    rows <- query_ conn "SELECT timestamp FROM migrations"
+    return (fmap head rows)
+
+
+getMigrations :: FilePath -> IO [(String, FilePath)]
+getMigrations d =
+    fmap (takeWhile isDigit &&& (d </>)) . sort . filter (isSuffixOf ".sql")
+        <$> getDirectoryContents d
+

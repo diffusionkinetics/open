@@ -1,46 +1,35 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module Dampf where
 
-import Data.Yaml
+import Control.Lens
+import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.IO.Class   (MonadIO, liftIO)
 
-import Dampf.AppFile
-import Dampf.ConfigFile
 import Dampf.Docker
-import Dampf.Postgres
-import Dampf.Postgres.Setup
 import Dampf.Nginx
-
-dumpYaml :: FilePath -> IO ()
-dumpYaml fp = do
-  Just v <- decodeFile fp
-  print (v::Value)
-
-dumpCfg :: FilePath -> IO ()
-dumpCfg fp = do
-  ev <- decodeFileEither fp
-  case ev of
-    Right (Dampfs v) -> mapM_ print v
-    Left e -> fail $ show e
-  withConfigFile Nothing $ \cfg -> do
-    print cfg
-
-goBuild :: Maybe FilePath -> IO ()
-goBuild mfp = do
-  setupDB mfp
-  withAppFile mfp $ \dampfs -> do
-    withConfigFile Nothing $ \cfg -> do
-      buildDocker dampfs
-      createUsers dampfs cfg
-      createDatabases dampfs cfg
-      createExtensions dampfs cfg
+import Dampf.Postgres
+import Dampf.Types
 
 
+dump :: (MonadIO m) => DampfT m ()
+dump = do
+    a <- view app
+    c <- view config
 
-goDeploy :: Maybe FilePath -> IO ()
-goDeploy mfp = do
-  goBuild mfp
-  withAppFile mfp $ \dampfs -> do
-    withConfigFile Nothing $ \cfg -> do
-      deployDocker dampfs
-      runMigrations mfp Nothing
-      deployDomains cfg dampfs
+    liftIO $ do
+        putStrLn $ pShowDampfApp a
+        putStrLn $ pShowDampfConfig c
+
+
+goBuild :: (MonadIO m, MonadThrow m) => DampfT m ()
+goBuild = do
+    setupDB
+    buildDocker
+
+
+goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
+goDeploy = do
+    goBuild
+    deployDocker
+    runMigrations Nothing
+    deployDomains
+

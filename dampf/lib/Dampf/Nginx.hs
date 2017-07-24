@@ -1,43 +1,48 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Dampf.Nginx where
 
-import Dampf.AppFile
-import Dampf.ConfigFile
-import System.Process
-import Control.Monad
-import System.Exit
-import System.Directory
-import System.FilePath
-import Data.Text (Text)
-import qualified Data.Text as T
+import           Control.Lens
+import           Control.Monad
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Data.Text                  (Text)
 import qualified Data.Text.IO as T
-import Dampf.Nginx.Config
-import System.Posix.Files
+import           System.Directory
+import           System.FilePath
+import           System.Posix.Files
+import           System.Process
 
-deployDomains :: DampfConfig -> Dampfs -> IO ()
-deployDomains cfg (Dampfs dampfs) = do
-  forM_ [(nm,dspec) | Domain nm dspec <- dampfs] $ \(nm,dspec) -> do
-    --move static items
-    case static dspec of
-      Nothing -> return ()
-      Just sdir -> do
-        let dest = "/var/www" </> nm
-        ex <- doesDirectoryExist dest
-        when ex $ removeDirectoryRecursive dest
-        createDirectoryIfMissing True dest
-        system $ "cp -R "++(sdir</>".")++" "++dest
-        return ()
+import           Dampf.Nginx.Config
+import           Dampf.Types
 
-    --create file
-    let fl = domainConfig cfg (T.pack nm) dspec
-    T.writeFile ("/etc/nginx/sites-available"</>nm) fl
 
-    removeIfExists ("/etc/nginx/sites-enabled"</>nm)
-    createSymbolicLink ("/etc/nginx/sites-available"</>nm) ("/etc/nginx/sites-enabled"</>nm)
-    system "service nginx reload"
-    return ()
+deployDomains :: (MonadIO m) => DampfT m ()
+deployDomains = do
+    ds <- view (app . domains)
+    
+    iforM_ ds $ \name spec -> do
+        moveStaticItems name (spec ^. static)
+        fl <- domainConfig name spec
 
-removeIfExists fp = do
-  ex <- doesFileExist fp
-  when ex $ removeFile fp
+        liftIO $ do
+            T.writeFile ("/etc/nginx/sites-available" </> show name) fl
+
+            removePathForcibly ("/etc/nginx/sites-enabled" </> show name)
+            createSymbolicLink ("/etc/nginx-sites-available" </> show name)
+                ("/etc/nginx/sites-enabled" </> show name)
+
+            void $ system "service nginx reload"
+
+
+moveStaticItems :: (MonadIO m) => Text -> Maybe FilePath -> DampfT m ()
+moveStaticItems s (Just src) = liftIO $ do
+    exists <- doesDirectoryExist dest
+    when exists $ removeDirectoryRecursive dest
+
+    createDirectoryIfMissing True dest
+    void . system $ "cp -R " ++ (src </> ".") ++ " " ++ dest
+  where
+    dest = "/var/www" </> show s
+
+moveStaticItems _ Nothing    = return ()
+

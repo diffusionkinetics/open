@@ -2,6 +2,8 @@
 
 module Lucid.Rdash (
     indexPage
+  , mkAlert
+  , mkAlerts
   , mkBody
   , mkHead
   , mkHeaderBar
@@ -14,6 +16,10 @@ module Lucid.Rdash (
   , mkSidebarFooter
   , mkSidebarItem
   , mkSidebarWrapper
+  , mkWidget
+  , mkWidgets
+  , mkWidgetContent
+  , mkWidgetIcon
   , sidebarMain
   , sidebarTitle
   ) where
@@ -260,4 +266,3 @@ loadingTable = mkCol [(LG, 6)] $ do
     loading = div_ [class_ "loading"] $ do
       div_ [class_ "double-bounce1"] (return ())
       div_ [class_ "double-bounce2"] (return ())
-

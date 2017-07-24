@@ -148,7 +148,7 @@ run :: Monad m
     => Youido m
     -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run (Youido [] notFound _ _ _) _ = return $ (toResponse notFound) { code = notFound404  }
+run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
 run (Youido (H f : hs) notFound wrapperf users p) rq = do
   case fromRequest rq of
     Nothing -> run (Youido hs notFound wrapperf users p) rq

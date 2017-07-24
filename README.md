@@ -5,7 +5,7 @@ DiffusionKinetics open source projects
 **NOTE: This project was previously called Filopodia**
 
 This is a mono-repo containing a series of projects, mostly related to
-data science, machine learning and statistics in Haskell
+data science, machine learning and statistics in Haskell.
 
 * [datasets](https://github.com/diffusionkinetics/open/tree/master/datasets) - Classical datasets
 * [plotlyhs](https://github.com/diffusionkinetics/open/tree/master/plotlyhs) - Plotting using plotly.js

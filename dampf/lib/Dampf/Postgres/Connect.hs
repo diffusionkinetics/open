@@ -1,60 +1,46 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Dampf.Postgres.Connect
-  ( createConn
-  , destroyConn
-  , createSuperUserConn
-  , lookupPassword
-  ) where
+module Dampf.Postgres.Connect where
 
-import           Control.Exception
+import           Control.Lens
+import           Control.Monad.Catch        (MonadThrow, throwM)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Data.Text                  (Text)
+import qualified Data.Text as T
+import           Database.PostgreSQL.Simple
 
-import           GHC.Conc
-import Dampf.AppFile
-import Dampf.ConfigFile
-
-import Database.PostgreSQL.Simple
-import qualified Data.Map.Strict as Map
+import           Dampf.Types
 
 
-lookupPassword :: String -> DampfConfig -> String
-lookupPassword nm cfg =
-  case Map.lookup nm $ db_passwords cfg of
-    Nothing -> error $ "no password for user "++nm++" in .dampf.cfg"
-    Just pw -> pw
-
-createConn :: String -> DBSpec -> DampfConfig-> IO Connection
-createConn dbnm dbspec cfg = do
-   catch (createConn' dbnm dbspec cfg)
-         (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
-                                    threadDelay $ 10 * 1000 * 1000
-                                    createConn' dbnm dbspec cfg)
-
-createSuperUserConn :: DampfConfig -> String -> IO Connection
-createSuperUserConn cfg dbnm = do
-   let dbspec = DBSpec { db_user = "postgres",
-                         migrations = Nothing,
-                         db_extensions = []
-                       }
-
-   catch (createConn' dbnm dbspec cfg)
-         (\(_::SomeException) -> do putStrLn "Failed to connecto to database, retrying in 10s.."
-                                    threadDelay $ 10 * 1000 * 1000
-                                    createConn' dbnm dbspec cfg)
+lookupPassword :: (HasPostgresConfig c) => Text -> c -> String
+lookupPassword name cfg = case cfg ^. users . at name of
+    Nothing -> error $ "no password for user "++ T.unpack name ++ " in .dampf.cfg"
+    Just pw -> T.unpack pw
 
 
-createConn' :: String -> DBSpec -> DampfConfig-> IO Connection
-createConn' dbnm dbspec cfg = do
-  let userNm = db_user dbspec
-  connect ConnectInfo
-    { connectHost     = "localhost"
-    , connectUser     = userNm
-    , connectPassword = if userNm == "postgres"
-                          then postgres_password cfg
-                          else lookupPassword (db_user dbspec) cfg
-    , connectDatabase = dbnm
-    , connectPort     = 5432
-    }
+createSuperUserConn :: (MonadIO m, MonadThrow m)
+    => Text -> DampfT m Connection
+createSuperUserConn name = createConn name spec
+  where
+    spec = DatabaseSpec Nothing "postgres" []
 
-destroyConn :: Connection -> IO ()
-destroyConn = close
+
+createConn :: (MonadIO m, MonadThrow m)
+    => Text -> DatabaseSpec -> DampfT m Connection
+createConn name spec = view (config . postgres) >>= \case
+    Just s  -> liftIO $ connect ConnectInfo
+        { connectHost       = s ^. host . to T.unpack
+        , connectPort       = s ^. port . to fromIntegral
+        , connectUser       = spec ^. user . to T.unpack
+        , connectPassword   = lookupPassword (spec ^. user) s
+        , connectDatabase   = T.unpack name
+        }
+
+    Nothing -> throwM NoDatabaseServer
+
+
+destroyConn :: (MonadIO m) => Connection -> DampfT m ()
+destroyConn = liftIO . close
+
