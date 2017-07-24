@@ -23,9 +23,6 @@ library
     exposed-modules:
         Dampf
       , Dampf.Docker
-      , Dampf.Docker.Args
-      , Dampf.Docker.Args.Class
-      , Dampf.Docker.Args.Run
       , Dampf.Docker.Free
       , Dampf.Docker.Types
       , Dampf.Nginx
@@ -42,6 +39,9 @@ library
       , Dampf.Internal.AppFile.Types
       , Dampf.Internal.ConfigFile.Pretty
       , Dampf.Internal.ConfigFile.Types
+      , Dampf.Internal.Docker.Args
+      , Dampf.Internal.Docker.Args.Class
+      , Dampf.Internal.Docker.Args.Run
       , Dampf.Internal.Env
       , Dampf.Internal.Yaml
 

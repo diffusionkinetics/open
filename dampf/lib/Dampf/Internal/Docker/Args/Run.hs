@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
-module Dampf.Docker.Args.Run where
+module Dampf.Internal.Docker.Args.Run where
 
 import           Control.Lens
 import           Control.Monad.Catch        (MonadThrow, throwM)
@@ -12,7 +12,7 @@ import           Data.Monoid
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 
-import           Dampf.Docker.Args.Class
+import           Dampf.Internal.Docker.Args.Class
 import           Dampf.Types
 
 
