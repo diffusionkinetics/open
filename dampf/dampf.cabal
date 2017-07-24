@@ -24,6 +24,8 @@ library
         Dampf
       , Dampf.Docker
       , Dampf.Docker.Args
+      , Dampf.Docker.Args.Class
+      , Dampf.Docker.Args.Run
       , Dampf.Docker.Free
       , Dampf.Docker.Types
       , Dampf.Nginx
