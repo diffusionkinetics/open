@@ -22,24 +22,28 @@ library
 
     exposed-modules:
         Dampf
-      , Dampf.AppFile
-      , Dampf.ConfigFile
       , Dampf.Docker
       , Dampf.Docker.Free
       , Dampf.Docker.Types
       , Dampf.Nginx
       , Dampf.Nginx.Config
+      , Dampf.Nginx.Types
+      , Dampf.Postgres
       , Dampf.Postgres.Migrate
       , Dampf.Postgres.Connect
       , Dampf.Postgres.Setup
-      , Dampf.Postgres
+      , Dampf.Types
 
     other-modules:
         Dampf.Internal.AppFile.Pretty
       , Dampf.Internal.AppFile.Types
       , Dampf.Internal.ConfigFile.Pretty
       , Dampf.Internal.ConfigFile.Types
+      , Dampf.Internal.Docker.Args
+      , Dampf.Internal.Docker.Args.Class
+      , Dampf.Internal.Docker.Args.Run
       , Dampf.Internal.Env
+      , Dampf.Internal.Yaml
 
     ghc-options:
         -Wall
@@ -54,9 +58,11 @@ library
       , aeson
       , containers
       , directory
+      , exceptions
       , filepath
       , free
       , lens
+      , mtl
       , postgresql-simple
       , pretty
       , process
@@ -75,5 +81,7 @@ executable dampf
     build-depends:
         base >=4.7 && <5
       , dampf
-      , optparse-generic
+      , lens
+      , optparse-applicative
+      , text
 
