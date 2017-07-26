@@ -1,4 +1,7 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TypeFamilies       #-}
 
 {-|
 A limited Grammar of Graphics-like interface.
@@ -14,17 +17,15 @@ myTrace = points (aes & x .~ fst
                       & y .~ snd)
                  myPts
 @
-
-
-
 -}
-
 module Graphics.Plotly.GoG where
 
+import           Data.Aeson
+import           Data.Text (Text)
+import           Lens.Micro
+
 import qualified Graphics.Plotly.Base as Plot
-import Data.Text (Text)
-import Lens.Micro
-import Data.Aeson
+
 
 class ToJSON a => AxisValue a
 
@@ -69,40 +70,59 @@ type instance YVal (x,y,c,s) = y
 type instance CVal (x,y,c,s) = c
 type instance SVal (x,y,c,s) = s
 
-data Aes t a = Aes { _x :: (a -> XVal t)
-                   , _y :: (a -> YVal t)
-                   , _color :: Maybe (a -> CVal t)
-                   , _size :: Maybe (a -> SVal t)
-                   }
+data Aes t a = Aes
+    { _x     :: a -> XVal t
+    , _y     :: a -> YVal t
+    , _color :: Maybe (a -> CVal t)
+    , _size  :: Maybe (a -> SVal t)
+    }
+
+
 aes :: Aes ((), (), (), ()) a
 aes = Aes (const ()) (const ()) Nothing Nothing
 
-setx :: AxisValue v => Aes (vx,vy,vc,vs) a -> (a -> v) -> Aes (v, vy, vc, vs) a
-setx (Aes _ fy fc fs) f = (Aes f fy fc fs)
 
-x :: AxisValue v => Lens (Aes (vx,vy, vc, vs) a) (Aes (v,vy, vc, vs) a) (a -> vx) (a -> v)
+setx :: (AxisValue v)
+    => Aes (vx,vy,vc,vs) a -> (a -> v) -> Aes (v, vy, vc, vs) a
+setx (Aes _ fy fc fs) f = Aes f fy fc fs
+
+
+x :: (AxisValue v)
+    => Lens (Aes (vx,vy, vc, vs) a) (Aes (v,vy, vc, vs) a) (a -> vx) (a -> v)
 x = lens _x setx
 
-sety :: AxisValue v => Aes (vx,vy, vc, vs) a -> (a -> v) -> Aes (vx, v, vc, vs) a
-sety (Aes fx _ fc fs) f = (Aes fx f fc fs)
 
-y :: AxisValue v => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,v, vc, vs) a) (a -> vy) (a -> v)
+sety :: (AxisValue v)
+    => Aes (vx,vy, vc, vs) a -> (a -> v) -> Aes (vx, v, vc, vs) a
+sety (Aes fx _ fc fs) f = Aes fx f fc fs
+
+
+y :: (AxisValue v)
+    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,v, vc, vs) a) (a -> vy) (a -> v)
 y = lens _y sety
 
-setcol :: IsColor v => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, v, vs) a
-setcol (Aes fx fy _ fs) f = (Aes fx fy f fs)
 
-color :: IsColor v => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,v,vs) a) (Maybe (a -> vc)) (Maybe (a -> v))
+setcol :: (IsColor v)
+    => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, v, vs) a
+setcol (Aes fx fy _ fs) f = Aes fx fy f fs
+
+
+color :: (IsColor v)
+    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,v,vs) a) (Maybe (a -> vc)) (Maybe (a -> v))
 color = lens _color setcol
 
-setsize :: (AxisValue v, Num v) => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vc, v) a
-setsize (Aes fx fy fc _) f = (Aes fx fy fc f)
 
-size :: (AxisValue v, Num v) => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,vc,v) a) (Maybe (a -> vs)) (Maybe (a -> v))
+setsize :: (AxisValue v, Num v)
+    => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vc, v) a
+setsize (Aes fx fy fc _) = Aes fx fy fc
+
+
+size :: (AxisValue v, Num v)
+    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,vc,v) a) (Maybe (a -> vs)) (Maybe (a -> v))
 size = lens _size setsize
 
 
-points :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t), ToJSON (CVal t), ToJSON (SVal t))
+points :: (AxisValue (XVal t), AxisValue (YVal t), ToJSON (CVal t), ToJSON (SVal t))
        => Aes t a -> [a] -> Plot.Trace
 points a xs =  setSize (_size a) $ setColors (_color a) $ Plot.scatter
                  & Plot.x ?~ map (toJSON . _x a) xs
@@ -115,14 +135,15 @@ points a xs =  setSize (_size a) $ setColors (_color a) $ Plot.scatter
         setSize (Just setS) p
           = p & Plot.marker . non Plot.defMarker . Plot.size ?~ Plot.List (map (toJSON . setS) xs)
 
-line :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t), Num (YVal t))
+line :: (AxisValue (XVal t), AxisValue (YVal t))
        => Aes t a -> [a] -> Plot.Trace
 line a xs = Plot.scatter & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.mode ?~ [Plot.Lines]
 
-hbars :: (AxisValue (XVal t), AxisValue (YVal t), Num (XVal t))
+hbars :: (AxisValue (XVal t), AxisValue (YVal t))
        => Aes t a -> [a] -> Plot.Trace
 hbars a xs = Plot.bars & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.orientation ?~ Plot.Horizontal
+
