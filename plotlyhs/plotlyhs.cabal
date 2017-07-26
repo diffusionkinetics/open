@@ -45,6 +45,7 @@ Library
                , blaze-html
                , blaze-markup
                , text
+               , time
                , bytestring
                , microlens-th
                , microlens
