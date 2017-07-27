@@ -34,8 +34,8 @@ strOpt t = (t,t)
 showOpt :: Show a => a -> (Text, a)
 showOpt x = (pack $ show x, x)
 
-wrap :: SHtml a () -> SHtml a () ->  SHtml a ()
-wrap hdr h =  doctypehtml_ $ do
+wrap :: Monad m => SHtml m () -> SHtml m a -> SHtml m a
+wrap hdr h = undefined {- doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
@@ -49,17 +49,17 @@ wrap hdr h =  doctypehtml_ $ do
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
-
-textInput :: Lens' a Text -> SHtml a ()
-textInput f = do
+-}
+textInput :: Monad m => Lens' a Text -> SHtml m ()
+textInput f = undefined {-do
   n <- fresh
   (_,val,_) <- lift $ get
 
   putFormField (n, lensSetter f)
   input_ [type_ "text", fieldName n, value_ (val ^. f)]
-
-select :: Eq b => [(Text, b)] -> Lens' a b -> SHtml a ()
-select opts f = do
+-}
+select :: (Monad m, Eq b) => [(Text, b)] -> Lens' a b -> SHtml m ()
+select opts f = undefined {-do
   (val,n) <- freshAndValue
   let ft s t = case lookup t opts of
                  Nothing -> s
@@ -70,9 +70,9 @@ select opts f = do
       if val ^. f == optVal
          then option_ [value_ optNm, selected_ ""] $ toHtml optNm
          else option_ [value_ optNm] $ toHtml optNm
-
-numInput :: (Num b, Show b, Read b) => Maybe b -> Maybe b -> Maybe b -> Lens' a b -> SHtml a ()
-numInput mmin mmax mstep f = do
+-}
+numInput :: (Monad m, Num b, Show b, Read b) => Maybe b -> Maybe b -> Maybe b -> Lens' a b -> SHtml m ()
+numInput mmin mmax mstep f = undefined {- do
   (val,n) <- freshAndValue
   let amin = maybe [] ((:[]) . min_ . pack . show) mmin
       amax = maybe [] ((:[]) . max_ . pack . show) mmax
@@ -84,19 +84,19 @@ numInput mmin mmax mstep f = do
   input_ (amin  ++ amax ++ astep ++ [type_ "number",
                                      fieldName n,
                                      value_ (pack . show $ val ^. f) ])
-
-manualSubmit :: SHtml a ()
-manualSubmit = do
+-}
+manualSubmit :: Monad m => SHtml m ()
+manualSubmit = undefined {-do
   input_ [type_ "submit", value_ "Submit"]
   script_ "var manual_submit = true;"
-
-submitPeriodic :: Int -> SHtml a ()
-submitPeriodic delaySecs = do
+-}
+submitPeriodic :: Monad m => Int -> SHtml m ()
+submitPeriodic delaySecs = undefined {- do
   let delayMs = pack $ show $ delaySecs*1000
   input_ [type_ "hidden", class_ "dashdo-periodic-submit", value_ delayMs]
-
-checkbox :: Eq b => Text -> b -> b -> Lens' a b -> SHtml a ()
-checkbox text vTrue vFalse f = do
+-}
+checkbox :: (Monad m, Eq b) => Text -> b -> b -> Lens' a b -> SHtml m ()
+checkbox text vTrue vFalse f = undefined {- do
   (val, n) <- freshAndValue
   let ft s t = case t of
                 "true" -> lensSetter f s vTrue
@@ -110,13 +110,13 @@ checkbox text vTrue vFalse f = do
       toHtml text
   -- if checkbox doesn't supply a value we get this one instead
   input_ [type_ "hidden", fieldName n, value_ "false"]
-
-resetLink :: SHtml a ()
-resetLink = do
+-}
+resetLink :: Monad m => SHtml m ()
+resetLink = undefined {-do
   a_ [href_ "#", class_"dashdo-resetlink"] "reset"
-
-plotlySelect :: Plotly -> Lens' a Text -> SHtml a ()
-plotlySelect plot f = do
+-}
+plotlySelect :: Monad m => Plotly -> Lens' a Text -> SHtml m ()
+plotlySelect plot f = undefined {-do
   (val, n) <- freshAndValue
   putFormField (n, lensSetter f)
   div_ [class_ "dashdo-plotly-select"] $ do
@@ -124,9 +124,9 @@ plotlySelect plot f = do
     resetLink
     input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
     input_ [type_ "hidden", class_ "dashdo-plotly-select-attr", value_ attr]
-
-plotlySelectMultiple :: Plotly -> Lens' a [Text] -> SHtml a ()
-plotlySelectMultiple plot f = do
+-}
+plotlySelectMultiple :: Monad m => Plotly -> Lens' a [Text] -> SHtml m ()
+plotlySelectMultiple plot f = undefined {-do
   (val, n) <- freshAndValue
   putFormField (n, lensPusher f)
   div_ [class_ "dashdo-plotly-select"] $ do
@@ -135,14 +135,15 @@ plotlySelectMultiple plot f = do
     input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ mkFieldNameMultiple n]
     forM_ (val ^. f) $ \(v) ->
       input_ [type_ "hidden", fieldNameMultiple n, value_ v]
+-}
 
-(~>) :: SimpleGetter t b -> (b -> Html ()) -> SHtml t ()
-g ~> f = do
+(~>) :: Monad m => SimpleGetter t b -> (b -> Html ()) -> SHtml m t
+g ~> f = undefined {- do
   (_,v,_) <- lift get
   toHtml $ f $ v ^. g
+-}
+toHtmls :: (Monad m, ToHtml b) => SimpleGetter t b -> SHtml m t
+toHtmls g = undefined -- g ~> toHtml
 
-toHtmls :: ToHtml b => SimpleGetter t b -> SHtml t ()
-toHtmls g = g ~> toHtml
-
-(#>) :: SimpleGetter t b -> SHtml b () -> SHtml t ()
+(#>) :: Monad m => SimpleGetter t b -> SHtml m () -> SHtml m t
 g #> f = undefined
