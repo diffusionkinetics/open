@@ -9,7 +9,7 @@ import Dashdo.FileEmbed
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
 import Network.HTTP.Types (status404)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Trans (liftIO, MonadIO)
 import System.Random
 import qualified Data.List as L
 import qualified Data.UUID as UUID
@@ -19,7 +19,7 @@ import qualified Data.ByteString.Lazy as BLS
 
 import Control.Monad (forM_)
 
-dashdoHandler :: Dashdo a -> IO ([Param] -> ActionM ())
+dashdoHandler :: MonadIO m => Dashdo m a -> m ([Param] -> ActionM ())
 dashdoHandler d = do
   (_, ff) <- dashdoGenOut d (initial d)
   return $ \ps -> do
@@ -36,16 +36,17 @@ dashdoJS = BLS.fromStrict $(embedFile "public/js/dashdo.js")
 dashdoJSrunnerBase :: BLS.ByteString
 dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
 
-runDashdo :: Dashdo a -> IO ()
+runDashdo :: MonadIO m => Dashdo m a -> m ()
 runDashdo d = do
   (iniHtml, _) <- dashdoGenOut d (initial d)
   h <- dashdoHandler d
-  serve iniHtml [("", "", h)]
+  liftIO $ serve iniHtml [("", "", h)]
 
-runRDashdo :: Text -> [RDashdo] -> IO ()
-runRDashdo html ds = do
+runRDashdo :: Monad m => Text -> [RDashdo m] -> IO ()  -- TODO: -> m ()
+runRDashdo html ds = undefined {- do
   handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler d) ds
   serve html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
+  -}
 
 serve :: Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
 serve iniHtml handlers = do
