@@ -18,7 +18,7 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
-sidebarList :: Monad m => [RDashdo] -> [HtmlT m ()]
+sidebarList :: Monad m => [RDashdo m] -> [HtmlT m ()]
 sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-sidebar"] mempty ]
   where 
     sidebarListItem = \rd ->
@@ -26,13 +26,13 @@ sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-side
         (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
 
 -- TODO: remove? (seems like never used)
-dashdo :: RDashdo -> IO (String, TL.Text)
+dashdo :: Monad m => RDashdo m -> m (String, TL.Text)
 dashdo (RDashdo fid _ d) = do
   t <- fst <$> dashdoGenOut d (initial d)
   return (fid, t)
 
-rdash :: [RDashdo] -> Html () -> IO TL.Text
-rdash rdashdos headExtra = do
+rdash :: Monad m => [RDashdo m] -> Html () -> m TL.Text
+rdash rdashdos headExtra = undefined {- do
   return $ renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
@@ -55,7 +55,7 @@ rdash rdashdos headExtra = do
         cdnBootstrapJS
         script_ [src_ "/js/dashdo.js"] ("" :: Text)
         script_ [src_ "/js/runners/rdashdo.js"] ("" :: Text)
-
+-}
 controls :: Monad m => HtmlT m () -> HtmlT m ()
 controls content = do
   div_ [class_ "row"] $
