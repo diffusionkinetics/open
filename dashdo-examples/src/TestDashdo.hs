@@ -30,24 +30,27 @@ makeLenses ''Example
 main = do
   runDashdo theDashdo
 
-theDashdo = Dashdo initv (return . const ()) (example iris)
+theDashdo = Dashdo initv (example iris)
 
-example :: [Iris] -> Example -> () -> SHtml Example ()
-example irisd nm () = wrap plotlyCDN $ do
-  let ptitle = if _isMale nm then "Mr " else "Ms "
-      trace :: Trace
-      trace = points (aes & x .~ (nm ^. xaxis . tagVal)
-                          & y .~ (nm ^. yaxis . tagVal)) irisd
---                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
+example :: [Iris] -> SHtml IO Example
+example irisd nm = do
+  wrap plotlyCDN $ do
+    h2_ "Testing Dashdo m"
+    let
+        ptitle = if _isMale nm then "Mr " else "Ms "
+        trace :: Trace
+        trace = points (aes & x .~ (nm ^. xaxis . tagVal)
+                            & y .~ (nm ^. yaxis . tagVal)) irisd
+    --                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
 
-  h2_ "Testing Dashdo"
-  textInput pname
-  select [("Male", True),("Female", False)] isMale
-  br_ []
-  "Hello "<> ptitle <> (toHtml $ nm ^. pname)
-  select axes xaxis
-  select axes yaxis
-  toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
+    h2_ "Testing Dashdo"
+    textInput pname
+    select [("Male", True),("Female", False)] isMale
+    br_ []
+    "Hello "<> ptitle <> (toHtml $ nm ^. pname)
+    select axes xaxis
+    select axes yaxis
+    toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
 
 axes = [tagOpt "sepal length" sepalLength,
         tagOpt "sepal width" sepalWidth,
