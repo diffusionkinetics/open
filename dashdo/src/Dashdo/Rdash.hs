@@ -2,7 +2,6 @@
 
 module Dashdo.Rdash (rdash, charts, controls) where
 
-import Dashdo
 import Dashdo.Types
 import Lucid
 import Lucid.Bootstrap3
@@ -18,22 +17,22 @@ sidebarMain  = a_ [href_ "#"] $ do
   "Dashdo"
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
-sidebarList :: Monad m => [RDashdo] -> [HtmlT m ()]
+sidebarList :: [RDashdo m] -> [Html ()]
 sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-sidebar"] mempty ]
-  where 
+  where
     sidebarListItem = \rd ->
       a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
         (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
 
 -- TODO: remove? (seems like never used)
-dashdo :: RDashdo -> IO (String, TL.Text)
+{-dashdo :: RDashdo -> IO (String, TL.Text)
 dashdo (RDashdo fid _ d) = do
   t <- fst <$> dashdoGenOut d (initial d)
-  return (fid, t)
+  return (fid, t) -}
 
-rdash :: [RDashdo] -> Html () -> IO TL.Text
+rdash :: [RDashdo m] -> Html () -> TL.Text
 rdash rdashdos headExtra = do
-  return $ renderText $ doctypehtml_ $ do
+  renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
         cdnCSS

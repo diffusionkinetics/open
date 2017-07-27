@@ -12,23 +12,22 @@ import Data.Monoid ((<>))
 type FormField t = (Int, t -> Text -> t)
 type FormFields t = [FormField t]
 
-type SHtml t a = HtmlT (State (Int,t,FormFields t)) a
+type SHtml m t a = HtmlT (StateT (Int,t,FormFields t) m) a
 
-data RDashdo = forall t. RDashdo
+data RDashdo m = forall t. RDashdo
   { rdFid    :: String
   , rdTitle  :: Text
-  , rdDashdo :: Dashdo t }
+  , rdDashdo :: Dashdo m t }
 
-data Dashdo t = forall b. Dashdo
+data Dashdo m t = Dashdo
   { initial :: t
-  , fetch :: t -> IO b
-  , render :: t -> b -> SHtml t () }
+  , render :: SHtml m t () }
 
-runSHtml :: t -> SHtml t () -> (FormFields t, TL.Text)
-runSHtml val shtml =
+runSHtml :: Monad m => t -> SHtml m t () -> m (FormFields t, TL.Text)
+runSHtml val shtml = do
   let stT = renderTextT shtml
-      (t, (_, _, ffs)) = runState stT (0, val, [])
-  in (ffs, t)
+  (t, (_, _, ffs)) <- runStateT stT (0, val, [])
+  return (ffs, t)
 
 mkFieldName :: Int -> Text
 mkFieldName = ((<>) "f") . pack . show
@@ -42,19 +41,19 @@ fieldName = name_ . mkFieldName
 fieldNameMultiple :: Int -> Attribute
 fieldNameMultiple = name_ . mkFieldNameMultiple
 
-fresh :: SHtml a Int
+fresh :: Monad m => SHtml m a Int
 fresh = do
   (n, v, ffs) <- lift $ get
   lift $ put (n+1, v, ffs)
   return n
 
-freshAndValue :: SHtml a (a, Int)
+freshAndValue :: Monad m => SHtml m a (a, Int)
 freshAndValue = do
   (n, v, ffs) <- lift $ get
   lift $ put (n+1, v, ffs)
   return (v, n)
 
-putFormField :: FormField t -> SHtml t ()
+putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
   (n, v, ffs) <- lift $ get
   lift $ put (n, v, ff:ffs)
