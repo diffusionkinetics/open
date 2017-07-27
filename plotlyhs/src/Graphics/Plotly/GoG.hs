@@ -22,6 +22,7 @@ module Graphics.Plotly.GoG where
 
 import           Data.Aeson
 import           Data.Text (Text)
+import           Data.Time
 import           Lens.Micro
 
 import qualified Graphics.Plotly.Base as Plot
@@ -34,6 +35,7 @@ instance AxisValue Float
 instance AxisValue Text
 instance AxisValue String
 instance AxisValue Int
+instance AxisValue Day
 
 data RGB a = RGB a a a
 data RGBA a = RGBA a a a a
