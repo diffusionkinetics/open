@@ -30,7 +30,7 @@ deployDomains = do
 
             T.writeFile ("/etc/nginx/sites-available" </> strName) fl
             removePathForcibly ("/etc/nginx/sites-enabled" </> strName)
-            createSymbolicLink ("/etc/nginx-sites-available" </> strName)
+            createSymbolicLink ("/etc/nginx/sites-available" </> strName)
                 ("/etc/nginx/sites-enabled" </> strName)
 
             void $ system "service nginx reload"
