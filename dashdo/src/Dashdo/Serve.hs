@@ -44,11 +44,8 @@ runDashdo r d = do
   h <- dashdoHandler r d
   serve iniHtml [("", "", h)]
 
-{-runDashdoIO :: MonadIO m => Dashdo m a -> m ()
-runDashdoIO d = do
-  (iniHtml, _) <- dashdoGenOut d (initial d)
-  h <- liftIO $ dashdoHandler id d
-  liftIO $ serve iniHtml [("", "", h)] -}
+runDashdoIO :: Dashdo IO a -> IO ()
+runDashdoIO = runDashdo id
 
 runRDashdo :: Monad m => RunInIO m -> Text -> [RDashdo m] -> IO ()
 runRDashdo r html ds = do
