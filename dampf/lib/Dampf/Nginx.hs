@@ -6,6 +6,7 @@ import           Control.Lens
 import           Control.Monad
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.Text                  (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           System.Directory
 import           System.FilePath
@@ -25,11 +26,12 @@ deployDomains = do
         fl <- domainConfig name spec
 
         liftIO $ do
-            T.writeFile ("/etc/nginx/sites-available" </> show name) fl
+            let strName = T.unpack name
 
-            removePathForcibly ("/etc/nginx/sites-enabled" </> show name)
-            createSymbolicLink ("/etc/nginx-sites-available" </> show name)
-                ("/etc/nginx/sites-enabled" </> show name)
+            T.writeFile ("/etc/nginx/sites-available" </> strName) fl
+            removePathForcibly ("/etc/nginx/sites-enabled" </> strName)
+            createSymbolicLink ("/etc/nginx-sites-available" </> strName)
+                ("/etc/nginx/sites-enabled" </> strName)
 
             void $ system "service nginx reload"
 
@@ -42,7 +44,7 @@ moveStaticItems s (Just src) = liftIO $ do
     createDirectoryIfMissing True dest
     void . system $ "cp -R " ++ (src </> ".") ++ " " ++ dest
   where
-    dest = "/var/www" </> show s
+    dest = "/var/www" </> T.unpack s
 
 moveStaticItems _ Nothing    = return ()
 
