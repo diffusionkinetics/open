@@ -27,44 +27,27 @@ jsonOptions mprefix = defaultOptions { omitNothingFields = True, fieldLabelModif
 echartsCDN :: Monad m => HtmlT m ()
 echartsCDN = script_ [src_ "https://cdnjs.cloudflare.com/ajax/libs/echarts/3.6.2/echarts.js"] ""
 
-data EdgeData = EdgeData {
-    _edgedata_id     :: Text
-  , _edgedata_source :: Text
-  , _edgedata_target :: Text
+-- A link is an edge between two nodes
+data Link = Link {
+  _link_data :: LinkData
 } deriving (Show, Generic)
 
-makeLenses ''EdgeData
+makeLenses ''Link
 
-instance ToJSON EdgeData where
-  toJSON = genericToJSON $ jsonOptions (Just "edgedata_")
+instance ToJSON Link where
+  toJSON = genericToJSON $ jsonOptions (Just "link_")
 
-data Edge = Edge {
-  _edge_data :: EdgeData
+-- A node is called Data in this library
+data Data = Data {
+    _node_name :: Text
+    _node_x    :: Integer
+    _node_y    :: Integer
 } deriving (Show, Generic)
 
-makeLenses ''Edge
+makeLenses ''Data
 
-instance ToJSON Edge where
-  toJSON = genericToJSON $ jsonOptions (Just "edge_")
-
-data NodeData = NodeData {
-    _nodedata_id   :: Text
-  , _nodedata_name :: Text
-} deriving (Show, Generic)
-
-makeLenses ''NodeData
-
-instance ToJSON NodeData where
-  toJSON = genericToJSON $ jsonOptions (Just "nodedata_")
-
-data Node = Node {
-    _node_data :: NodeData
-} deriving (Show, Generic)
-
-makeLenses ''Node
-
-instance ToJSON Node where
-  toJSON = genericToJSON $ jsonOptions (Just "node_")
+instance ToJSON Data where
+  toJSON = genericToJSON $ jsonOptions (Just "data_")
 
 data Layout = Layout {
     _layout_name :: Text
@@ -75,27 +58,13 @@ makeLenses ''Layout
 instance ToJSON Layout where
   toJSON = genericToJSON $ jsonOptions (Just "layout_")
 
-data Style = Style {
-  _style_selector :: Text,
-  _style_style :: [(Text,Text)]
-} deriving (Show, Generic)
-
-makeLenses ''Style
-
-instance ToJSON Style where
-  toJSON = genericToJSON $ jsonOptions (Just "style_")
-
--- runEcharts :: [Node] -> [Edge] -> Layout -> [Style] -> Text -> Text
--- runEcharts nodes edges layout styles element = T.unlines [
---   "",
---   "$(function(){",
---   "var cy = cytoscape({",
---   "  container: document.querySelector('"<>element<>"'),",
---   "  elements: {",
---   "    nodes: " <> (decodeUtf8 $ toStrict $ encode nodes)<>",",
---   "    edges: " <> (decodeUtf8 $ toStrict $ encode edges),
---   "  },",
---   "  layout: " <> (decodeUtf8 $ toStrict $ encode layout)<>",",
---   "  style: " <> (decodeUtf8 $ toStrict $ encode styles),
---   "})})"
---   ]
+runEcharts :: Text -> EchartsOptions -> Text
+runEcharts element options = T.unlines [
+  "",
+  "$(function(){",
+  "// based on prepared DOM, initialize echarts instance ",
+        "var myChart = echarts.init(document.getElementById('"<>element<>"'));",
+        "var option = " <>(decodeUtf8 $ toStrict $ encode options),
+  "     myChart.setOption(option);",
+  " })"
+  ]

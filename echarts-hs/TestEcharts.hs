@@ -20,11 +20,4 @@ testpage =  doctypehtml_ $ do
   body_ $ do
      "Hello World"
      div_ [id_ "cy"] ""
-     script_ $ runEcharts nodes edges (Layout "cose") styles "#cy"
-     style_ "#cy { height: 600px; width: 600px}"
-
-nodes = [Node $ NodeData "a" "foo", Node $ NodeData "b" "bar"]
-
-edges = [Edge $ EdgeData "a1" "a" "b"]
-
-styles = [Style "node" [("color","black"),("content","data(name)")], Style "edge" []]
+     script_ $ runEcharts element options
