@@ -27,9 +27,14 @@ jsonOptions mprefix = defaultOptions { omitNothingFields = True, fieldLabelModif
 echartsCDN :: Monad m => HtmlT m ()
 echartsCDN = script_ [src_ "https://cdnjs.cloudflare.com/ajax/libs/echarts/3.6.2/echarts.js"] ""
 
+
+-- placeholder
+type EchartsOptions = Text
+
 -- A link is an edge between two nodes
 data Link = Link {
-  _link_data :: LinkData
+  _link_source :: Text,
+  _link_target :: Text
 } deriving (Show, Generic)
 
 makeLenses ''Link
@@ -39,9 +44,9 @@ instance ToJSON Link where
 
 -- A node is called Data in this library
 data Data = Data {
-    _node_name :: Text
-    _node_x    :: Integer
-    _node_y    :: Integer
+  _node_name :: Text,
+  _node_x    :: Integer,
+  _node_y    :: Integer
 } deriving (Show, Generic)
 
 makeLenses ''Data
@@ -57,6 +62,8 @@ makeLenses ''Layout
 
 instance ToJSON Layout where
   toJSON = genericToJSON $ jsonOptions (Just "layout_")
+
+
 
 runEcharts :: Text -> EchartsOptions -> Text
 runEcharts element options = T.unlines [
