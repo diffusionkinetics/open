@@ -19,5 +19,11 @@ testpage =  doctypehtml_ $ do
 
   body_ $ do
      "Hello World"
-     div_ [id_ "cy"] ""
-     script_ $ runEcharts element options
+     div_ [style_ "width: 600px; height: 600px", id_ "main"] ""
+     script_ $ runEcharts element "graph" nodes edges
+
+element = "main"
+
+nodes = [Data "node1" 300 300, Data "node2" 800 300]
+
+edges = [Link "node1" "node2"]

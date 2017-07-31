@@ -50,5 +50,5 @@ Test-suite test-echarts
   build-depends:       base >=4.6 && <5
                      , lucid
                      , lucid-extras
-                     , cytoscape
+                     , echarts
                      , text
