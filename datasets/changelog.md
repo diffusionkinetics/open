@@ -1,3 +1,7 @@
+0.2.5
+
+* Old faithful matches R dataset
+
 0.2.4
 
 * Netflix dataset
