@@ -20,10 +20,18 @@ testpage =  doctypehtml_ $ do
   body_ $ do
      "Hello World"
      div_ [style_ "width: 600px; height: 600px", id_ "main"] ""
-     script_ $ runEcharts element "graph" nodes edges
+     script_ $ runEcharts element options
 
 element = "main"
 
-nodes = [Data "node1" 300 300, Data "node2" 800 300]
+options = EchartsOptions defTooltip
+          $ Series "graph" 50 True (NormalLabel $ NormalLabelData (Just True) Nothing)
+            ["circle","arrow"] [4,10] (NormalLabel $ NormalLabelData (Just True) (Just $ TextStyle 20)) (NormalLineStyle $ NormalLineStyleData 2 0 0.9) nodes edges
 
-edges = [Link "node1" "node2"]
+nodes = [Data "node1" 300 300, Data "node2" 800 300,
+         Data "node3" 550 100, Data "node4" 550 500]
+
+edges = [Link "node1" "node2" $ Just $ NormalLineStyle $ NormalLineStyleData 5 0.2 0.5,
+         Link "node2" "node1" $ Just $ NormalLineStyle $ NormalLineStyleData 1 0.2 0.5,
+         Link "node1" "node3" Nothing, Link "node2" "node3" Nothing,
+         Link "node2" "node4" Nothing, Link "node1" "node4" Nothing]
