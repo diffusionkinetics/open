@@ -53,3 +53,6 @@ Test-suite test-echarts
                      , echarts
                      , text
                      , microlens
+                     , datasets
+                     , bytestring
+                     , aeson
