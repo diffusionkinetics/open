@@ -22,7 +22,7 @@ testpage =  doctypehtml_ $ do
      "Hello World"
      div_ [style_ "width: 600px; height: 600px", id_ "simple"] ""
      script_ $ runEcharts s_element s_options
-     div_ [style_ "width: 600px; height: 600px", id_ "pie"] ""
+     div_ [style_ "width: 800px; height: 800px", id_ "pie"] ""
      script_ $ runEcharts p_element p_options
 
 s_element = "simple"
@@ -32,14 +32,14 @@ s_options = mkOptions "simple" s_series
 s_series = [mkGraph & series_symbolSize     ?~ 50
                     & series_roam           ?~ True
                     & series_label          ?~ (
-                        defNormalLabel & label_normal ?~ (
-                            defNormalLabelData & normal_show ?~ True))
+                        defLabel & label_normal ?~ (
+                            defNormalLabel & normal_show ?~ True))
                     -- & series_label . label_normal . normal_show ?~ True
                     & series_edgeSymbol     ?~ ["cirlce","arrow"]
                     & series_edgeSymbolSize ?~ [4,10]
                     & series_edgeLabel      ?~ (
-                        defNormalLabel & label_normal ?~ (
-                            defNormalLabelData & normal_textStyle ?~ TextStyle (Just 20)))
+                        defLabel & label_normal ?~ (
+                            defNormalLabel & normal_textStyle ?~ TextStyle (Just 20)))
                     & series_lineStyle      ?~ (
                         defNormalLineStyle & linestyle_normal ?~ (
                             defNormalLineStyleData & normal_width     ?~ 2
@@ -53,8 +53,8 @@ s_nodes = [Data (Just "node1") Nothing (Just 300) (Just 300),
            Data (Just "node3") Nothing (Just 550) (Just 100),
            Data (Just "node4") Nothing (Just 550) (Just 500)]
 
-s_edges = [Link "node1" "node2" (Just $ NormalLabel $ Just $ NormalLabelData (Just True) Nothing Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 5) (Just 0.2) Nothing),
-           Link "node2" "node1" (Just $ NormalLabel $ Just $ NormalLabelData (Just True) Nothing Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 1) (Just 0.2) Nothing),
+s_edges = [Link "node1" "node2" (Just $ Label (Just $ NormalLabel (Just True) Nothing Nothing) Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 5) (Just 0.2) Nothing),
+           Link "node2" "node1" (Just $ Label (Just $ NormalLabel (Just True) Nothing Nothing) Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 1) (Just 0.2) Nothing),
            Link "node1" "node3" Nothing Nothing, Link "node2" "node3" Nothing Nothing,
            Link "node2" "node4" Nothing Nothing, Link "node1" "node4" Nothing Nothing]
 
@@ -66,13 +66,24 @@ s_edges = [Link "node1" "node2" (Just $ NormalLabel $ Just $ NormalLabelData (Ju
 p_element = "pie"
 
 p_options = mkOptions "pie" p_series
-                            & options_tooltip ?~ (tooltip_trigger ?~ "item")
-                            & options_tooltip ?~ (tooltip_formatter ?~ "{a} <br/>{b}: {c} ({d}%)" )
+                            & options_tooltip ?~ p_tooltip
+                            & options_legend  ?~ p_legend
+      where
+        p_tooltip = defTooltip & tooltip_trigger   ?~ "item"
+                               & tooltip_formatter ?~ "{a} <br/>{b}: {c} ({d}%)"
+        p_legend = defLegend & legend_orient  ?~ Vertical
+                             & legend_data    ?~ map (LegendData) (map (_data_name) p_data)
+                             & legend_x       ?~ XRight
 
 p_series = [mkPie & series_name     ?~ "Pie Chart"
                   & series_radius   ?~ thinRadius
                   & series_data     ?~ p_data
-
+                  & series_label    ?~ (
+                      defLabel & label_normal   ?~ (defNormalLabel & normal_show ?~ False
+                                                                 & normal_position ?~ Center)
+                               & label_emphasis ?~ (defEmphasisLabel & emphasis_show ?~ True
+                                                                     & emphasis_textStyle ?~ TextStyle (Just 30)))
+                 & series_avoidLabelOverlap ?~ False
   ]
 
 p_data = [Data (Just "A") (Just 335) Nothing Nothing,

@@ -44,45 +44,43 @@ instance ToJSON LabelPosition where
   toJSON = toJSON . map toLower . show
 
 -- | Labels can be normal or emphasis (see LineStyle definition)
-data NormalLabelData = NormalLabelData {
+data NormalLabel = NormalLabel {
   _normal_show      :: Maybe Bool,
   _normal_position  :: Maybe LabelPosition,
   _normal_textStyle :: Maybe TextStyle
 } deriving (Show, Generic)
 
-makeLenses ''NormalLabelData
+makeLenses ''NormalLabel
 
-defNormalLabelData :: NormalLabelData
-defNormalLabelData = NormalLabelData Nothing Nothing Nothing
+defNormalLabel :: NormalLabel
+defNormalLabel = NormalLabel Nothing Nothing Nothing
 
-instance ToJSON NormalLabelData where
+instance ToJSON NormalLabel where
   toJSON = genericToJSON $ jsonOptions (Just "normal_")
 
-data EmphasisLabelData = EmphasisLabelData {
+data EmphasisLabel = EmphasisLabel {
   _emphasis_show      :: Maybe Bool,
   _emphasis_position  :: Maybe LabelPosition,
   _emphasis_textStyle :: Maybe TextStyle
 } deriving (Show, Generic)
 
-makeLenses ''EmphasisLabelData
+makeLenses ''EmphasisLabel
 
-defEmphasisLabelData :: EmphasisLabelData
-defEmphasisLabelData = EmphasisLabelData Nothing Nothing Nothing
+defEmphasisLabel :: EmphasisLabel
+defEmphasisLabel = EmphasisLabel Nothing Nothing Nothing
 
-instance ToJSON EmphasisLabelData where
+instance ToJSON EmphasisLabel where
   toJSON = genericToJSON $ jsonOptions (Just "emphasis_")
 
-data Label = NormalLabel { _label_normal :: Maybe NormalLabelData }
-           | EmphasisLabel { _label_emphasis :: Maybe EmphasisLabelData}
+data Label = Label {
+  _label_normal :: Maybe NormalLabel,
+  _label_emphasis :: Maybe EmphasisLabel}
   deriving (Show, Generic)
 
 makeLenses ''Label
 
-defNormalLabel :: Label
-defNormalLabel = NormalLabel $ Just $ defNormalLabelData
-
-defEmphasisLabel :: Label
-defEmphasisLabel = EmphasisLabel $ Just $ defEmphasisLabelData
+defLabel :: Label
+defLabel = Label Nothing Nothing
 
 instance ToJSON Label where
   toJSON = genericToJSON $ jsonOptions (Just "label_")
@@ -182,13 +180,14 @@ data Series = Series {
   _series_data      :: Maybe [Data],          -- nodes
   _series_links     :: Maybe [Link],          -- edges
   -- Pie chart
-  _series_radius    :: Maybe [Text]           -- [inner_radius,outer_radius], default = [0,"75%"]]
+  _series_radius    :: Maybe [Text],           -- [inner_radius,outer_radius], default = [0,"75%"]]
+  _series_avoidLabelOverlap :: Maybe Bool       -- true = labels do not overlap
 } deriving (Show, Generic)
 
 makeLenses ''Series
 
 mkSeries :: SeriesType -> Series
-mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 mkScatter :: Series
 mkScatter = mkSeries Scatter
@@ -241,6 +240,16 @@ data Orientation = Horizontal | Vertical deriving Show
 instance ToJSON Orientation where
   toJSON = toJSON . map toLower .  show
 
+data HorizontalPosition = XLeft | XCenter | XRight deriving (Show, Generic)
+
+instance ToJSON HorizontalPosition where
+  toJSON = toJSON . drop 2 . camelTo2 '_' . show
+
+data VerticalPosition = YTop | YMiddle | YBottom deriving (Show, Generic)
+
+instance ToJSON VerticalPosition where
+  toJSON = toJSON . drop 2 . camelTo2 '_' . show
+
 data LegendData = LegendData {
   _legendData_name :: Maybe Text
 } deriving (Show, Generic)
@@ -253,13 +262,15 @@ instance ToJSON LegendData where
 -- | Legend of graph, enter data names into legend_data
 data Legend = Legend {
   _legend_orient  :: Maybe Orientation,
-  _legend_data    :: Maybe LegendData
+  _legend_x       :: Maybe HorizontalPosition,
+  _legend_y       :: Maybe VerticalPosition,
+  _legend_data    :: Maybe [LegendData]
 } deriving (Show, Generic)
 
 makeLenses ''Legend
 
 defLegend :: Legend
-defLegend = Legend Nothing Nothing
+defLegend = Legend Nothing Nothing Nothing Nothing
 
 instance ToJSON Legend where
   toJSON = genericToJSON $ jsonOptions (Just "legend_")
