@@ -5,6 +5,7 @@ import qualified Data.Text.Lazy.IO as T
 import Lucid
 import Lucid.Bootstrap3
 import Graphics.Echarts
+import Lens.Micro
 
 main :: IO ()
 main = do
@@ -19,19 +20,63 @@ testpage =  doctypehtml_ $ do
 
   body_ $ do
      "Hello World"
-     div_ [style_ "width: 600px; height: 600px", id_ "main"] ""
-     script_ $ runEcharts element options
+     div_ [style_ "width: 600px; height: 600px", id_ "simple"] ""
+     script_ $ runEcharts s_element s_options
+     div_ [style_ "width: 600px; height: 600px", id_ "pie"] ""
+     script_ $ runEcharts p_element p_options
 
-element = "main"
+s_element = "simple"
 
-options = EchartsOptions defTooltip
+s_options = mkOptions "simple" s_series
+
+s_series = [mkGraph & series_symbolSize     ?~ 50
+                    & series_roam           ?~ True
+                    & series_label          ?~ (
+                        defNormalLabel & label_normal ?~ (
+                            defNormalLabelData & normal_show ?~ True))
+                    -- & series_label . label_normal . normal_show ?~ True
+                    & series_edgeSymbol     ?~ ["cirlce","arrow"]
+                    & series_edgeSymbolSize ?~ [4,10]
+                    & series_edgeLabel      ?~ (
+                        defNormalLabel & label_normal ?~ (
+                            defNormalLabelData & normal_textStyle ?~ TextStyle (Just 20)))
+                    & series_lineStyle      ?~ (
+                        defNormalLineStyle & linestyle_normal ?~ (
+                            defNormalLineStyleData & normal_width     ?~ 2
+                                                   & normal_opacity   ?~ 0.9
+                                                   & normal_curveness ?~ 0))
+                    & series_data   ?~ s_nodes
+                    & series_links  ?~ s_edges]
+
+s_nodes = [Data (Just "node1") Nothing (Just 300) (Just 300),
+           Data (Just "node2") Nothing (Just 800) (Just 300),
+           Data (Just "node3") Nothing (Just 550) (Just 100),
+           Data (Just "node4") Nothing (Just 550) (Just 500)]
+
+s_edges = [Link "node1" "node2" (Just $ NormalLabel $ Just $ NormalLabelData (Just True) Nothing Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 5) (Just 0.2) Nothing),
+           Link "node2" "node1" (Just $ NormalLabel $ Just $ NormalLabelData (Just True) Nothing Nothing) (Just $ NormalLineStyle $ Just $ NormalLineStyleData (Just 1) (Just 0.2) Nothing),
+           Link "node1" "node3" Nothing Nothing, Link "node2" "node3" Nothing Nothing,
+           Link "node2" "node4" Nothing Nothing, Link "node1" "node4" Nothing Nothing]
+
+{- options = EchartsOptions defTooltip
           $ Series "graph" 50 True (NormalLabel $ NormalLabelData (Just True) Nothing)
-            ["circle","arrow"] [4,10] (NormalLabel $ NormalLabelData (Just True) (Just $ TextStyle 20)) (NormalLineStyle $ NormalLineStyleData 2 0 0.9) nodes edges
+             ["circle","arrow"] [4,10] (NormalLabel $ NormalLabelData (Just True) (Just $ TextStyle 20)) (NormalLineStyle $ NormalLineStyleData 2 0 0.9) nodes edges
+-}
 
-nodes = [Data "node1" 300 300, Data "node2" 800 300,
-         Data "node3" 550 100, Data "node4" 550 500]
+p_element = "pie"
 
-edges = [Link "node1" "node2" $ Just $ NormalLineStyle $ NormalLineStyleData 5 0.2 0.5,
-         Link "node2" "node1" $ Just $ NormalLineStyle $ NormalLineStyleData 1 0.2 0.5,
-         Link "node1" "node3" Nothing, Link "node2" "node3" Nothing,
-         Link "node2" "node4" Nothing, Link "node1" "node4" Nothing]
+p_options = mkOptions "pie" p_series
+                            & options_tooltip ?~ (tooltip_trigger ?~ "item")
+                            & options_tooltip ?~ (tooltip_formatter ?~ "{a} <br/>{b}: {c} ({d}%)" )
+
+p_series = [mkPie & series_name     ?~ "Pie Chart"
+                  & series_radius   ?~ thinRadius
+                  & series_data     ?~ p_data
+
+  ]
+
+p_data = [Data (Just "A") (Just 335) Nothing Nothing,
+          Data (Just "B") (Just 310) Nothing Nothing,
+          Data (Just "C") (Just 234) Nothing Nothing,
+          Data (Just "D") (Just 135) Nothing Nothing,
+          Data (Just "E") (Just 1548) Nothing Nothing]

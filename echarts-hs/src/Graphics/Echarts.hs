@@ -4,6 +4,7 @@ module Graphics.Echarts where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Char (toLower)
 import Data.List (stripPrefix)
 import Data.Maybe (fromMaybe)
 import Data.Aeson hiding (Series)
@@ -29,7 +30,7 @@ echartsCDN = script_ [src_ "https://cdnjs.cloudflare.com/ajax/libs/echarts/3.6.2
 
 
 data TextStyle = TextStyle {
-  _textStyle_fontSize :: Integer
+  _textStyle_fontSize :: Maybe Integer
 } deriving (Show, Generic)
 
 makeLenses ''TextStyle
@@ -37,32 +38,51 @@ makeLenses ''TextStyle
 instance ToJSON TextStyle where
   toJSON = genericToJSON $ jsonOptions (Just "textStyle_")
 
+data LabelPosition = Outside | Inside | Inner | Center deriving Show
+
+instance ToJSON LabelPosition where
+  toJSON = toJSON . map toLower . show
+
 -- | Labels can be normal or emphasis (see LineStyle definition)
 data NormalLabelData = NormalLabelData {
   _normal_show      :: Maybe Bool,
+  _normal_position  :: Maybe LabelPosition,
   _normal_textStyle :: Maybe TextStyle
 } deriving (Show, Generic)
 
 makeLenses ''NormalLabelData
+
+defNormalLabelData :: NormalLabelData
+defNormalLabelData = NormalLabelData Nothing Nothing Nothing
 
 instance ToJSON NormalLabelData where
   toJSON = genericToJSON $ jsonOptions (Just "normal_")
 
 data EmphasisLabelData = EmphasisLabelData {
   _emphasis_show      :: Maybe Bool,
+  _emphasis_position  :: Maybe LabelPosition,
   _emphasis_textStyle :: Maybe TextStyle
 } deriving (Show, Generic)
 
 makeLenses ''EmphasisLabelData
 
+defEmphasisLabelData :: EmphasisLabelData
+defEmphasisLabelData = EmphasisLabelData Nothing Nothing Nothing
+
 instance ToJSON EmphasisLabelData where
   toJSON = genericToJSON $ jsonOptions (Just "emphasis_")
 
-data Label = NormalLabel { _label_normal :: NormalLabelData }
-           | EmphasisLabel { _label_emphasis :: EmphasisLabelData}
+data Label = NormalLabel { _label_normal :: Maybe NormalLabelData }
+           | EmphasisLabel { _label_emphasis :: Maybe EmphasisLabelData}
   deriving (Show, Generic)
 
 makeLenses ''Label
+
+defNormalLabel :: Label
+defNormalLabel = NormalLabel $ Just $ defNormalLabelData
+
+defEmphasisLabel :: Label
+defEmphasisLabel = EmphasisLabel $ Just $ defEmphasisLabelData
 
 instance ToJSON Label where
   toJSON = genericToJSON $ jsonOptions (Just "label_")
@@ -71,43 +91,56 @@ instance ToJSON Label where
 -- | For line styles, default values are:
 --   width = 1, curveness = 0, opacity = 0.5
 data NormalLineStyleData = NormalLineStyleData {
-  _normal_width     :: Integer,
-  _normal_curveness :: Double,
-  _normal_opacity   :: Double
+  _normal_width     :: Maybe Integer,
+  _normal_curveness :: Maybe Double,
+  _normal_opacity   :: Maybe Double
 } deriving (Show, Generic)
 
 makeLenses ''NormalLineStyleData
+
+defNormalLineStyleData :: NormalLineStyleData
+defNormalLineStyleData = NormalLineStyleData Nothing Nothing Nothing
 
 instance ToJSON NormalLineStyleData where
   toJSON = genericToJSON $ jsonOptions (Just "normal_")
 
 data EmphasisLineStyleData = EmphasisLineStyleData {
-  _emphasis_width     :: Integer,
-  _emphasis_curveness :: Double,
-  _emphasis_opacity   :: Double
+  _emphasis_width     :: Maybe Integer,
+  _emphasis_curveness :: Maybe Double,
+  _emphasis_opacity   :: Maybe Double
 } deriving (Show, Generic)
 
 makeLenses ''EmphasisLineStyleData
+
+defEmphasisLineStyleData :: EmphasisLineStyleData
+defEmphasisLineStyleData = EmphasisLineStyleData Nothing Nothing Nothing
 
 instance ToJSON EmphasisLineStyleData where
   toJSON = genericToJSON $ jsonOptions (Just "emphasis_")
 
 -- | Normal is the style by default, emphasis is the style when
 -- | an object is highlighted (e.g. hovered over)
-data LineStyle = NormalLineStyle { _linestyle_normal :: NormalLineStyleData }
-               | EmphasisLineStyle { _linestyle_emphasis :: EmphasisLineStyleData}
+data LineStyle = NormalLineStyle { _linestyle_normal :: Maybe NormalLineStyleData }
+               | EmphasisLineStyle { _linestyle_emphasis :: Maybe EmphasisLineStyleData}
   deriving (Show, Generic)
 
 makeLenses ''LineStyle
+
+defNormalLineStyle :: LineStyle
+defNormalLineStyle = NormalLineStyle $ Just $ defNormalLineStyleData
+
+defEmphasisLineStyle :: LineStyle
+defEmphasisLineStyle = EmphasisLineStyle $ Just $ defEmphasisLineStyleData
 
 instance ToJSON LineStyle where
   toJSON = genericToJSON $ jsonOptions (Just "linestyle_")
 
 -- | A node is called Data in this library
 data Data = Data {
-  _data_name :: Text,
-  _data_x    :: Integer,
-  _data_y    :: Integer
+  _data_name  :: Maybe Text,
+  _data_value :: Maybe Integer,   -- for pie charts
+  _data_x     :: Maybe Integer,   -- x and y for node and edge graph
+  _data_y     :: Maybe Integer
 } deriving (Show, Generic)
 
 makeLenses ''Data
@@ -119,6 +152,7 @@ instance ToJSON Data where
 data Link = Link {
   _link_source    :: Text,
   _link_target    :: Text,
+  _link_label     :: Maybe Label,
   _link_lineStyle :: Maybe LineStyle
 } deriving (Show, Generic)
 
@@ -127,25 +161,67 @@ makeLenses ''Link
 instance ToJSON Link where
   toJSON = genericToJSON $ jsonOptions (Just "link_")
 
+
+-- | The type of graph, Graph is for a node and edges graph
+data SeriesType = Graph | Pie | Scatter deriving Show
+
+instance ToJSON SeriesType where
+  toJSON = toJSON . map toLower . show
+
 -- | A Series is the component of the plot
 data Series = Series {
-  _series_type             :: Text,
-  _symbolSize       :: Integer,         -- size of nodes
-  _roam             :: Bool,            -- roam=true allows zooming and scaling
-  _series_label     :: Label,           -- global specifications for labels (for nodes)
-  _edgeSymbol       :: [Text],          -- symbol for each ends in the format [source,target]
-  _edgeSymbolSize   :: [Integer],       -- size of edge symbols, same format
-  _edgeLabel        :: Label,           -- global specifications for edge labels
-  _series_lineStyle :: LineStyle,        -- global specifications for edge style
-  _series_data             :: [Data],          -- nodes
-  _series_links            :: [Link]          -- edges
+  _series_name      :: Maybe Text,
+  _series_type      :: SeriesType,      -- type of graph (pie, scatter, graph)
+  _series_symbolSize       :: Maybe Integer,         -- size of nodes
+  _series_roam             :: Maybe Bool,            -- roam=true allows zooming and scaling
+  _series_label     :: Maybe Label,           -- global specifications for labels (for nodes)
+  _series_edgeSymbol       :: Maybe [Text],          -- symbol for each ends in the format [source,target]
+  _series_edgeSymbolSize   :: Maybe [Integer],       -- size of edge symbols, same format
+  _series_edgeLabel        :: Maybe Label,           -- global specifications for edge labels
+  _series_lineStyle :: Maybe LineStyle,        -- global specifications for edge style
+  _series_data      :: Maybe [Data],          -- nodes
+  _series_links     :: Maybe [Link],          -- edges
+  -- Pie chart
+  _series_radius    :: Maybe [Text]           -- [inner_radius,outer_radius], default = [0,"75%"]]
 } deriving (Show, Generic)
 
 makeLenses ''Series
 
+mkSeries :: SeriesType -> Series
+mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
+mkScatter :: Series
+mkScatter = mkSeries Scatter
+
+mkPie :: Series
+mkPie = mkSeries Pie
+
+mkGraph :: Series
+mkGraph = mkSeries Graph
+
 instance ToJSON Series where
   toJSON = genericToJSON $ jsonOptions (Just "series_")
 
+-- good values for radii
+defRadius, thinRadius, thickRadius :: [Text]
+defRadius   = ["0%","75%"]
+thinRadius  = ["50%","70%"]
+thickRadius = ["20%","70%"]
+
+
+data Title = Title {
+  _title_text :: Text
+} deriving (Show, Generic)
+
+makeLenses ''Title
+
+instance ToJSON Title where
+  toJSON = genericToJSON $ jsonOptions (Just "title_")
+
+
+-- | Tooltip that displays when an object is hovered over.
+--   full documentation for formatter can be found at:
+--   https://ecomfe.github.io/echarts-doc/public/en/option.html#series-pie.tooltip.formatter
 data Tooltip = Tooltip {
   _tooltip_trigger   :: Maybe Text,
   _tooltip_formatter :: Maybe Text
@@ -153,21 +229,55 @@ data Tooltip = Tooltip {
 
 makeLenses ''Tooltip
 
+defTooltip :: Tooltip
+defTooltip = Tooltip Nothing Nothing
+
 instance ToJSON Tooltip where
   toJSON = genericToJSON $ jsonOptions (Just "tooltip_")
 
-defTooltip :: Tooltip
-defTooltip = Tooltip (Just "item") Nothing
+
+data Orientation = Horizontal | Vertical deriving Show
+
+instance ToJSON Orientation where
+  toJSON = toJSON . map toLower .  show
+
+data LegendData = LegendData {
+  _legendData_name :: Maybe Text
+} deriving (Show, Generic)
+
+makeLenses ''LegendData
+
+instance ToJSON LegendData where
+  toJSON = genericToJSON $ jsonOptions (Just "legendData_")
+
+-- | Legend of graph, enter data names into legend_data
+data Legend = Legend {
+  _legend_orient  :: Maybe Orientation,
+  _legend_data    :: Maybe LegendData
+} deriving (Show, Generic)
+
+makeLenses ''Legend
+
+defLegend :: Legend
+defLegend = Legend Nothing Nothing
+
+instance ToJSON Legend where
+  toJSON = genericToJSON $ jsonOptions (Just "legend_")
 
 data EchartsOptions = EchartsOptions {
-  options_tooltip :: Tooltip,
-  options_series  :: Series
+  _options_title   :: Title,
+  _options_tooltip :: Maybe Tooltip,
+  _options_series  :: [Series],
+  _options_legend  :: Maybe Legend
 } deriving (Show, Generic)
 
 makeLenses ''EchartsOptions
 
 instance ToJSON EchartsOptions where
   toJSON = genericToJSON $ jsonOptions (Just "options_")
+
+mkOptions :: Text -> [Series] -> EchartsOptions
+mkOptions title series = EchartsOptions (Title title) (Just defTooltip) series (Just defLegend)
 
 runEcharts :: Text -> EchartsOptions -> Text
 runEcharts element options = T.unlines [

@@ -52,3 +52,4 @@ Test-suite test-echarts
                      , lucid-extras
                      , echarts
                      , text
+                     , microlens
