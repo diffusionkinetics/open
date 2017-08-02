@@ -37,13 +37,8 @@ resolver: lts-8.5
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
-- location:
-    git: https://github.com/diffusionkinetics/open.git
-    commit: 2f7d1d90e3068d863f87c64e60a55dc60a2e2b85
-  extra-dep: true
-  subdirs:
-  - lucid-extras
-  - datasets
+- ../lucid-extras
+- ../datasets
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
