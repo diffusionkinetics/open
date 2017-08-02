@@ -142,8 +142,8 @@ data DataValue = PieValue Double
 makeLenses ''DataValue
 
 instance ToJSON DataValue where
-  toJSON (PieValue x) = toJSON . map toLower . dropInitial "Pie" $ show x
-  toJSON (ScatterValue xs) = toJSON . map toLower . dropInitial "Scatter" $ show xs
+  toJSON (PieValue x) = toJSON x
+  toJSON (ScatterValue xs) = toJSON xs
 
 -- | A node is called Data in this library
 data Data = Data {
