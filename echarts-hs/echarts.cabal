@@ -1,0 +1,58 @@
+Name:                echarts
+Version:             0.2
+Synopsis:            Haskell bindings to Echarts.js
+Description:
+            Generate web-based plots with the Echarts.js library.
+
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen, Jason Chan
+Maintainer:          tanielsen@gmail.com
+build-type:          Simple
+Cabal-Version: 	     >= 1.10
+homepage:            https://github.com/diffusionkinetics/open/echarts
+bug-reports:         https://github.com/diffusionkinetics/open/echarts/issues
+category:            Graphics, Charts
+Tested-With:         GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+
+
+extra-source-files:
+                   changelog.md
+
+
+Library
+   ghc-options:       -Wall -fno-warn-type-defaults
+   hs-source-dirs:    src
+   default-language:  Haskell2010
+
+
+   Exposed-modules:
+                   Graphics.Echarts
+
+   Build-depends:
+                 base                    >= 4.6 && <5
+               , aeson
+               , lucid
+               , lucid-extras
+               , blaze-html
+               , blaze-markup
+               , text
+               , bytestring
+               , microlens-th
+               , microlens
+
+Test-suite test-echarts
+  type:       exitcode-stdio-1.0
+  default-language:  Haskell2010
+
+  main-is: TestEcharts.hs
+  build-depends:       base >=4.6 && <5
+                     , lucid
+                     , lucid-extras
+                     , echarts
+                     , text
+                     , microlens
+                     , datasets
+                     , bytestring
+                     , aeson
