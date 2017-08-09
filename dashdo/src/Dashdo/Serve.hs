@@ -37,21 +37,24 @@ dashdoJSrunnerBase :: BLS.ByteString
 dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
 
 runDashdo :: Dashdo a -> IO ()
-runDashdo d = do
+runDashdo = runDashdoPort 3000
+
+runDashdoPort :: Int -> Dashdo a -> IO ()
+runDashdoPort prt d = do
   (iniHtml, _) <- dashdoGenOut d (initial d)
   h <- dashdoHandler d
-  serve iniHtml [("", "", h)]
+  serve prt iniHtml [("", "", h)]
 
 runRDashdo :: Text -> [RDashdo] -> IO ()
 runRDashdo html ds = do
   handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler d) ds
-  serve html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
+  serve 3000 html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
 
-serve :: Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
-serve iniHtml handlers = do
+serve :: Int -> Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
+serve port iniHtml handlers = do
   uuid <- getRandomUUID
   -- this is obviously incorrect (if the form fields change dynamically)
-  scotty 3000 $ do
+  scotty port $ do
     middleware logStdout
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
