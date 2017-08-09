@@ -26,6 +26,7 @@ executable test-dashdo
                      , text
                      , dashdo
                      , microlens-platform
+                     , mtl
 
 executable iris-kmeans-dashdo
   main-is: IrisKMeans.hs
