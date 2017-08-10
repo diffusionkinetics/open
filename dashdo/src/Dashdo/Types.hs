@@ -54,6 +54,11 @@ freshAndValue = do
   lift $ put (n+1, v, ffs)
   return (v, n)
 
+getValue :: SHtml a a
+getValue = do
+  (n, v, ffs) <- lift $ get
+  return v
+
 putFormField :: FormField t -> SHtml t ()
 putFormField ff = do
   (n, v, ffs) <- lift $ get
