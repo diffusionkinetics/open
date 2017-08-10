@@ -26,6 +26,7 @@ executable test-dashdo
                      , text
                      , dashdo
                      , microlens-platform
+                     , mtl
 
 executable iris-kmeans-dashdo
   main-is: IrisKMeans.hs
@@ -59,6 +60,7 @@ executable statview-dashdo
                      , statgrab
                      , lucid-extras
                      , unix
+                     , mtl
 
 executable gapminder-dashdo
   main-is: GapminderScatterplot.hs
@@ -73,3 +75,4 @@ executable gapminder-dashdo
                      , dashdo
                      , microlens-platform
                      , lucid-extras
+                     , mtl

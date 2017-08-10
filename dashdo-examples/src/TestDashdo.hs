@@ -7,6 +7,7 @@ import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
 import Control.Monad
+import Control.Monad.State.Strict
 import Lucid
 import Data.Monoid ((<>))
 import Data.Text (Text, unpack, pack)
@@ -26,14 +27,13 @@ data Example = Example
 
 makeLenses ''Example
 
+main = runDashdoIO theDashdo
 
-main = do
-  runDashdo theDashdo
+theDashdo = Dashdo initv (example iris)
 
-theDashdo = Dashdo initv (return . const ()) (example iris)
-
-example :: [Iris] -> Example -> () -> SHtml Example ()
-example irisd nm () = wrap plotlyCDN $ do
+example :: [Iris] -> SHtml IO Example ()
+example irisd = wrap plotlyCDN $ do
+  (_, nm, _)  <- lift $ get
   let ptitle = if _isMale nm then "Mr " else "Ms "
       trace :: Trace
       trace = points (aes & x .~ (nm ^. xaxis . tagVal)
@@ -53,7 +53,6 @@ axes = [tagOpt "sepal length" sepalLength,
         tagOpt "sepal width" sepalWidth,
         tagOpt "petal length" petalLength,
         tagOpt "petal width" petalWidth]
-
 
 initv = Example "Simon" True (snd $ axes!!0) (snd $ axes!!1)
 

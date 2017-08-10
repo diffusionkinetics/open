@@ -7,6 +7,7 @@ import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
 import Control.Monad
+import Control.Monad.State.Strict
 import Lucid
 import Lucid.Bootstrap3
 import Lucid.Bootstrap
@@ -41,9 +42,11 @@ irisData
     ~~ [sepalLength, sepalWidth, petalLength, petalWidth])
     iris
 
-main = runDashdo $ pureDashdo ikm0 dashdo
+main = runDashdoIO $ Dashdo ikm0 dashdo
 
-dashdo ikm = wrap plotlyCDN $ do
+dashdo :: SHtml IO IKM ()
+dashdo = wrap plotlyCDN $ do
+    (_, ikm ,_) <- lift $ get
     let ctrs :: [VS.Vector Double]
         ctrs = model $ runIdentity $ runSupervisor (kmeans $ ikm ^. nclusters) Nothing irisData
 
