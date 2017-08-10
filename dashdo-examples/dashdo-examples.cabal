@@ -60,6 +60,7 @@ executable statview-dashdo
                      , statgrab
                      , lucid-extras
                      , unix
+                     , mtl
 
 executable gapminder-dashdo
   main-is: GapminderScatterplot.hs

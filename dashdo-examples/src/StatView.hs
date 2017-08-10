@@ -8,6 +8,7 @@ import Dashdo.Serve
 import Dashdo.Elements
 import Dashdo.Rdash (rdash, charts, controls)
 import Control.Arrow ((&&&), second)
+import Control.Monad.State.Strict
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Lucid
@@ -51,10 +52,11 @@ statGrab mvStats = diskStats >>= forever
            modifyMVar_ mvStats (return . take 60 . (SysStats cpu mem (r-r', w-w'):))
            return (r, w)
 
-loadDashdo mvStats = Dashdo Unused (const (readMVar mvStats)) load
+loadDashdo mvStats = Dashdo Unused (load mvStats)
 
-load :: Unused -> [SysStats] -> SHtml Unused ()
-load _ stats = do
+load :: MVar [SysStats] -> SHtml IO Unused ()
+load mvStats = do
+  stats <- liftIO $ readMVar mvStats
   let theData = zip [1..] stats
       mkLine f = line (aes & x .~ fst & y .~ (f . snd)) theData
       cpuLoad = mkLine statsLoad
@@ -92,10 +94,12 @@ getStats = do
   us <- getAllUserEntries
   return (ps, us)
 
-psDashdo = Dashdo (PsCtl All []) (const getStats) process
+psDashdo = Dashdo (PsCtl All []) process
 
-process :: PsCtl -> ([Process], [UserEntry]) -> SHtml PsCtl ()
-process ctl (ps, us) = do
+process :: SHtml IO PsCtl ()
+process = do
+  (_,ctl,_) <- lift $ get
+  (ps, us) <- liftIO $ getStats
   let userFilter = case L.filter ((`elem` ctl ^. processUsers) . pack . userName) us of
         []  -> const True
         lst -> (`elem` ((fromIntegral . userID) <$> lst)) . procUid
@@ -125,5 +129,5 @@ main = do
   forkIO (statGrab stats)
   let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
                 , RDashdo "process" "Processes" psDashdo ]
-  html <- rdash dashdos plotlyCDN
-  runRDashdo html $ dashdos
+      html = rdash dashdos plotlyCDN
+  runRDashdo id html dashdos
