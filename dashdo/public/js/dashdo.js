@@ -70,15 +70,6 @@
       e.preventDefault()  // no 'native' submitting on ajax versions
     })
 
-    if(!!settings.resetLinkSelector) {
-      $(settings.resetLinkSelector).each(function() {
-        $(this).on('click', function() {
-          $(this).siblings('input[name]').remove()
-          properReSubmit()
-        })
-      })
-    }
-
     var requestHtmlFromServer = function(url, data, onSuccess) {
       $.ajax({
         type: 'POST',
@@ -137,6 +128,15 @@
           }
         }.bind(this)
         restyle()
+
+        if(!!settings.resetLinkSelector) {
+          $(settings.resetLinkSelector).each(function() {
+            $(this).on('click', function() {
+              $(this).siblings('input[name]').remove()
+              properReSubmit()
+            })
+          })
+        }
 
         var currentMultipleFieldName = $(this).siblings(settings.multiselectNamesSelector).val()
         var isMultiple = !!currentMultipleFieldName
