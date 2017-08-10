@@ -39,24 +39,27 @@ dashdoJSrunnerBase :: BLS.ByteString
 dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
 
 runDashdo :: Monad m => RunInIO m -> Dashdo m a -> IO ()
-runDashdo r d = do
+runDashdo = runDashdoPort 3000
+
+runDashdoPort :: Monad m => Int -> RunInIO m -> Dashdo m a -> IO ()
+runDashdoPort prt r d = do
   (iniHtml, _) <- r $ dashdoGenOut d (initial d)
   h <- dashdoHandler r d
-  serve iniHtml [("", "", h)]
+  serve prt iniHtml [("", "", h)]
 
 runDashdoIO :: Dashdo IO a -> IO ()
-runDashdoIO = runDashdo id
+runDashdoIO = runDashdoPort 3000 id
 
 runRDashdo :: Monad m => RunInIO m -> Text -> [RDashdo m] -> IO ()
 runRDashdo r html ds = do
   handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler r d) ds
-  serve html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
+  serve 3000 html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
 
-serve :: Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
-serve iniHtml handlers = do
+serve :: Int -> Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
+serve port iniHtml handlers = do
   uuid <- getRandomUUID
   -- this is obviously incorrect (if the form fields change dynamically)
-  scotty 3000 $ do
+  scotty port $ do
     middleware logStdout
     get "/js/dashdo.js" $ do
       setHeader "Content-Type" "application/javascript"
