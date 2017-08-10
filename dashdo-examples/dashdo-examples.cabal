@@ -75,3 +75,4 @@ executable gapminder-dashdo
                      , dashdo
                      , microlens-platform
                      , lucid-extras
+                     , mtl
