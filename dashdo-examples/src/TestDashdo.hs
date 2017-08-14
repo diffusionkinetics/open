@@ -44,7 +44,7 @@ example irisd = wrap plotlyCDN $ do
   textInput pname
   select [("Male", True),("Female", False)] isMale
   br_ []
-  "Hello "<> ptitle <> (toHtml $ nm ^. pname)
+  "Hello "<> ptitle <> (toHtmls pname)
   select axes xaxis
   select axes yaxis
   toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
