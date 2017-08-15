@@ -11,6 +11,7 @@ import Graphics.Plotly (Plotly)
 import Graphics.Plotly.Lucid
 import Data.Text (Text, unpack, pack)
 import Control.Monad.RWS.Strict
+import Control.Monad.State.Strict
 import Text.Read (readMaybe)
 import Lens.Micro
 import Lens.Micro.TH
@@ -143,5 +144,8 @@ g ~> f = do
 toHtmls :: (ToHtml b, Monad m) => SimpleGetter t b -> SHtml m t ()
 toHtmls g = g ~> toHtml
 
-(#>) :: Monad m => SimpleGetter t b -> SHtml m b () -> SHtml m t ()
-g #> f = undefined
+(#>) :: (Monad m) => Lens' t b -> SHtml m b () -> SHtml m t ()
+g #> r = do
+  (_,v,_) <- lift get
+  (formFs, htmlText) <- (lift . lift) $ runSHtml (v ^. g) r
+  toHtml $ htmlText
