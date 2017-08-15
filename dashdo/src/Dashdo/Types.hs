@@ -44,6 +44,12 @@ freshAndValue = do
   lift $ put (ns, v, ffs)
   return (v, n)
 
+named :: FieldName -> SHtml t a -> SHtml t a
+named nm mx = do
+  (ns, v, ffs) <- lift $ get
+  lift $ put (nm:ns, v, ffs)
+  mx
+
 getValue :: SHtml a a
 getValue = do
   (n, v, ffs) <- lift $ get
