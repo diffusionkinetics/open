@@ -33,20 +33,20 @@ theDashdo = Dashdo initv (example iris)
 
 test :: SHtml IO Bool ()
 test = do
-  (_, b, _)  <- lift $ get
+  b <- getValue
   "The person is male: "
   if b then "true" else "false"
 
 hello :: String -> SHtml IO Text ()
 hello title = do
-  (_, txt, _)  <- lift $ get
   textInput id
   br_ []
+  txt  <- getValue
   "Hello, " <> (toHtml title) <> (toHtml txt) <> "!"
 
 example :: [Iris] -> SHtml IO Example ()
 example irisd = wrap plotlyCDN $ do
-  (_, nm, _)  <- lift $ get
+  nm  <- getValue
   let trace :: Trace
       trace = points (aes & x .~ (nm ^. xaxis . tagVal)
                           & y .~ (nm ^. yaxis . tagVal)) irisd

@@ -98,7 +98,7 @@ psDashdo = Dashdo (PsCtl All []) process
 
 process :: SHtml IO PsCtl ()
 process = do
-  (_,ctl,_) <- lift $ get
+  ctl <- getValue
   (ps, us) <- liftIO $ getStats
   let userFilter = case L.filter ((`elem` ctl ^. processUsers) . pack . userName) us of
         []  -> const True

@@ -147,7 +147,7 @@ yearsBarPlot gms =
 gmRenderer :: [Gapminder] -> SHtml IO GmParams ()
 gmRenderer gms =
   wrap plotlyCDN $ do
-    (_,gmParams,_) <- lift $ get
+    gmParams <- getValue
     let selectedYear = read (unpack $ gmParams ^. selYear) :: Int
         
         yearFilter = filter ((==selectedYear) . year)
