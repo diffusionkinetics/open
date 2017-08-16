@@ -22,6 +22,9 @@ module Lucid.Rdash (
   , mkWidgetIcon
   , sidebarMain
   , sidebarTitle
+  , widget_
+  , widgetBody_
+  , spacer_
   ) where
 
 import qualified Data.Text as T
@@ -148,16 +151,25 @@ mkWidgetContent title comment =
 
 mkWidget :: Monad m => HtmlT m () -> HtmlT m () -> HtmlT m ()
 mkWidget wIcon wContent =
-  div_ [class_ "widget"] $
-  div_ [class_ "widget-body"] $
-  wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
+  widget_ $
+   widgetBody_ $
+    wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
 
 mkWidgets :: Monad m => [[HtmlT m ()]] -> HtmlT m ()
 mkWidgets widgets =
-  div_ [class_ "row"] . sequence_ $ intersperse spacer (map go widgets)
+  div_ [class_ "row"] . sequence_ $ intersperse spacer_ (map go widgets)
   where
-    spacer = div_ [class_ "spacer visible-xs"] $ return ()
     go = mapM_ (mkCol [(XS, 12), (MD, 6), (LG, 3)])
+
+spacer_ :: Monad m => HtmlT m ()
+spacer_ = div_ [class_ "spacer visible-xs"] $ return ()
+
+widget_ ::Monad m => HtmlT m () -> HtmlT m ()
+widget_ = div_ [class_ "widget"]
+
+widgetBody_ ::Monad m => HtmlT m () -> HtmlT m ()
+widgetBody_ = div_ [class_ "widget-body"]
+
 
 mkTable :: Monad m => HtmlT m () -> [[HtmlT m ()]] -> HtmlT m ()
 mkTable title content = mkCol [(LG, 6)] $ do

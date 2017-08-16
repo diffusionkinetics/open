@@ -137,7 +137,7 @@ instance ToJSON LineStyle where
 
 
 data DataValue = PieValue Double
-               | ScatterValue [Double] deriving (Show, Generic)
+               | ScatterValue [Double] deriving (Show, Generic, Eq)
 
 makeLenses ''DataValue
 
@@ -151,7 +151,7 @@ data Data = Data {
   _data_value :: Maybe DataValue,   -- for pie charts and scatters
   _data_x     :: Maybe Double,   -- x and y positions for node and edge graph
   _data_y     :: Maybe Double
-} deriving (Show, Generic)
+} deriving (Show, Generic, Eq)
 
 makeLenses ''Data
 

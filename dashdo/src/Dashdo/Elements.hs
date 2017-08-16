@@ -56,7 +56,7 @@ textInput f = do
   (_,val,_) <- lift $ get
 
   putFormField (n, lensSetter f)
-  input_ [type_ "text", fieldName n, value_ (val ^. f)]
+  input_ [type_ "text", name_ n, value_ (val ^. f)]
 
 select :: (Monad m, Eq b) => [(Text, b)] -> Lens' a b -> SHtml m a ()
 select opts f = do
@@ -65,7 +65,7 @@ select opts f = do
                  Nothing -> s
                  Just x -> lensSetter f s x
   putFormField (n, ft)
-  select_ [fieldName n] $ do
+  select_ [name_ n] $ do
     forM_ opts $ \(optNm, optVal) ->
       if val ^. f == optVal
          then option_ [value_ optNm, selected_ ""] $ toHtml optNm
@@ -82,7 +82,7 @@ numInput mmin mmax mstep f = do
                  Just x -> lensSetter f s x
   putFormField (n, ft)
   input_ (amin  ++ amax ++ astep ++ [type_ "number",
-                                     fieldName n,
+                                     name_ n,
                                      value_ (pack . show $ val ^. f) ])
 
 manualSubmit :: Monad m => SHtml m a ()
@@ -106,10 +106,10 @@ checkbox text vTrue vFalse f = do
   putFormField (n, ft)
   div_ [class_ "checkbox"] $
     label_ $ do
-      input_ $ [type_ "checkbox", id_ fid, fieldName n, value_ "true"] ++ checked
+      input_ $ [type_ "checkbox", id_ fid, name_ n, value_ "true"] ++ checked
       toHtml text
   -- if checkbox doesn't supply a value we get this one instead
-  input_ [type_ "hidden", fieldName n, value_ "false"]
+  input_ [type_ "hidden", name_ n, value_ "false"]
 
 resetLink :: Monad m => SHtml m a ()
 resetLink = do
@@ -122,7 +122,7 @@ plotlySelect plot f = do
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
     resetLink
-    input_ [type_ "hidden", fieldName n, value_ (val ^. f)]
+    input_ [type_ "hidden", name_ n, value_ (val ^. f)]
 
 plotlySelectMultiple :: Monad m => Plotly -> Lens' a [Text] -> SHtml m a ()
 plotlySelectMultiple plot f = do
@@ -131,10 +131,9 @@ plotlySelectMultiple plot f = do
   div_ [class_ "dashdo-plotly-select"] $ do
     toHtml plot
     resetLink
-    input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ mkFieldNameMultiple n]
+    input_ [type_ "hidden", class_ "dashdo-plotly-multi-select-names", value_ $ (n<>"[]") ]
     forM_ (val ^. f) $ \(v) ->
-      input_ [type_ "hidden", fieldNameMultiple n, value_ v]
-
+      input_ [type_ "hidden", name_ (n<>"[]"), value_ v]
 
 (~>) :: Monad m => SimpleGetter t b -> (b -> Html ()) -> SHtml m t ()
 g ~> f = do
