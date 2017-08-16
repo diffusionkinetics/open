@@ -193,6 +193,7 @@ data Series = Series {
   _series_links     :: Maybe [Link],          -- edges
   _series_xAxisIndex :: Maybe Integer,
   _series_yAxisIndex :: Maybe Integer,
+  _series_layout :: Maybe Text,
   -- Pie chart
   _series_radius    :: Maybe [Text],           -- [inner_radius,outer_radius], default = [0,"75%"]]
   _series_avoidLabelOverlap :: Maybe Bool       -- true = labels do not overlap
@@ -201,7 +202,7 @@ data Series = Series {
 makeLenses ''Series
 
 mkSeries :: SeriesType -> Series
-mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 mkScatter :: Series
 mkScatter = mkSeries Scatter
