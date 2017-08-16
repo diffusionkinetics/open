@@ -178,6 +178,18 @@ data SeriesType = Graph | Pie | Scatter deriving Show
 instance ToJSON SeriesType where
   toJSON = toJSON . map toLower . show
 
+data Force = Force {
+  _force_repulsion :: Double,
+  _force_gravity :: Double,
+  _force_edgeLength :: Double,
+  _force_layoutAnimation :: Bool
+} deriving (Show, Generic)
+
+makeLenses ''Force
+
+instance ToJSON Force where
+  toJSON = genericToJSON $ jsonOptions (Just "force_")
+
 -- | A Series is the component of the plot
 data Series = Series {
   _series_name      :: Maybe Text,
@@ -194,6 +206,7 @@ data Series = Series {
   _series_xAxisIndex :: Maybe Integer,
   _series_yAxisIndex :: Maybe Integer,
   _series_layout :: Maybe Text,
+  _series_force :: Maybe Force,
   -- Pie chart
   _series_radius    :: Maybe [Text],           -- [inner_radius,outer_radius], default = [0,"75%"]]
   _series_avoidLabelOverlap :: Maybe Bool       -- true = labels do not overlap
@@ -202,7 +215,7 @@ data Series = Series {
 makeLenses ''Series
 
 mkSeries :: SeriesType -> Series
-mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkSeries tt = Series Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 mkScatter :: Series
 mkScatter = mkSeries Scatter
