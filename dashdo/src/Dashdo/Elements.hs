@@ -144,8 +144,22 @@ g ~> f = do
 toHtmls :: (ToHtml b, Monad m) => SimpleGetter t b -> SHtml m t ()
 toHtmls g = g ~> toHtml
 
+toParentFormField :: Lens' t b -> FormField b -> FormField t
+toParentFormField g (n, f) = 
+  (n, f')
+    where f' t txt = t & g .~ (f (t ^. g) txt)
+
 (#>) :: (Monad m) => Lens' t b -> SHtml m b () -> SHtml m t ()
 g #> r = do
-  (_,v,_) <- lift get
-  (formFs, htmlText) <- (lift . lift) $ runSHtml (v ^. g) r
-  toHtml $ htmlText
+  (n, v, ffs) <- lift get
+
+  -- we running r, but say: take n as the counter for form fields
+  let stT = renderTextT r
+  (txt, (_, subG, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, [])
+  
+  toHtmlRaw txt
+  
+  {- put fields to the monad based on whole state 
+  counter has been corrected during runStateT, 
+  so we call fresh just to increment current monad's counter -}
+  forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)

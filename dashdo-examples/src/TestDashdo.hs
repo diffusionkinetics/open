@@ -34,12 +34,14 @@ theDashdo = Dashdo initv (example iris)
 test :: SHtml IO Bool ()
 test = do
   (_, b, _)  <- lift $ get
-  "TEST: "
+  "The person is male: "
   if b then "true" else "false"
 
 hello :: String -> SHtml IO Text ()
 hello title = do
   (_, txt, _)  <- lift $ get
+  textInput id
+  br_ []
   "Hello, " <> (toHtml title) <> (toHtml txt) <> "!"
 
 example :: [Iris] -> SHtml IO Example ()
@@ -51,14 +53,17 @@ example irisd = wrap plotlyCDN $ do
 --                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
 
   h2_ "Testing Dashdo"
-  textInput pname
+  
   select [("Male", True),("Female", False)] isMale
   br_ []
+
   let ptitle = if nm ^. isMale then "Mr " else "Ms "
   pname #> hello ptitle
   br_ []
+  
   isMale #> test
   br_ []
+  
   select axes xaxis
   select axes yaxis
   toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
