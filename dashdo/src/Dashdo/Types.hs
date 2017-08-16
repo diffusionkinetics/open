@@ -9,10 +9,11 @@ import Control.Monad.State.Strict
 import Lens.Micro
 import Data.Monoid ((<>))
 
-type FormField t = (Int, t -> Text -> t)
+type FormField t = (Text, t -> Text -> t)
 type FormFields t = [FormField t]
+type FieldName = Text
 
-type SHtml m t a = HtmlT (StateT (Int,t,FormFields t) m) a
+type SHtml m t a = HtmlT (StateT ([FieldName],t,FormFields t) m) a
 
 data RDashdo m = forall t. RDashdo
   { rdFid    :: String
@@ -26,32 +27,32 @@ data Dashdo m t = Dashdo
 runSHtml :: Monad m => t -> SHtml m t () -> m (FormFields t, TL.Text)
 runSHtml val shtml = do
   let stT = renderTextT shtml
-  (t, (_, _, ffs)) <- runStateT stT (0, val, [])
+      iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
+  (t, (_, _, ffs)) <- runStateT stT (iniFldNams, val, [])
   return (ffs, t)
 
-mkFieldName :: Int -> Text
-mkFieldName = ((<>) "f") . pack . show
-
-mkFieldNameMultiple :: Int -> Text
-mkFieldNameMultiple n = mkFieldName n <> "[]"
-
-fieldName :: Int -> Attribute
-fieldName = name_ . mkFieldName
-
-fieldNameMultiple :: Int -> Attribute
-fieldNameMultiple = name_ . mkFieldNameMultiple
-
-fresh :: Monad m => SHtml m a Int
+fresh :: Monad m => SHtml m a FieldName
 fresh = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n+1, v, ffs)
+  (n:ns, v, ffs) <- lift $ get
+  lift $ put (ns, v, ffs)
   return n
 
-freshAndValue :: Monad m => SHtml m a (a, Int)
+freshAndValue :: Monad m => SHtml m a (a, FieldName)
 freshAndValue = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n+1, v, ffs)
+  (n:ns, v, ffs) <- lift $ get
+  lift $ put (ns, v, ffs)
   return (v, n)
+
+named :: Monad m => FieldName -> SHtml m t a -> SHtml m t a
+named nm mx = do
+  (ns, v, ffs) <- lift $ get
+  lift $ put (nm:ns, v, ffs)
+  mx
+
+getValue :: Monad m => SHtml m a a
+getValue = do
+  (n, v, ffs) <- lift $ get
+  return v
 
 putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do

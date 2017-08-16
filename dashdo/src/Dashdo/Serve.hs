@@ -51,9 +51,12 @@ runDashdoIO :: Dashdo IO a -> IO ()
 runDashdoIO = runDashdoPort 3000 id
 
 runRDashdo :: Monad m => RunInIO m -> Text -> [RDashdo m] -> IO ()
-runRDashdo r html ds = do
+runRDashdo = runRDashdoPort 3000
+
+runRDashdoPort :: Monad m => Int -> RunInIO m -> Text -> [RDashdo m] -> IO ()
+runRDashdoPort prt r html ds = do
   handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler r d) ds
-  serve 3000 html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
+  serve prt html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
 
 serve :: Int -> Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
 serve port iniHtml handlers = do
