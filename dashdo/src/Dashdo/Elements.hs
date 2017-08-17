@@ -154,7 +154,7 @@ g #> r = do
 
   -- we running r, but say: take n as the counter for form fields
   let stT = renderTextT r
-  (txt, (_, subG, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, [])
+  (txt, (_, _, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, [])
   
   toHtmlRaw txt
   
