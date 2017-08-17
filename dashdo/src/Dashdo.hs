@@ -7,9 +7,9 @@ import Dashdo.Types
 import Data.Monoid ((<>))
 
 
-dashdoGenOut :: Monad m => Dashdo m a -> a -> m (TL.Text, FormFields a)
-dashdoGenOut (Dashdo _ r) x = do
-  (formFs, htmlText) <- runSHtml x r
+dashdoGenOut :: Monad m => Dashdo m a -> a -> [(TL.Text, TL.Text)] -> m (TL.Text, FormFields a)
+dashdoGenOut (Dashdo _ r) x pars = do
+  (formFs, htmlText) <- runSHtml x r pars
   return (htmlText, formFs)
 
 parseForm :: a -> FormFields a -> [(TL.Text, TL.Text)] -> a

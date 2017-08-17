@@ -23,10 +23,10 @@ type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
 dashdoHandler r d = do
-  (_, ff) <- r $ dashdoGenOut d (initial d)
+  (_, ff) <- r $ dashdoGenOut d (initial d) []
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
-         (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval
+         (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
          html thisHtml
 
 getRandomUUID :: IO Text
@@ -43,7 +43,7 @@ runDashdo = runDashdoPort 3000
 
 runDashdoPort :: Monad m => Int -> RunInIO m -> Dashdo m a -> IO ()
 runDashdoPort prt r d = do
-  (iniHtml, _) <- r $ dashdoGenOut d (initial d)
+  (iniHtml, _) <- r $ dashdoGenOut d (initial d) []
   h <- dashdoHandler r d
   serve prt iniHtml [("", "", h)]
 

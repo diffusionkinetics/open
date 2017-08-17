@@ -10,6 +10,7 @@ import Lucid.Bootstrap3
 import Graphics.Plotly (Plotly)
 import Graphics.Plotly.Lucid
 import Data.Text (Text, unpack, pack)
+import Data.Hashable
 import Control.Monad.RWS.Strict
 import Control.Monad.State.Strict
 import Text.Read (readMaybe)
@@ -53,7 +54,7 @@ wrap hdr h =  doctypehtml_ $ do
 textInput :: Monad m => Lens' a Text -> SHtml m a ()
 textInput f = do
   n <- fresh
-  (_,val,_) <- lift $ get
+  val <- getValue
 
   putFormField (n, lensSetter f)
   input_ [type_ "text", name_ n, value_ (val ^. f)]
@@ -137,7 +138,7 @@ plotlySelectMultiple plot f = do
 
 (~>) :: Monad m => SimpleGetter t b -> (b -> Html ()) -> SHtml m t ()
 g ~> f = do
-  (_,v,_) <- lift get
+  v <- getValue
   toHtml $ f $ v ^. g
 
 toHtmls :: (ToHtml b, Monad m) => SimpleGetter t b -> SHtml m t ()
@@ -148,13 +149,13 @@ toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
-(#>) :: (Monad m) => Lens' t b -> SHtml m b () -> SHtml m t ()
+(#>) :: (Monad m, Hashable b) => Lens' t b -> SHtml m b () -> SHtml m t ()
 g #> r = do
-  (n, v, ffs) <- lift get
+  (n, v, pars, ffs) <- lift get
 
   -- we running r, but say: take n as the counter for form fields
   let stT = renderTextT r
-  (txt, (_, _, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, [])
+  (txt, (_, _, _, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, pars, [])
   
   toHtmlRaw txt
   
