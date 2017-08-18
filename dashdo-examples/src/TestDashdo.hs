@@ -35,7 +35,7 @@ test :: SHtml IO Bool ()
 test = do
   b <- getValue
   "The person is male: "
-  if b then "true" else "false"
+  if b then "yes" else "no"
 
 hello :: String -> SHtml IO Text ()
 hello title = do
