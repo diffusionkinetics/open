@@ -37,12 +37,12 @@ test = do
   "The person is male: "
   if b then "yes" else "no"
 
-hello :: String -> SHtml IO Text ()
-hello title = do
+hello :: SHtml IO Text ()
+hello = do
   textInput id
   br_ []
   txt  <- getValue
-  "Hello, " <> (toHtml title) <> (toHtml txt) <> "!"
+  "Hello, " <> (toHtml txt) <> "!"
 
 example :: [Iris] -> SHtml IO Example ()
 example irisd = wrap plotlyCDN $ do
@@ -57,8 +57,7 @@ example irisd = wrap plotlyCDN $ do
   select [("Male", True),("Female", False)] isMale
   br_ []
 
-  let ptitle = if nm ^. isMale then "Mr " else "Ms "
-  pname #> hello ptitle
+  pname #> hello
   br_ []
   
   isMale #> test
