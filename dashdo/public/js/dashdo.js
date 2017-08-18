@@ -45,9 +45,13 @@
       resetLinkSelector: '.dashdo-resetlink',
     }, options)
 
+    var setFormActive = function(b) {
+      $(':input').prop('readonly', !b)
+    }
+
     $(this).on('change', ':input', function() {
       if (typeof(manual_submit) === 'undefined' || !manual_submit) {
-        $(':input').prop('readonly', true)
+        setFormActive(false)
         resubmit()
       }
     })
@@ -173,23 +177,36 @@
           $(this).attr('action'),
           $(this).serialize(),
           function(data) {
-            var incomingHTML = $.parseHTML(data, null, true)
-            // select the same container from incomingHTML
-            var incomingContainer = $(incomingHTML).children(settings.containerSelector)
+            var incomingDOM = $.parseHTML(data, null, true)
 
+            // select the same container from incomingHTML
+            var containerLikeCurrent = $(incomingDOM).children(settings.containerSelector)
+            
             // if there is such container, replace current container with its contents
-            if(incomingContainer.length > 0) {
-              $(settings.containerSelector).html($(incomingContainer).contents())
-            } else {
-              // if no container found, then place all the incomingHTML into the container
-              // useful for partial rendering of folder in rdashdo
-              $(settings.containerSelector).html(incomingHTML)
-            }
+            // if no container found, then place all the incomingHTML into the container
+            // useful for partial rendering of folder in rdashdo
+            var bigDOMorSmallContainer =
+              (containerLikeCurrent.length > 0) ?
+                $(containerLikeCurrent).contents() :
+                incomingDOM
+            
+            // cached things are to stay the same (replace with values from old DOM)
+            $(bigDOMorSmallContainer)
+              .children('.dashdo-cashed-not-changed')
+              .each(function() { 
+                var parent = $(this).parent()
+                var fieldName  = parent.data('dashdo-cashed')
+                var cachedContents = $("[data-dashdo-cashed='" + fieldName + "']").contents()
+                $(parent).html(cachedContents)
+              })
+
+            $(settings.containerSelector).html(bigDOMorSmallContainer)
 
             restyleAndSetClickHandlers()
             // if switched & rendered successfully, renew periodic submit loop
             clearInterval(submitTimer)
             periodicSubmitLoop()
+            setFormActive(true)
           }.bind(this)
         )
       }
