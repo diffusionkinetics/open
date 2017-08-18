@@ -20,17 +20,20 @@
     else return "#"+(0x100000000+(f[3]>-1&&t[3]>-1?r(((t[3]-f[3])*p+f[3])*255):t[3]>-1?r(t[3]*255):f[3]>-1?r(f[3]*255):255)*0x1000000+r((t[0]-f[0])*p+f[0])*0x10000+r((t[1]-f[1])*p+f[1])*0x100+r((t[2]-f[2])*p+f[2])).toString(16).slice(f[3]>-1||t[3]>-1?1:3);
   }
 
+  var idToSelectorOrNull = function(x) {
+    return (!!x) ? '#' + x : null;
+  }
+
   $.fn.dashdo = function(options) {
     var settings = $.extend({
       // These are the defaults.
-      ajax: false,
       uuidUrl: '/uuid',
       uuidInterval: 1000,
 
       colorSelected: '#1F77B4',
       colorUnSelected: '#A5C8E1',
       
-      containerElement: null,
+      containerSelector: idToSelectorOrNull($(this).attr('id')),
       switcherElements: null,
       switcherAttr: 'href',
       switcherEvent: 'click',
@@ -42,32 +45,19 @@
       resetLinkSelector: '.dashdo-resetlink',
     }, options)
 
-    var resubmitNatively = function() {
-      $('input', this).prop('readonly', true)
-      $(this).submit()
-    }.bind(this)
-
-    var properReSubmit = function() {
-      if(settings.ajax) { 
-        resubmitWithAjax()
-      } else {
-        resubmitNatively()
-      }
+    var setFormActive = function(b) {
+      $(':input').prop('readonly', !b)
     }
 
     $(this).on('change', ':input', function() {
       if (typeof(manual_submit) === 'undefined' || !manual_submit) {
-        $(':input').prop('readonly', true)
-        properReSubmit()
+        setFormActive(false)
+        resubmit()
       }
     })
 
     this.filter('form').on('submit', function(e) {
-      if(!settings.ajax) {
-        $('input', this).prop('readonly', true)
-        return // and then it actualy submits
-      }
-      e.preventDefault()  // no 'native' submitting on ajax versions
+      e.preventDefault()  // no 'native' submitting
     })
 
     var requestHtmlFromServer = function(url, data, onSuccess) {
@@ -80,7 +70,7 @@
     }
 
     var restyleAndSetClickHandlers = function() {
-      $('.dashdo-plotly-select .js-plotly-plot').each(function() {
+      $('.dashdo-plotly-select .js-plotly-plot').each(function() {  // TODO what if there is no graph?
         var graphData = this.data[0]
         var axis = (graphData.orientation === 'h') ? 'y' : 'x'
         var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
@@ -133,7 +123,7 @@
           $(settings.resetLinkSelector).each(function() {
             $(this).on('click', function() {
               $(this).siblings('input[name]').remove()
-              properReSubmit()
+              resubmit()
             })
           })
         }
@@ -175,24 +165,48 @@
             }
           }
 
-          properReSubmit()
+          resubmit()
         }.bind(this))
       })
     }
     restyleAndSetClickHandlers()
 
-    var resubmitWithAjax = function(onSuccessfulRender) {
-      if(!!settings.containerElement) {
+    var resubmit = function() {
+      if(!!settings.containerSelector) {
         requestHtmlFromServer(
           $(this).attr('action'),
           $(this).serialize(),
           function(data) {
-            $(settings.containerElement).html(data)
+            var incomingDOM = $.parseHTML(data, null, true)
+
+            // select the same container from incomingHTML
+            var containerLikeCurrent = $(incomingDOM).children(settings.containerSelector)
             
+            // if there is such container, replace current container with its contents
+            // if no container found, then place all the incomingHTML into the container
+            // useful for partial rendering of folder in rdashdo
+            var bigDOMorSmallContainer =
+              (containerLikeCurrent.length > 0) ?
+                $(containerLikeCurrent).contents() :
+                incomingDOM
+            
+            // cached things are to stay the same (replace with values from old DOM)
+            $(bigDOMorSmallContainer)
+              .children('.dashdo-cashed-not-changed')
+              .each(function() { 
+                var parent = $(this).parent()
+                var fieldName  = parent.data('dashdo-cashed')
+                var cachedContents = $("[data-dashdo-cashed='" + fieldName + "']").contents()
+                $(parent).html(cachedContents)
+              })
+
+            $(settings.containerSelector).html(bigDOMorSmallContainer)
+
             restyleAndSetClickHandlers()
             // if switched & rendered successfully, renew periodic submit loop
             clearInterval(submitTimer)
             periodicSubmitLoop()
+            setFormActive(true)
           }.bind(this)
         )
       }
@@ -202,7 +216,7 @@
     var uuidLoop = function() {
       $.get(settings.uuidUrl).done(function(data) {
         if(uuid && uuid != data) {
-          properReSubmit()
+          resubmit()
         }
         uuid = data
       }).always(function() {
@@ -215,7 +229,7 @@
     var periodicSubmitLoop = function() {
       var currentPeriodicSubmitValue = parseInt($(this).find(settings.periodicSubmitSelector).val())
       if(!!currentPeriodicSubmitValue) {
-        properReSubmit()
+        resubmit()
         submitTimer = setTimeout(periodicSubmitLoop.bind(this), currentPeriodicSubmitValue)
       }
     }.bind(this)
@@ -237,7 +251,7 @@
     var switchDashdo = function(endpoint) {
       $(this).attr('action', endpoint)  // set action of the form to the endpoint
       refreshTitle(endpoint)
-      resubmitWithAjax()
+      resubmit()
     }.bind(this)
 
     if(settings.switcherElements !== null) {

@@ -10,6 +10,9 @@ import Lucid.Bootstrap3
 import Graphics.Plotly (Plotly)
 import Graphics.Plotly.Lucid
 import Data.Text (Text, unpack, pack)
+import qualified Data.Text.Lazy as TL
+import Data.Hashable
+import Data.List
 import Control.Monad.RWS.Strict
 import Control.Monad.State.Strict
 import Text.Read (readMaybe)
@@ -53,7 +56,7 @@ wrap hdr h =  doctypehtml_ $ do
 textInput :: Monad m => Lens' a Text -> SHtml m a ()
 textInput f = do
   n <- fresh
-  (_,val,_) <- lift $ get
+  val <- getValue
 
   putFormField (n, lensSetter f)
   input_ [type_ "text", name_ n, value_ (val ^. f)]
@@ -137,7 +140,7 @@ plotlySelectMultiple plot f = do
 
 (~>) :: Monad m => SimpleGetter t b -> (b -> Html ()) -> SHtml m t ()
 g ~> f = do
-  (_,v,_) <- lift get
+  v <- getValue
   toHtml $ f $ v ^. g
 
 toHtmls :: (ToHtml b, Monad m) => SimpleGetter t b -> SHtml m t ()
@@ -148,17 +151,36 @@ toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
-(#>) :: (Monad m) => Lens' t b -> SHtml m b () -> SHtml m t ()
+(#>) :: (Monad m, Hashable b) => Lens' t b -> SHtml m b () -> SHtml m t ()
 g #> r = do
-  (n, v, ffs) <- lift get
+  hashFieldName <- fresh  -- before n is taken from state
+  putFormField (hashFieldName, const)
 
-  -- we running r, but say: take n as the counter for form fields
-  let stT = renderTextT r
-  (txt, (_, subG, subFs)) <- (lift . lift) $ runStateT stT (n, v ^. g, [])
-  
-  toHtmlRaw txt
-  
-  {- put fields to the monad based on whole state 
-  counter has been corrected during runStateT, 
-  so we call fresh just to increment current monad's counter -}
-  forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
+  (n, v, pars, _) <- lift get
+  let subValue     = v ^. g
+      stT          = renderTextT r
+      subValueHash = (pack . show . hash) subValue
+      subValueHashChanged  = 
+        case find (((==) hashFieldName) . TL.toStrict . fst) pars of
+          Nothing                -> True
+          Just (_, oldHashValue) -> (subValueHash /= TL.toStrict oldHashValue)
+
+  span_ [data_ "dashdo-cashed" hashFieldName] $ do
+    -- we running r, but say: take n as the counter for form fields
+    (txt, (_, _, _, subFs)) <- (lift . lift) $ runStateT stT (n, subValue, pars, [])  -- n is too old, mai!!
+
+    {- 
+      TODO: run state only if subValueHashChanged
+      but: if we do not run state, we can not run forM_ ... putFormField, 
+      then duplicate field names will be in the form
+    -}
+    if not subValueHashChanged
+      then span_ [class_ "dashdo-cashed-not-changed"] ""
+      else do
+        input_ [type_ "hidden", name_ hashFieldName, value_ subValueHash]
+        toHtmlRaw txt
+    
+    {- put fields to the monad based on whole state 
+    counter has been corrected during runStateT, 
+    so we call fresh just to increment current monad's counter -}
+    forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
