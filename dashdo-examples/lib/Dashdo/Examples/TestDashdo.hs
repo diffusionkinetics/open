@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.TestDashdo where
 
 import Numeric.Datasets.Iris
 
@@ -27,9 +28,7 @@ data Example = Example
 
 makeLenses ''Example
 
-main = runDashdoIO theDashdo
-
-theDashdo = Dashdo initv (example iris)
+testDashdo = runDashdoIO $ Dashdo initv (example iris)
 
 test :: SHtml IO Bool ()
 test = do
