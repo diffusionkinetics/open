@@ -156,31 +156,40 @@ g #> r = do
   hashFieldName <- fresh  -- before n is taken from state
   putFormField (hashFieldName, const)
 
-  (n, v, pars, _) <- lift get
-  let subValue     = v ^. g
+  subFieldsNumberName <- fresh
+  putFormField (subFieldsNumberName, const)
+  
+  (n, v, pars, ffs) <- lift get
+  let 
       stT          = renderTextT r
+
+      subValue     = v ^. g
       subValueHash = (pack . show . hash) subValue
       subValueHashChanged  = 
         case find (((==) hashFieldName) . TL.toStrict . fst) pars of
           Nothing                -> True
           Just (_, oldHashValue) -> (subValueHash /= TL.toStrict oldHashValue)
 
+      subFieldsNumber = 
+        case find (((==) subFieldsNumberName) . TL.toStrict . fst) pars of
+          Nothing     -> -1  -- TODO: a hack, change to MaybeT or something
+          Just (_, s) -> read ((unpack . TL.toStrict) s) :: Int
+
   span_ [data_ "dashdo-cashed" hashFieldName] $ do
     -- we running r, but say: take n as the counter for form fields
-    (txt, (_, _, _, subFs)) <- (lift . lift) $ runStateT stT (n, subValue, pars, [])  -- n is too old, mai!!
-
-    {- 
-      TODO: run state only if subValueHashChanged
-      but: if we do not run state, we can not run forM_ ... putFormField, 
-      then duplicate field names will be in the form
-    -}
-    if not subValueHashChanged
-      then span_ [class_ "dashdo-cashed-not-changed"] ""
+    if not subValueHashChanged && subFieldsNumber > -1
+      then do
+        span_ [class_ "dashdo-cashed-not-changed"] ""
+        forM_ [1..subFieldsNumber] $ \fieldN -> fresh >> putFormField ("f" <> ((pack . show) fieldN), const)
       else do
+        (txt, (_, _, _, subFs)) <- (lift . lift) $ runStateT stT (n, subValue, pars, [])
+
         input_ [type_ "hidden", name_ hashFieldName, value_ subValueHash]
+        input_ [type_ "hidden", name_ subFieldsNumberName, value_ $ (pack . show . length) subFs]
+        
         toHtmlRaw txt
-    
-    {- put fields to the monad based on whole state 
-    counter has been corrected during runStateT, 
-    so we call fresh just to increment current monad's counter -}
-    forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
+
+        {- put fields to the monad based on whole state 
+        counter has been corrected during runStateT, 
+        so we call fresh just to increment current monad's counter -}
+        forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
