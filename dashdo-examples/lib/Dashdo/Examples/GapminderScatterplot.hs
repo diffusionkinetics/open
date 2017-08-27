@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.GapminderScatterplot where
 
 import Numeric.Datasets
 import Numeric.Datasets.Gapminder
@@ -175,6 +176,6 @@ gmRenderer gms =
       mkCol [(MD,12)] $ do
         countriesTable $ (countriesFilter . continentsFilter) yearFilteredGMs
 
-main = do
+gapMinderScatterPlot = do
   gms <- getDataset gapminder
   runDashdoIO $ Dashdo gm0 (gmRenderer gms)

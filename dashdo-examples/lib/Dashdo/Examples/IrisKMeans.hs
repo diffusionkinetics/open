@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.IrisKMeans where
 
 import Numeric.Datasets.Iris
 
@@ -42,7 +43,7 @@ irisData
     ~~ [sepalLength, sepalWidth, petalLength, petalWidth])
     iris
 
-main = runDashdoIO $ Dashdo ikm0 dashdo
+irisKMeans = runDashdoIO $ Dashdo ikm0 dashdo
 
 dashdo :: SHtml IO IKM ()
 dashdo = wrap plotlyCDN $ do

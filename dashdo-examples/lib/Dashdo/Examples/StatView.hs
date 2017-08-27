@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.StatView where
 
 import System.Statgrab
 
@@ -124,7 +125,7 @@ process = do
 
 -- end of Processes dashdo
 
-main = do
+statView = do
   stats <- newMVar ([] :: [SysStats])
   forkIO (statGrab stats)
   let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
