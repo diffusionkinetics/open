@@ -8,7 +8,7 @@ Author:              Tom Nielsen <tanielsen@gmail.com>
 Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
 Cabal-Version: 	     >= 1.10
-homepage:            https://github.com/diffusionkinetics/open/lucid-extra
+homepage:            https://github.com/diffusionkinetics/open/lucid-extras
 bug-reports:         https://github.com/diffusionkinetics/open/issues
 category:            Web
 Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
