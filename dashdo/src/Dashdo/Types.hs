@@ -13,52 +13,51 @@ type FormField t = (Text, t -> Text -> t)
 type FormFields t = [FormField t]
 type FieldName = Text
 
-type SHtml t a = HtmlT (State ([FieldName],t,FormFields t)) a
+type SHtml m t a = HtmlT (StateT ([FieldName],t,[(TL.Text, TL.Text)],FormFields t) m) a
 
-data RDashdo = forall t. RDashdo
+data RDashdo m = forall t. RDashdo
   { rdFid    :: String
   , rdTitle  :: Text
-  , rdDashdo :: Dashdo t }
+  , rdDashdo :: Dashdo m t }
 
-data Dashdo t = forall b. Dashdo
+data Dashdo m t = Dashdo
   { initial :: t
-  , fetch :: t -> IO b
-  , render :: t -> b -> SHtml t () }
+  , render :: SHtml m t () }
 
-runSHtml :: t -> SHtml t () -> (FormFields t, TL.Text)
-runSHtml val shtml =
+runSHtml :: Monad m => t -> SHtml m t () -> [(TL.Text, TL.Text)] -> m (FormFields t, TL.Text)
+runSHtml val shtml pars = do
   let stT = renderTextT shtml
       iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
-      (t, (_, _, ffs)) = runState stT (iniFldNams, val, [])
-  in (ffs, t)
+  (t, (_, _, _, ffs)) <- runStateT stT (iniFldNams, val,pars, [])
+  return (ffs, t)
 
-fresh :: SHtml a FieldName
+fresh :: Monad m => SHtml m a FieldName
 fresh = do
-  (n:ns, v, ffs) <- lift $ get
-  lift $ put (ns, v, ffs)
+  (n:ns, v, pars, ffs) <- lift $ get
+  lift $ put (ns, v, pars, ffs)
   return n
 
-freshAndValue :: SHtml a (a, FieldName)
+freshAndValue :: Monad m => SHtml m a (a, FieldName)
 freshAndValue = do
-  (n:ns, v, ffs) <- lift $ get
-  lift $ put (ns, v, ffs)
+  (n:ns, v, pars, ffs) <- lift $ get
+  lift $ put (ns, v, pars, ffs)
   return (v, n)
 
-named :: FieldName -> SHtml t a -> SHtml t a
+named :: Monad m => FieldName -> SHtml m t a -> SHtml m t a
 named nm mx = do
-  (ns, v, ffs) <- lift $ get
-  lift $ put (nm:ns, v, ffs)
+  (ns, v, pars, ffs) <- lift $ get
+  lift $ put (nm:ns, v, pars, ffs)
   mx
 
-getValue :: SHtml a a
+getValue :: Monad m => SHtml m a a
 getValue = do
-  (n, v, ffs) <- lift $ get
+  (n, v, pars, ffs) <- lift $ get
   return v
 
-putFormField :: FormField t -> SHtml t ()
+putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n, v, ff:ffs)
+  (n, v, pars, ffs) <- lift $ get
+  lift $ put (n, v, pars, ff:ffs)
   return ()
 
 lensSetter :: ASetter' s a -> (s -> a -> s)

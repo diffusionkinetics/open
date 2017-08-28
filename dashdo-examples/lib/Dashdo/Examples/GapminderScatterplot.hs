@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.GapminderScatterplot where
 
 import Numeric.Datasets
 import Numeric.Datasets.Gapminder
@@ -18,6 +19,7 @@ import Data.Aeson.Types
 import GHC.Float
 import Lens.Micro.Platform
 import Control.Monad
+import Control.Monad.State.Strict
 import Control.Applicative
 
 import Graphics.Plotly
@@ -48,7 +50,7 @@ continentRGB _ = undefined
 -- TODO: 1 - doghunt 2- sum gdp for region
 -- TODO: plotlySelectMultiple
 
-countriesTable :: [Gapminder] -> SHtml GmParams ()
+countriesTable :: [Gapminder] -> SHtml IO GmParams ()
 countriesTable gms =
   table_ [class_ "table table-striped"] $ do
     thead_ $ do
@@ -65,7 +67,7 @@ countriesTable gms =
           td_ $ toHtml (show $ gdpPercap c)
           td_ $ toHtml (show $ lifeExp   c)
 
-countriesScatterPlot :: [Gapminder] -> SHtml GmParams ()
+countriesScatterPlot :: [Gapminder] -> SHtml IO GmParams ()
 countriesScatterPlot gms =
   let
     trace :: Trace
@@ -101,7 +103,7 @@ countriesScatterPlot gms =
 gdp :: Gapminder -> Double
 gdp c = gdpPercap c * (fromIntegral $ pop c)
 
-continentsGDPsPie :: [Gapminder] -> SHtml GmParams ()
+continentsGDPsPie :: [Gapminder] -> SHtml IO GmParams ()
 continentsGDPsPie gms = 
   let
     -- list of continent-GDP pairs [(Continent, Double)]
@@ -132,7 +134,7 @@ continentsGDPsPie gms =
 average :: (Real a) => [a] -> Double
 average xs = realToFrac (sum xs) / genericLength xs
 
-yearsBarPlot :: [Gapminder] -> SHtml GmParams ()
+yearsBarPlot :: [Gapminder] -> SHtml IO GmParams ()
 yearsBarPlot gms =
   let
     years = nub $ year <$> gms
@@ -143,9 +145,10 @@ yearsBarPlot gms =
     (plotly "years-lifeexp" [trace]
       & layout %~ title ?~ "Average Life Expactancy by Years") selYear
 
-gmRenderer :: [Gapminder] -> GmParams -> () -> SHtml GmParams ()
-gmRenderer gms gmParams () =
+gmRenderer :: [Gapminder] -> SHtml IO GmParams ()
+gmRenderer gms =
   wrap plotlyCDN $ do
+    gmParams <- getValue
     let selectedYear = read (unpack $ gmParams ^. selYear) :: Int
         
         yearFilter = filter ((==selectedYear) . year)
@@ -173,6 +176,6 @@ gmRenderer gms gmParams () =
       mkCol [(MD,12)] $ do
         countriesTable $ (countriesFilter . continentsFilter) yearFilteredGMs
 
-main = do
+gapMinderScatterPlot = do
   gms <- getDataset gapminder
-  runDashdo $ Dashdo gm0 (return . const ()) (gmRenderer gms)
+  runDashdoIO $ Dashdo gm0 (gmRenderer gms)

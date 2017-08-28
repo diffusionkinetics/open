@@ -13,63 +13,53 @@ build-type:          Simple
 category:            Statistics, Web
 Cabal-Version: 	     >= 1.10
 
+library
+  hs-source-dirs:   lib
+  exposed-modules:
+    Dashdo.Examples.GapminderScatterplot
+    Dashdo.Examples.IrisKMeans
+    Dashdo.Examples.StatView
+    Dashdo.Examples.TestDashdo
+  build-depends:
+      base >= 4 && <= 5
+    , plotlyhs
+    , datasets
+    , lucid
+    , lucid-extras
+    , aeson
+    , text
+    , dashdo
+    , microlens-platform
+    , fuml
+    , vector
+    , mtl
+    , statgrab
+    , unix
 
 executable test-dashdo
   main-is: TestDashdo.hs
   default-language:  Haskell2010
-  hs-source-dirs:    src
+  hs-source-dirs:    exe
   build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , datasets
-                     , lucid
-                     , aeson
-                     , text
-                     , dashdo
-                     , microlens-platform
+                     , dashdo-examples
 
 executable iris-kmeans-dashdo
   main-is: IrisKMeans.hs
   default-language:  Haskell2010
-  hs-source-dirs:    src
+  hs-source-dirs:    exe
   build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , datasets
-                     , lucid
-                     , aeson
-                     , text
-                     , dashdo
-                     , microlens-platform
-                     , fuml
-                     , vector
-                     , mtl
-                     , lucid-extras
+                     , dashdo-examples
 
 executable statview-dashdo
   main-is: StatView.hs
   default-language:  Haskell2010
-  hs-source-dirs:    src
+  hs-source-dirs:    exe
   build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , datasets
-                     , lucid
-                     , aeson
-                     , text
-                     , dashdo
-                     , microlens-platform
-                     , statgrab
-                     , lucid-extras
-                     , unix
+                     , dashdo-examples
 
 executable gapminder-dashdo
   main-is: GapminderScatterplot.hs
   default-language:  Haskell2010
-  hs-source-dirs:    src
+  hs-source-dirs:    exe
   build-depends:       base >=4.6 && <5
-                     , plotlyhs
-                     , datasets
-                     , lucid
-                     , aeson
-                     , text
-                     , dashdo
-                     , microlens-platform
-                     , lucid-extras
+                     , dashdo-examples

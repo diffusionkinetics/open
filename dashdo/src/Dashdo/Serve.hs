@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell, Rank2Types #-}
 
 module Dashdo.Serve where
 
@@ -9,7 +9,7 @@ import Dashdo.FileEmbed
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
 import Network.HTTP.Types (status404)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Trans (liftIO, MonadIO)
 import System.Random
 import qualified Data.List as L
 import qualified Data.UUID as UUID
@@ -19,12 +19,14 @@ import qualified Data.ByteString.Lazy as BLS
 
 import Control.Monad (forM_)
 
-dashdoHandler :: Dashdo a -> IO ([Param] -> ActionM ())
-dashdoHandler d = do
-  (_, ff) <- dashdoGenOut d (initial d)
+type RunInIO m = forall a. m a -> IO a
+
+dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
+dashdoHandler r d = do
+  (_, ff) <- r $ dashdoGenOut d (initial d) []
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
-         (thisHtml, _) <- liftIO $ dashdoGenOut d newval
+         (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
          html thisHtml
 
 getRandomUUID :: IO Text
@@ -36,21 +38,24 @@ dashdoJS = BLS.fromStrict $(embedFile "public/js/dashdo.js")
 dashdoJSrunnerBase :: BLS.ByteString
 dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
 
-runDashdo :: Dashdo a -> IO ()
+runDashdo :: Monad m => RunInIO m -> Dashdo m a -> IO ()
 runDashdo = runDashdoPort 3000
 
-runDashdoPort :: Int -> Dashdo a -> IO ()
-runDashdoPort prt d = do
-  (iniHtml, _) <- dashdoGenOut d (initial d)
-  h <- dashdoHandler d
+runDashdoPort :: Monad m => Int -> RunInIO m -> Dashdo m a -> IO ()
+runDashdoPort prt r d = do
+  (iniHtml, _) <- r $ dashdoGenOut d (initial d) []
+  h <- dashdoHandler r d
   serve prt iniHtml [("", "", h)]
 
-runRDashdo :: Text -> [RDashdo] -> IO ()
+runDashdoIO :: Dashdo IO a -> IO ()
+runDashdoIO = runDashdoPort 3000 id
+
+runRDashdo :: Monad m => RunInIO m -> Text -> [RDashdo m] -> IO ()
 runRDashdo = runRDashdoPort 3000
 
-runRDashdoPort :: Int -> Text -> [RDashdo] -> IO ()
-runRDashdoPort prt html ds = do
-  handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler d) ds
+runRDashdoPort :: Monad m => Int -> RunInIO m -> Text -> [RDashdo m] -> IO ()
+runRDashdoPort prt r html ds = do
+  handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler r d) ds
   serve prt html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
 
 serve :: Int -> Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
