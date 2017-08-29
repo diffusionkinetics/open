@@ -28,6 +28,7 @@ Library
                  , Dashdo.Types
                  , Dashdo.Elements
                  , Dashdo.Rdash
+                 , Dashdo.FlexibleInput
 
    Other-modules: Dashdo.FileEmbed
 
