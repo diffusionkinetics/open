@@ -65,7 +65,6 @@ container: {container name}:
   image: {image name}
   expose: [port number, ...]
   command: {command to run container in image} # optional
-
 ```
 
 Example:
