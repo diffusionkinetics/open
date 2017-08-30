@@ -13,7 +13,7 @@ Note that by extension any service that can run as a docker container (e.g. Redi
 
 The goals of dampf in managing this stack are:
 
-* Simplicity: focus on building something insanely awesome instead of learning Kubernetes the hard way. Dampf is for developers 
+* Simplicity: focus on building your insanely awesome application instead of learning Kubernetes the hard way. Dampf is for developers 
   who want to spend as little time as possible on system administration and DevOps.
 * DevOps at the application level: describe applications, not servers
 * Multiple interpreters: one dampf application can be deployed in many different ways: locally as a development environment, 
