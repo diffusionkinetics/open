@@ -101,12 +101,17 @@ domain mydomain.com
   letsEncrypt: true
 ```
 
-Declares that the server should listen on a domain and serve static content and/or forward requests to a container. If a path to static content specified,
-then this content should be served first if the request matches a file in that path. If a proxy container is specified, and if the request does not match
+Declares that the server should listen on a domain and serve static content and/or forward requests to a container. 
+
+If a path to static content specified,
+then this content should be served first if the request matches a file in that path. 
+
+If a proxy container is specified, and if the request does not match
 file in a static path specified, then the request should be proxied to the running container, to the port specified (matching the internal port on the container).
+
 If `letsEncrypt` is true, then the Let's Encrypt service will be used to provide SSL certificates.
 
-## Database section
+### Database section
 
 Syntax:
 
