@@ -49,10 +49,10 @@ named nm mx = do
   lift $ put (nm:ns, v, pars, ffs)
   mx
 
-getValue :: Monad m => SHtml m a a
+getValue :: Monad m =>  SHtml m a a
 getValue = do
-  (n, v, pars, ffs) <- lift $ get
-  return v
+  (_, v, _, _) <- lift $ get
+  return $ v
 
 putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do

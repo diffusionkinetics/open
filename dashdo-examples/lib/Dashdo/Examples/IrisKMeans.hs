@@ -6,7 +6,8 @@ import Numeric.Datasets.Iris
 import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
-import Dashdo.Elements
+import Dashdo.Elements hiding (numInput)
+import Dashdo.FlexibleInput hiding (textInput)
 import Control.Monad
 import Control.Monad.State.Strict
 import Lucid
@@ -64,7 +65,7 @@ dashdo = wrap plotlyCDN $ do
             br_ []
             "Cluster count"
             br_ []
-            numInput (Just 0) Nothing (Just 1) nclusters
+            nclusters <<~ numInput  & minVal ?~ 0 & step ?~ 1
 
         mkCol [(MD,9)] $ do
             let trace :: Trace

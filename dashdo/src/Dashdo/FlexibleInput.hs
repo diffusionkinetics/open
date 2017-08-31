@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, ExistentialQuantification, FunctionalDependencies, ExtendedDefaultRules, FlexibleContexts, Rank2Types, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeFamilies, ExistentialQuantification, FunctionalDependencies, ExtendedDefaultRules, FlexibleContexts, Rank2Types, TemplateHaskell #-}
 
 module Dashdo.FlexibleInput where
 
@@ -21,8 +21,11 @@ import Lens.Micro.TH
 import Data.Monoid ((<>))
 import Prelude hiding (tail)
 
-class FlexibleInput a t where
-  (<<~) :: Monad m => Lens' s t -> a -> SHtml m s ()
+infixl 0 <<~
+
+class FlexibleInput a where
+  type InputVal a
+  (<<~) :: Monad m => Lens' s (InputVal a) -> a -> SHtml m s ()
 
 data TextInput = TextInput { textInputClasses :: Text }
 
@@ -31,7 +34,8 @@ makeFields ''TextInput
 textInput :: TextInput
 textInput = TextInput ""
 
-instance FlexibleInput TextInput Text where
+instance FlexibleInput TextInput where
+  type InputVal TextInput = Text
   f <<~ (TextInput cs) = do
     n <- fresh
     val <- getValue
@@ -51,7 +55,8 @@ makeFields ''NumInput
 numInput :: (Show a, Num a) => NumInput a
 numInput = NumInput "" Nothing Nothing Nothing
 
-instance (Show a, Read a, Num a) => FlexibleInput (NumInput a) a where
+instance (Show a, Read a, Num a) => FlexibleInput (NumInput a) where
+  type InputVal (NumInput a) = a
   f <<~ (NumInput cs mmin mmax mstep) = do
     (val,n) <- freshAndValue
     let amin = maybe [] ((:[]) . min_ . pack . show) mmin
