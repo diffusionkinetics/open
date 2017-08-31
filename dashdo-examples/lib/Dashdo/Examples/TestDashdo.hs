@@ -7,6 +7,7 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
+import Dashdo.FlexibleInput
 import Control.Monad
 import Control.Monad.State.Strict
 import Lucid
@@ -38,7 +39,7 @@ test = do
 
 hello :: SHtml IO Text ()
 hello = do
-  textInput id
+  id <<~ textInput
   br_ []
   txt  <- getValue
   "Hello, " <> (toHtml txt) <> "!"
@@ -57,15 +58,15 @@ example irisd = wrap plotlyCDN $ do
   br_ []
 
   "Name input #1:"
-  textInput pname
+  pname <<~ textInput
   br_ []
 
   "Name input #2:"
-  textInput pname
+  pname <<~ textInput
   br_ []
 
   "Name input #3:"
-  textInput pname
+  pname <<~ textInput
   br_ []
 
   "Greetings using (#>):"

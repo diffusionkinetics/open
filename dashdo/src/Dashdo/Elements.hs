@@ -53,14 +53,6 @@ wrap hdr h =  doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
 
-textInput :: Monad m => Lens' a Text -> SHtml m a ()
-textInput f = do
-  n <- fresh
-  val <- getValue
-
-  putFormField (n, lensSetter f)
-  input_ [type_ "text", name_ n, value_ (val ^. f)]
-
 select :: (Monad m, Eq b) => [(Text, b)] -> Lens' a b -> SHtml m a ()
 select opts f = do
   (val,n) <- freshAndValue
@@ -73,20 +65,6 @@ select opts f = do
       if val ^. f == optVal
          then option_ [value_ optNm, selected_ ""] $ toHtml optNm
          else option_ [value_ optNm] $ toHtml optNm
-
-numInput :: (Num b, Show b, Read b, Monad m) => Maybe b -> Maybe b -> Maybe b -> Lens' a b -> SHtml m a ()
-numInput mmin mmax mstep f = do
-  (val,n) <- freshAndValue
-  let amin = maybe [] ((:[]) . min_ . pack . show) mmin
-      amax = maybe [] ((:[]) . max_ . pack . show) mmax
-      astep = maybe [] ((:[]) . step_ . pack . show) mstep
-      ft s t = case readMaybe $ unpack t of
-                 Nothing -> s
-                 Just x -> lensSetter f s x
-  putFormField (n, ft)
-  input_ (amin  ++ amax ++ astep ++ [type_ "number",
-                                     name_ n,
-                                     value_ (pack . show $ val ^. f) ])
 
 manualSubmit :: Monad m => SHtml m a ()
 manualSubmit = do
