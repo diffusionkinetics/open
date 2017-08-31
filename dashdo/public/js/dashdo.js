@@ -20,6 +20,25 @@
     else return "#"+(0x100000000+(f[3]>-1&&t[3]>-1?r(((t[3]-f[3])*p+f[3])*255):t[3]>-1?r(t[3]*255):f[3]>-1?r(f[3]*255):255)*0x1000000+r((t[0]-f[0])*p+f[0])*0x10000+r((t[1]-f[1])*p+f[1])*0x100+r((t[2]-f[2])*p+f[2])).toString(16).slice(f[3]>-1||t[3]>-1?1:3);
   }
 
+  var sortSerializedString = function(s, fieldName) {
+    if (typeof(fieldName) === 'undefined' || !fieldName) {
+      return s
+    }
+  
+    var pairStr = s.split("&")
+    var fieldNameWithEqualSign = fieldName + "="
+    pairStr.sort(function(a, b) {
+      if (a.startsWith(fieldNameWithEqualSign) && !b.startsWith(fieldNameWithEqualSign)) {
+        return true // a goes to the end
+      } else if (!a.startsWith(fieldNameWithEqualSign) && b.startsWith(fieldNameWithEqualSign)) {
+        return false // b goes to the end
+      } else {
+        return a > b // lexicographical sorting (default)
+      }
+    })
+    return pairStr.join("&")
+  }
+
   var idToSelectorOrNull = function(x) {
     return (!!x) ? '#' + x : null;
   }
@@ -49,12 +68,13 @@
       $(':input').prop('readonly', !b)
     }
 
-    $(this).on('change', ':input', function() {
+    $(this).on('change', ':input', function(event) {
+      $(this).filter('form').attr('data-last-changed-field', event.currentTarget.name)
       if (typeof(manual_submit) === 'undefined' || !manual_submit) {
         setFormActive(false)
         resubmit()
       }
-    })
+    }.bind(this))
 
     this.filter('form').on('submit', function(e) {
       e.preventDefault()  // no 'native' submitting
@@ -173,9 +193,10 @@
 
     var resubmit = function() {
       if(!!settings.containerSelector) {
+        var whatToSend = sortSerializedString($(this).serialize(), $(this).attr('data-last-changed-field'))
         requestHtmlFromServer(
           $(this).attr('action'),
-          $(this).serialize(),
+          whatToSend,
           function(data) {
             var incomingDOM = $.parseHTML(data, null, true)
 
