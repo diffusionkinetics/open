@@ -54,7 +54,7 @@ example irisd = wrap plotlyCDN $ do
 
   h2_ "Testing Dashdo"
   
-  select [("Male", True),("Female", False)] isMale
+  isMale <<~ select [("Male", True),("Female", False)]
   br_ []
 
   "Name input #1:"
@@ -76,8 +76,8 @@ example irisd = wrap plotlyCDN $ do
   isMale #> test
   br_ []
   
-  select axes xaxis
-  select axes yaxis
+  xaxis <<~ select axes
+  yaxis <<~ select axes
   toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
 
 axes = [tagOpt "sepal length" sepalLength,

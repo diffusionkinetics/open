@@ -57,11 +57,11 @@ dashdo = wrap plotlyCDN $ do
         mkCol [(MD,3)] $ div_ [class_ "well"] $ do
             "X Variable"
             br_ []
-            select axes xaxis
+            xaxis <<~ select axes
             br_ []
             "y Variable"
             br_ []
-            select axes yaxis
+            yaxis <<~ select axes
             br_ []
             "Cluster count"
             br_ []

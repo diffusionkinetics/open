@@ -70,3 +70,28 @@ instance (Show a, Read a, Num a) => FlexibleInput (NumInput a) where
                                        name_ n,
                                        class_ cs,
                                        value_ (pack . show $ val ^. f) ])
+
+data Select a = Select
+  {
+   selectClasses :: Text
+  ,selectOptions :: [(Text, a)]
+  }
+
+makeFields ''Select
+
+select opts = Select "" opts
+
+instance (Eq a) => FlexibleInput (Select a) where
+  type InputVal (Select a) = a
+  f <<~ (Select cs opts) = do
+    (val, n) <- freshAndValue
+    let ft s t = case lookup t opts of
+                   Nothing -> s
+                   Just x  -> lensSetter f s x
+
+    putFormField (n, ft)
+    select_ [name_ n] $ do
+      forM_ opts $ \(optNm, optVal) ->
+        if val ^. f == optVal
+           then option_ [value_ optNm, selected_ ""] $ toHtml optNm
+           else option_ [value_ optNm] $ toHtml optNm  
