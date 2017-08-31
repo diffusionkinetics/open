@@ -98,9 +98,9 @@ instance (Eq a) => FlexibleInput (Select a) where
 
 data Checkbox a = Checkbox
   {
-    checkboxLabelText :: Text,
-    checkboxChecked :: a,
-    checkboxUnchecked :: a
+    checkboxLabelText :: Text
+  , checkboxChecked :: a
+  , checkboxUnchecked :: a
   }
 
 makeFields ''Checkbox
