@@ -63,5 +63,5 @@ putFormField ff = do
 lensSetter :: ASetter' s a -> (s -> a -> s)
 lensSetter l x y = x & l .~ y
 
-lensPusher :: ASetter s t [a] [a] -> s -> a -> t
-lensPusher l x y = over l ((:) y) x
+lensPusher :: ASetter' s [a] -> (s -> a -> s)
+lensPusher l x y = x & l %~ ((:) y)

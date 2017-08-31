@@ -21,7 +21,6 @@ import Graphics.Plotly.Histogram (histogram)
 
 data Example = Example
  { _pname :: Text
- , _pfoo :: Text
  , _isMale :: Bool
  , _xaxis :: Tag (Iris -> Double)
  , _yaxis :: Tag (Iris -> Double)
@@ -57,14 +56,20 @@ example irisd = wrap plotlyCDN $ do
   select [("Male", True),("Female", False)] isMale
   br_ []
 
-  h3_ "pname"
-
-  pname #> hello
+  "Name input #1:"
+  textInput pname
   br_ []
 
-  h3_ "pfoo"
+  "Name input #2:"
+  textInput pname
+  br_ []
 
-  pfoo #> hello
+  "Name input #3:"
+  textInput pname
+  br_ []
+
+  "Greetings using (#>):"
+  pname #> hello
   br_ []
   
   isMale #> test
@@ -79,7 +84,7 @@ axes = [tagOpt "sepal length" sepalLength,
         tagOpt "petal length" petalLength,
         tagOpt "petal width" petalWidth]
 
-initv = Example "Simon" "bar" True (snd $ axes!!0) (snd $ axes!!1)
+initv = Example "Simon" True (snd $ axes!!0) (snd $ axes!!1)
 
 {-hbarData :: [(Text, Double)]
 hbarData = [("Simon", 14.5), ("Joe", 18.9), ("Dorothy", 16.2)]
