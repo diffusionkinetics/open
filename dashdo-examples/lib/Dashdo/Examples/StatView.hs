@@ -7,6 +7,7 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
+import Dashdo.FlexibleInput
 import Dashdo.Rdash (rdash, charts, controls)
 import Control.Arrow ((&&&), second)
 import Control.Monad.State.Strict
@@ -117,7 +118,7 @@ process = do
             uid = fromIntegral (userID u)
 
   controls $
-    checkbox "Hide inactive processes" Active All processFilterType
+    processFilterType <<~ checkbox "Hide inactive processes" Active All
 
   charts
      [ ("CPU Usage by Process", toHtml $ plotly "ps" [processes] & layout . margin ?~ thinMargins)
