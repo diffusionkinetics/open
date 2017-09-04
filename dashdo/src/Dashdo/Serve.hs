@@ -23,18 +23,17 @@ import Control.Monad (forM_)
 import Data.Monoid
 import Network.HTTP.Types.Status
 import Control.Exception
-import Data.Hashable
+import Control.DeepSeq
 
 type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
 dashdoHandler r d = (do
   (iniHtml, ff) <- r $ dashdoGenOut d (initial d) []
-  print $ hash iniHtml
-  return $ \ps -> do
+  deepseq iniHtml $ return $ \ps -> do
          let newval = parseForm (initial d) ff ps
          (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
-         html thisHtml) `catch` (\e-> do 
+         html thisHtml) `catch` (\e-> do
            let es = "Dashdo handler create error: " <> show (e::SomeException)
            putStrLn es
            fail es)
