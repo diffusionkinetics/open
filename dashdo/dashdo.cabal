@@ -52,4 +52,3 @@ Library
                , template-haskell
                , aeson
                , plotlyhs
-               , deepseq
