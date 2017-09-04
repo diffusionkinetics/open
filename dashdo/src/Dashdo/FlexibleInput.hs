@@ -21,7 +21,7 @@ import Lens.Micro.TH
 import Data.Monoid ((<>))
 import Prelude hiding (tail)
 
-infixl 0 <<~
+infixr 0 <<~
 
 class FlexibleInput a where
   type InputVal a
@@ -70,3 +70,58 @@ instance (Show a, Read a, Num a) => FlexibleInput (NumInput a) where
                                        name_ n,
                                        class_ cs,
                                        value_ (pack . show $ val ^. f) ])
+
+data Select a = Select
+  {
+   selectClasses :: Text
+  ,selectOptions :: [(Text, a)]
+  }
+
+makeFields ''Select
+
+select opts = Select "" opts
+
+instance (Eq a) => FlexibleInput (Select a) where
+  type InputVal (Select a) = a
+  f <<~ (Select cs opts) = do
+    (val, n) <- freshAndValue
+    let ft s t = case lookup t opts of
+                   Nothing -> s
+                   Just x  -> lensSetter f s x
+
+    putFormField (n, ft)
+    select_ [name_ n] $ do
+      forM_ opts $ \(optNm, optVal) ->
+        if val ^. f == optVal
+           then option_ [value_ optNm, selected_ ""] $ toHtml optNm
+           else option_ [value_ optNm] $ toHtml optNm
+
+data Checkbox a = Checkbox
+  {
+    checkboxLabelText :: Text
+  , checkboxChecked :: a
+  , checkboxUnchecked :: a
+  }
+
+makeFields ''Checkbox
+
+checkbox = Checkbox
+
+instance (Eq a) => FlexibleInput (Checkbox a) where
+  type InputVal (Checkbox a) = a
+  f <<~ (Checkbox text vTrue vFalse) = do
+    (val, n) <- freshAndValue
+    let 
+      ft s t = 
+        case t of
+          "true" -> lensSetter f s vTrue
+          _      -> lensSetter f s vFalse
+      checked = if val ^. f == vTrue then [checked_] else []
+
+    putFormField (n, ft)
+    div_ [class_ "checkbox"] $ do
+      label_ $ do
+        input_ $ [type_ "checkbox", name_ n, value_ "true"] ++ checked
+        toHtml text
+    -- if checkbox doesn't supply a value we get this one instead
+    input_ [type_ "hidden", name_ n, value_ "false"]

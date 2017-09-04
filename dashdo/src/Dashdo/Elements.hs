@@ -53,41 +53,6 @@ wrap hdr h =  doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     script_ [src_ "/js/runners/base.js"] ""
 
-textInput :: Monad m => Lens' a Text -> SHtml m a ()
-textInput f = do
-  n <- fresh
-  val <- getValue
-
-  putFormField (n, lensSetter f)
-  input_ [type_ "text", name_ n, value_ (val ^. f)]
-
-select :: (Monad m, Eq b) => [(Text, b)] -> Lens' a b -> SHtml m a ()
-select opts f = do
-  (val,n) <- freshAndValue
-  let ft s t = case lookup t opts of
-                 Nothing -> s
-                 Just x -> lensSetter f s x
-  putFormField (n, ft)
-  select_ [name_ n] $ do
-    forM_ opts $ \(optNm, optVal) ->
-      if val ^. f == optVal
-         then option_ [value_ optNm, selected_ ""] $ toHtml optNm
-         else option_ [value_ optNm] $ toHtml optNm
-
-numInput :: (Num b, Show b, Read b, Monad m) => Maybe b -> Maybe b -> Maybe b -> Lens' a b -> SHtml m a ()
-numInput mmin mmax mstep f = do
-  (val,n) <- freshAndValue
-  let amin = maybe [] ((:[]) . min_ . pack . show) mmin
-      amax = maybe [] ((:[]) . max_ . pack . show) mmax
-      astep = maybe [] ((:[]) . step_ . pack . show) mstep
-      ft s t = case readMaybe $ unpack t of
-                 Nothing -> s
-                 Just x -> lensSetter f s x
-  putFormField (n, ft)
-  input_ (amin  ++ amax ++ astep ++ [type_ "number",
-                                     name_ n,
-                                     value_ (pack . show $ val ^. f) ])
-
 manualSubmit :: Monad m => SHtml m a ()
 manualSubmit = do
   input_ [type_ "submit", value_ "Submit"]
@@ -97,22 +62,6 @@ submitPeriodic :: Monad m => Int -> SHtml m a ()
 submitPeriodic delaySecs = do
   let delayMs = pack $ show $ delaySecs*1000
   input_ [type_ "hidden", class_ "dashdo-periodic-submit", value_ delayMs]
-
-checkbox :: (Monad m, Eq b) => Text -> b -> b -> Lens' a b -> SHtml m a ()
-checkbox text vTrue vFalse f = do
-  (val, n) <- freshAndValue
-  let ft s t = case t of
-                "true" -> lensSetter f s vTrue
-                _      -> lensSetter f s vFalse
-      fid = "id" <> pack (show n)
-      checked = if val ^. f == vTrue then [checked_] else []
-  putFormField (n, ft)
-  div_ [class_ "checkbox"] $
-    label_ $ do
-      input_ $ [type_ "checkbox", id_ fid, name_ n, value_ "true"] ++ checked
-      toHtml text
-  -- if checkbox doesn't supply a value we get this one instead
-  input_ [type_ "hidden", name_ n, value_ "false"]
 
 resetLink :: Monad m => SHtml m a ()
 resetLink = do
