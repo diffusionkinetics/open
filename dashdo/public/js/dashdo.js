@@ -47,7 +47,7 @@
     var settings = $.extend({
       // These are the defaults.
       uuidUrl: '/uuid',
-      uuidInterval: 1000,
+      uuidInterval: 3000,
 
       colorSelected: '#1F77B4',
       colorUnSelected: '#A5C8E1',

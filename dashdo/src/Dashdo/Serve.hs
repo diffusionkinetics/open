@@ -23,12 +23,14 @@ import Control.Monad (forM_)
 import Data.Monoid
 import Network.HTTP.Types.Status
 import Control.Exception
+import Data.Hashable
 
 type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
 dashdoHandler r d = (do
-  (_, ff) <- r $ dashdoGenOut d (initial d) []
+  (iniHtml, ff) <- r $ dashdoGenOut d (initial d) []
+  print $ hash iniHtml
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
          (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
