@@ -15,9 +15,12 @@ import qualified Data.List as L
 import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString.Lazy as BLS
 
 import Control.Monad (forM_)
+import Data.Monoid
+import Network.HTTP.Types.Status
 
 type RunInIO m = forall a. m a -> IO a
 
@@ -79,4 +82,7 @@ serve port iniHtml handlers = do
 
     get "/uuid" $ text uuid
     get "/" $ html iniHtml
+    defaultHandler $ \e -> do
+      status internalServerError500
+      text ("Error: "<>(TL.pack $ show e))
     forM_ handlers $ \(did, _, hdl) -> post (literal ('/':did)) (params >>= hdl)
