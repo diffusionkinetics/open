@@ -31,7 +31,10 @@ dashdoHandler r d = (do
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
          (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
-         html thisHtml) `catch` (\e-> fail ("Dashdo handler create error: " <> show (e::SomeException)))
+         html thisHtml) `catch` (\e-> do 
+           let es = "Dashdo handler create error: " <> show (e::SomeException)
+           putStrLn es
+           fail es)
 
 getRandomUUID :: IO Text
 getRandomUUID = fromStrict . UUID.toText <$> randomIO
