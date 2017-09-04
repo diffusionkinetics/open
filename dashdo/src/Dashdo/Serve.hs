@@ -21,16 +21,17 @@ import qualified Data.ByteString.Lazy as BLS
 import Control.Monad (forM_)
 import Data.Monoid
 import Network.HTTP.Types.Status
+import Control.Exception
 
 type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
-dashdoHandler r d = do
+dashdoHandler r d = (do
   (_, ff) <- r $ dashdoGenOut d (initial d) []
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
          (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
-         html thisHtml
+         html thisHtml) `catch` (\e-> fail ("Dashdo handler create error: " <> show (e::SomeException)))
 
 getRandomUUID :: IO Text
 getRandomUUID = fromStrict . UUID.toText <$> randomIO
