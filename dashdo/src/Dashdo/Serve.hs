@@ -16,6 +16,7 @@ import qualified Data.UUID as UUID
 import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.IO as TL
 import qualified Data.ByteString.Lazy as BLS
 
 import Control.Monad (forM_)
@@ -88,5 +89,7 @@ serve port iniHtml handlers = do
     get "/" $ html iniHtml
     defaultHandler $ \e -> do
       status internalServerError500
-      text ("Error: "<>(TL.pack $ show e))
+      let es = "Dashdo handler error: "<>(TL.pack $ show e)
+      liftIO $ TL.putStrLn es
+      text (es)
     forM_ handlers $ \(did, _, hdl) -> post (literal ('/':did)) (params >>= hdl)
