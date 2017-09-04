@@ -123,3 +123,5 @@ instance (Eq a) => FlexibleInput (Checkbox a) where
       label_ $ do
         input_ $ [type_ "checkbox", name_ n, value_ "true"] ++ checked
         toHtml text
+    -- if checkbox doesn't supply a value we get this one instead
+    input_ [type_ "hidden", name_ n, value_ "false"]
