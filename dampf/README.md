@@ -38,6 +38,8 @@ containers for services, databases and domains. An example application file is g
 The application file specifies *what* your application is, not *how* it should be deployed. If it is not possible to describe your application entirely 
 using this format, you should not be using dampf.
 
+This file should be checked into version control together with your application code.
+
 ### Image section
 
 Syntax:
@@ -138,6 +140,10 @@ The database will be owned by the given user and the specified extensions should
 
 ## Configuration file
 
+The configuration file specifies *how* applications should be deployed, independently of *what* those applications are. An example configuration file ([.dampfcfg.yaml.example](https://github.com/diffusionkinetics/open/blob/master/dampf/.dampfcfg.yaml.example) is provided in this repository.
+
+This file should *not* be checked into version control as it contains secrets that can be used to compromise your setup. 
+
 ## Command line tool
 
 `dampf` is a commandline executable that can perform various tasks related to applications specified in an application file. dampf can build images, deploy the application and manage databases.
@@ -152,4 +158,24 @@ The database will be owned by the given user and the specified extensions should
 
 ### `backup` command
 
-Backup databases. If invoked with no arguments, this will backup all databases. If one or more arguments follow the `backup` command, only databases with names matching those arguments will be backed up.
+Backup databases. If invoked with no arguments, this will backup all databases listed in the application file. If one or more arguments follow the `backup` command, only databases with names matching those arguments will be backed up.
+
+### `build` command
+
+Build all the docker images in the application.
+
+### `deploy` command
+
+Build all the docker images in the application, (re)start the containers, run migrations and deploy the specified domains.
+
+### `newmigration` command
+
+Syntax: `dampf newmigration {migration name}` 
+
+Create a new migration file in the migrations directory using the current time as the timestamp
+
+## Environment variables and host names in containers.
+
+dampf will set environmental variables in your running containers. These can be used to connect to databases and other containers. You should use these because they will be set correctly during testing so your test containers will connect to a test database.
+
+TODO: list environment variables
