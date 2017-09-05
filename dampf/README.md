@@ -117,9 +117,9 @@ Syntax:
 
 ```
 postgresdb {database name}:
-  migrations: {path to migrations directory}
+  migrations: {path to migrations directory} # optional
   user: {username for the owner of this database}
-  extensions: [extension, ...]
+  extensions: [extension, ...] # Optional
 ```
 
 Example:
@@ -130,3 +130,26 @@ postgresdb mydb:
   extensions: ["hstore"]
 ```
 
+Declares that a PostgreSQL database is part of the application.
+
+Dampf can manage your migrations. The migrations must be set to a relative path which contains the SQL files for individual migrations. In this directory, each migration should be a file with a name of the form YYYYMMDDHHMMSS_{migration name}.sql containing SQL to perform the migration. Files with names of this form can be generated with the `new_migration` command (see below).
+
+The database will be owned by the given user and the specified extensions should be present.
+
+## Configuration file
+
+## Command line tool
+
+`dampf` is a commandline executable that can perform various tasks related to applications specified in an application file. dampf can build images, deploy the application and manage databases.
+
+`dampf` presents a hierarchy with global options, commands and options for each command similar to `git`. To see a list of commands run `dampf --help`. For instance, to run the `build` command using the application file named `myapp.yaml` run `dampf -a myapp.yaml build`. To see options and arguments specific to each command, run `dampf {command} --help`.
+
+### Global options
+
+* **a**ppFile: give the name of the file that contains the application specification. This defaults to `dampf.yaml` in the current directory.
+* **c**onfigFile: give the name of the file that contains the configuration specification. This defaults to `.dampfcfg.yaml` in the home directory.
+* **p**rofile: select the profile to use out of the ones specified in the configuration file. This defaults to ???
+
+### `backup` command
+
+Backup databases. If invoked with no arguments, this will backup all databases. If one or more arguments follow the `backup` command, only databases with names matching those arguments will be backed up.
