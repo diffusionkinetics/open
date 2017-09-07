@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE DuplicateRecordFields   #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
 module Dampf.Internal.AppFile.Types
@@ -21,6 +22,7 @@ module Dampf.Internal.AppFile.Types
 import           Control.Lens
 import           Control.Monad
 import           Data.Aeson
+import           Data.Aeson.Types
 import qualified Data.HashMap.Lazy as HM
 import           Data.Map.Strict            (Map)
 import           Data.Text                  (Text)
@@ -50,10 +52,23 @@ data ContainerSpec = ContainerSpec
 
 makeClassy ''ContainerSpec
 
-
 instance FromJSON ContainerSpec where
     parseJSON = gDecode
 
+data TestWhen = Deploy | Hourly | Daily | Frequently deriving (Show, Read, Eq, Ord, Generic)
+
+instance FromJSON TestWhen
+
+data TestSpec = TestSpec
+  { _tsImage        :: Text
+  , _tsCommand      :: Maybe Text
+  , _tsWhen         :: [TestWhen]
+  } deriving (Eq, Show, Generic)
+
+makeClassy ''TestSpec
+
+instance FromJSON TestSpec where
+    parseJSON = genericParseJSON $ defaultOptions { fieldLabelModifier = drop 3}
 
 data DatabaseSpec = DatabaseSpec
     { _migrations   :: Maybe FilePath
