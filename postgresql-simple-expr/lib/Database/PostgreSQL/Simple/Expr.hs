@@ -15,6 +15,7 @@ import Data.String
 import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
+import Data.Aeson
 
 class HasFieldNames a where
   getFieldNames :: Proxy a -> [String]
@@ -118,6 +119,10 @@ instance (ToField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
   autoIncrementing _ = True
 
+instance ToJSON a => ToJSON (Serial a) where
+  toJSON (Serial x) = toJSON x
+instance FromJSON a => FromJSON (Serial a) where
+  parseJSON mx = Serial <$> parseJSON mx
 
 -- https://hackage.haskell.org/package/hpack-0.15.0/src/src/Hpack/GenericsUtil.hs
 -- Copyright (c) 2014-2016 Simon Hengel <sol@typeful.net>

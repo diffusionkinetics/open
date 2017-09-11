@@ -19,13 +19,16 @@ Library
    Exposed-modules:
                Todo.Serve
                Todo.Test
+               Todo.Items
    Build-depends:
                  base                    >= 4.6 && < 5
+               , text
                , aeson
                , scotty
                , postgresql-simple
                , postgresql-simple-expr
                , scotty
+               , bytestring
                , http-test
 
 executable todo
