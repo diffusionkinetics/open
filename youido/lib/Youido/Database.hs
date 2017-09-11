@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import Control.Exception
+import System.Environment
 
 import Database.PostgreSQL.Simple
 
@@ -19,12 +20,18 @@ data DatabaseConfig = DatabaseConfig
   , host                   :: String
   , port                   :: Integer
   , dbname                 :: String
-  , migrations_directory   :: Maybe String
-  , num_stripes            :: Maybe Int
-  , res_per_stripe         :: Maybe Int
   } deriving (Show, Eq, Generic)
 
 instance FromJSON DatabaseConfig
+
+configFromEnv :: IO DatabaseConfig
+configFromEnv = DatabaseConfig
+  <$> getEnv "PGUSER"
+  <*> getEnv "PGPASSWORD"
+  <*> getEnv "PGHOST"
+  <*> (read <$> getEnv "PGPORT")
+  <*> getEnv "PGDATABASE"
+
 
 createConn :: DatabaseConfig -> IO Connection
 createConn config = do

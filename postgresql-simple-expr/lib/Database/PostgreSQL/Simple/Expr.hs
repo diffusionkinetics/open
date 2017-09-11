@@ -16,11 +16,6 @@ import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
 
-data MyRec = MyRec {
-  name :: String,
-  age:: Int
-} deriving (Generic)
-
 class HasFieldNames a where
   getFieldNames :: Proxy a -> [String]
 

@@ -23,6 +23,7 @@ import Lens.Micro.Platform
 import Dashdo
 import Dashdo.Types
 import Dashdo.Elements
+import Dashdo.FlexibleInput
 
 data Countries = Countries
                | Country Text
@@ -50,11 +51,12 @@ countryH gapM (Country c) = do
 data BubblesDD = BubblesDD { _selYear :: Int} deriving Show
 makeLenses ''BubblesDD
 
-bubblesDD gapM b = do
+bubblesDD gapM = do
   let years = nub $ map year gapM
-  select (map showOpt years) selYear
+  selYear <<~ select (map showOpt years)
   h2_ "hello world"
-  p_ (toHtml $ show $ _selYear b)
+  BubblesDD y <- getValue
+  p_ (toHtml $ show $ y)
 
 
 
@@ -67,7 +69,7 @@ runIt :: IO ()
 runIt = do
   ddH <- dashdoGlobal
   gapM <- getDataset gapminder
-  dd <- dashdoHandler #bubbles $ pureDashdo (BubblesDD 1980) (bubblesDD gapM)
+  dd <- flip runReaderT () $ dashdoHandler #bubbles $ Dashdo (BubblesDD 1980) (bubblesDD gapM)
   serve () $ Youido
               [ ddH  -- handler for /uuid and public/js
               , H dd -- handler for /bubbles
