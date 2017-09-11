@@ -29,7 +29,7 @@ Library
                , scotty
                , http-test
 
-executable filocore
+executable todo
    main-is: Main.hs
    Build-depends:
                  base                    >= 4.6 && < 5

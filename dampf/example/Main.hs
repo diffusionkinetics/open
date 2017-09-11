@@ -6,4 +6,4 @@ import System.Environment
 main = getArgs >>= dispatch
 
 dispatch ["serve"] = serve
-dispatch ["test"] = todoTest
+dispatch ("test":args) = withArgs args todoTest
