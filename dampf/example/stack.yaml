@@ -39,7 +39,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/diffusionkinetics/open.git
-    commit: 12a6800d4bccb0ecad9196467aa0d339571c470f
+    commit: 56aef296d1b9fd2091c89433e106c134a0ea56ec
   extra-dep: true
   subdirs:
   - postgresql-simple-expr
