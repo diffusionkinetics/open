@@ -9,6 +9,7 @@ container todo:
 postgresdb todo:
   migrations: migrations/
   db_user: tomn
+  db_extensions: []
 
 domain todo.diffusionkinetics.com:
   proxy_container: todo:3166
