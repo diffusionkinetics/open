@@ -2,10 +2,11 @@
 
 liveCertificate: /etc/letsencrypt/live/mydomain.com/
 
-postgres local:
+postgres:
     host: localhost
     port: 5432
 
     users:
+        postgres: pgpassword
         user: password
 

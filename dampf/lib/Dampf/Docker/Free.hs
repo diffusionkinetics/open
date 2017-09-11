@@ -39,10 +39,10 @@ interpBuild t i = do
     liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
     void $ runProcess process
   where
-    process = setStdin closed
+    process = {-setStdin closed
         . setStdout closed
         . setStderr closed
-        $ proc "docker" ["build", "-t", show t, i]
+        $ -} proc "docker" ["build", "-t", T.unpack t, i]
 
 
 interpRm :: (MonadIO m) => Text -> DampfT m Text
@@ -51,9 +51,9 @@ interpRm c = do
     (_, o, _) <- readProcess process
     return . TL.toStrict $ TL.decodeUtf8 o
   where
-    process = setStdin closed
+    process = {-setStdin closed
         . setStderr closed
-        $ proc "docker" ["rm", show c]
+        $ -} proc "docker" ["rm", show c]
 
 
 interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
@@ -64,10 +64,10 @@ interpRun n spec = do
 
     void . runProcess . process $ toArgs args
   where
-    process = setStdin closed
+    process = {-setStdin closed
         . setStdout closed
         . setStderr closed
-        . proc "docker"
+        . -} proc "docker"
 
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
@@ -75,8 +75,8 @@ interpStop c = do
     liftIO . putStrLn $ "Docker: Stopping " ++ show c
     void $ runProcess process
   where
-    process = setStdin closed
+    process = {-setStdin closed
         . setStdout closed
         . setStderr closed
-        $ proc "docker" ["stop", show c]
+        $ -} proc "docker" ["stop", show c]
 
