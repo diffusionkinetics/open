@@ -22,8 +22,6 @@ class HasFieldNames a where
   default getFieldNames :: (Selectors (Rep a)) => Proxy a -> [String]
   getFieldNames proxy = selectors proxy
 
-instance HasFieldNames MyRec
-
 selectFrom :: forall r q. (ToRow q, FromRow r, HasFieldNames r) => Connection -> Query -> q -> IO [r]
 selectFrom conn q1 args = do
   let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) ) <> " from " <> q1
