@@ -15,7 +15,7 @@ import qualified Lucid.Rdash as RD
 
 import Data.Text (Text)
 import Data.Monoid
-
+import Control.Monad.State.Strict
 
 
 import Control.Monad.IO.Class
@@ -24,6 +24,11 @@ import Control.Monad.Reader
 type Session = ()
 
 --conn <-  createConn <$> readJSON "youido.json"
+
+serveY :: a -> YouidoT (ReaderT a IO) () -> IO ()
+serveY x (YouidoT sm) = do
+  y <- runReaderT (execStateT sm (Youido [] "Not found!" id [] 3000)) x
+  serve x y
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
 serve x y@(Youido _ _ _ users port) = do

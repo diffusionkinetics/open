@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, KindSignatures, DataKinds, TypeApplications, GADTs,
-             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, TypeOperators  #-}
+             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels,
+             TypeOperators, GeneralizedNewtypeDeriving, TemplateHaskell  #-}
 
 module Youido.Types where
 
@@ -7,6 +8,7 @@ import Network.Wai hiding (Response)
 import Data.Text (Text, pack)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as T
+import Control.Monad.State.Strict
 import Data.Monoid
 import GHC.TypeLits
 import Data.Proxy
@@ -19,6 +21,8 @@ import Network.HTTP.Types
 import Data.Void
 import System.IO.Unsafe (unsafePerformIO)
 import Network.Wai.Parse
+import Lens.Micro.Platform
+import Control.Monad.Trans
 
 -- | Repsonse from a handler - contents as bytestring, and headers
 data Response = Response
@@ -136,12 +140,26 @@ instance Monad m => Monoid (Handler m) where
     Right y -> fmap Right $ f2 y
 
 data Youido m = Youido
-  { handlers :: [Handler m] -- ^ list of handlers
-  , notFoundHtml :: Html () -- ^ default, if nothing found
-  , wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
-  , basicAuthUsers :: [(ByteString, ByteString)]
-  , port :: Int
+  { _handlers :: [Handler m] -- ^ list of handlers
+  , _notFoundHtml :: Html () -- ^ default, if nothing found
+  , _wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
+  , _basicAuthUsers :: [(ByteString, ByteString)]
+  , _port :: Int
   }
+
+makeLenses ''Youido
+
+newtype YouidoT m a = YouidoT {unYouidoT :: StateT (Youido m) m a}
+   deriving (Functor, Applicative, Monad, MonadIO, MonadState (Youido m))
+
+handle :: (FromRequest a, ToResponse b, Monad m) => (a -> m b) -> YouidoT m ()
+handle f = handlers %= ((H f):)
+
+user :: Monad m => ByteString -> ByteString -> YouidoT m ()
+user u p =  basicAuthUsers %= ((u,p):)
+
+liftY :: Monad m => m a -> YouidoT m a
+liftY mx = YouidoT (lift mx)
 
 -- | get a response from a request, given a list of handlers
 run :: Monad m

@@ -67,15 +67,11 @@ sidebar = mkSidebar
 
 runIt :: IO ()
 runIt = do
-  ddH <- dashdoGlobal
   gapM <- getDataset gapminder
-  dd <- flip runReaderT () $ dashdoHandler #bubbles $ Dashdo (BubblesDD 1980) (bubblesDD gapM)
-  serve () $ Youido
-              [ ddH  -- handler for /uuid and public/js
-              , H dd -- handler for /bubbles
-              , H $ countryH gapM -- handler for /countries
-              ]
-              "Not found!"  -- if nothing found
-              (stdWrapper (mempty) sidebar)  -- wrapper for html
-              []  -- basic auth users
-              3101  -- port
+  serveY () $ do
+    dashdoGlobal
+    dashdo #bubbles $ Dashdo (BubblesDD 1980) (bubblesDD gapM)
+    port .= 3101
+    wrapper .= stdWrapper (mempty) sidebar
+    handle $ countryH gapM
+

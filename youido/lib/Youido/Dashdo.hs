@@ -2,7 +2,7 @@
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
    OverloadedLabels, TypeOperators, DataKinds, KindSignatures #-}
 
-module Youido.Dashdo where
+module Youido.Dashdo (dashdoGlobal, dashdo, DashdoReq (Initial)) where
 
 import Youido.Types
 import Youido.Serve
@@ -22,11 +22,13 @@ import Data.Proxy
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import Lucid.PreEscaped
+import Lens.Micro.Platform
+
 
 -- | include this once to get global JS and app UUID routes
-dashdoGlobal :: Monad m => IO (Handler m)
-dashdoGlobal = do
-  uuid <- getRandomUUID
+dashdoGlobal' :: MonadIO m => m (Handler m)
+dashdoGlobal' = do
+  uuid <- liftIO $ getRandomUUID
   let h1 = H $ \(_ :: "uuid" :/ () ) -> return $ toStrict uuid
   let h2 = H $ \(_ :: "js" :/ "dashdo.js" :/ () ) -> return $ JS dashdoJS
   let h3 = H $ \(_ :: "js" :/ "runners" :/ "base.js" :/ () ) -> return $ JS dashdoJSrunnerBase
@@ -44,8 +46,8 @@ instance FromRequest DashdoReq where
 instance ToURL DashdoReq where
   toURL _ = "/"
 
-dashdoHandler :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (Html ()))
-dashdoHandler _ d = do
+dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (Html ()))
+dashdoHandler' _ d = do
   (iniHtml, ff) <- dashdoGenOut d (initial d) []
   let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
       wrapper :: TL.Text -> Html ()
@@ -58,3 +60,13 @@ dashdoHandler _ d = do
         (thisHtml, _) <- dashdoGenOut d newval []
         return $ wrapper thisHtml
   return dispatch
+
+dashdoGlobal :: MonadIO m => YouidoT m ()
+dashdoGlobal = do
+  dgh <- liftY $ dashdoGlobal'
+  handlers %= (dgh:)
+
+dashdo :: forall s m t . (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> YouidoT m ()
+dashdo k dd = do
+  dh <- liftY $ dashdoHandler' k dd
+  handle dh
