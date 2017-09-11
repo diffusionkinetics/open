@@ -136,13 +136,52 @@ Declares that a PostgreSQL database is part of the application.
 
 Dampf can manage your migrations. The migrations must be set to a relative path which contains the SQL files for individual migrations. In this directory, each migration should be a file with a name of the form YYYYMMDDHHMMSS_{migration name}.sql containing SQL to perform the migration. Files with names of this form can be generated with the `new_migration` command (see below).
 
+*TODO* Alternatively, migrations can be managed by invoking the command inside a container.
+
 The database will be owned by the given user and the specified extensions should be present.
+
+### Test section
+
+Syntax:
+
+```
+test {test name}:
+  image: {image name}
+  command: {command to run container in image}
+  when: [Deploy|Hourly|Daily|Frequently, ...]
+```
+
+Example:
+
+```
+test mytest:
+  image: myimage
+  command: runtest
+  when: [Deploy, Daily]
+```
+
+Specifies a test which is to be run as a command inside an image.
 
 ## Configuration file
 
 The configuration file specifies *how* applications should be deployed, independently of *what* those applications are. An example configuration file ([.dampfcfg.yaml.example](https://github.com/diffusionkinetics/open/blob/master/dampf/.dampfcfg.yaml.example) is provided in this repository.
 
 This file should *not* be checked into version control as it contains secrets that can be used to compromise your setup. 
+
+Syntax:
+
+```
+liveCertificate: {part to Let's encrypt certificate file}
+
+postgres:
+    host: {host address or name}
+    port: {port number}
+
+    users:
+        postgres: {postgres password}
+        {user name}: {user password}
+        ...
+```
 
 ## Command line tool
 
