@@ -2,7 +2,6 @@
 
 module Todo.Items where
 
-import Database.PostgreSQL.Simple.HStore
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Expr
 import GHC.Generics
