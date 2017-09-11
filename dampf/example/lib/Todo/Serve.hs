@@ -22,8 +22,8 @@ serve = do
       text $ fromString $ show k
     post "/done/:id" $ do
       tid <- param "id"
-      liftIO $ execute conn "update todos set done = true where id = ?" (Only (tid::Int))
+      _ <- liftIO $ execute conn "update todos set done = true where id = ?" (Only (tid::Int))
       text "OK"
     get "/list" $ do
-      todos <- selectFrom "todos" ()
-      json todos
+      todos <- liftIO $ selectFrom conn "todos" ()
+      json (todos::[Todo])
