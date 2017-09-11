@@ -27,6 +27,7 @@ Library
                , postgresql-simple-expr
                , youido
                , scotty
+               , http-test
 
 executable filocore
    main-is: Main.hs

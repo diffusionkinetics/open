@@ -39,22 +39,20 @@ packages:
 - '.'
 - location:
     git: https://github.com/diffusionkinetics/open.git
-    commit: 88eca41d2459ed9ea6d8e8f5d5e7b866d2910715
+    commit: 75abec3abec8766ff2e901bf768dedff9eb5da98
   extra-dep: true
   subdirs:
-  - parfoldl
   - plotlyhs
-  - fuml
   - dashdo
   - youido
-  - inliterate
+  - datasets
   - lucid-extras
   - postgresql-simple-expr
-  - datasets
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+- http-test-0.2.5
 
 
 # Override default flag values for local packages and extra-deps

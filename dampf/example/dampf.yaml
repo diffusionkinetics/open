@@ -1,0 +1,16 @@
+image todo:
+  dockerFile: .
+
+container todo:
+  image: todo
+  expose: [3166]
+  command: filocore serve
+
+postgresdb todo:
+  migrations: migrations/
+  db_user: tomn
+
+domain todo.diffusionkinetics.com:
+  proxy_container: todo:3166
+  letsencrypt: true
+  static: www/
