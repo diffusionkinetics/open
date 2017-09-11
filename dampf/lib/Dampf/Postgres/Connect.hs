@@ -26,6 +26,11 @@ createSuperUserConn name = createConn name spec
   where
     spec = DatabaseSpec Nothing "postgres" []
 
+createSuperUserPostgresConn :: (MonadIO m, MonadThrow m)
+    => DampfT m Connection
+createSuperUserPostgresConn = createConn "postgres" spec
+  where
+    spec = DatabaseSpec Nothing "postgres" []
 
 createConn :: (MonadIO m, MonadThrow m)
     => Text -> DatabaseSpec -> DampfT m Connection

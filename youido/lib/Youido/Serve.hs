@@ -3,7 +3,6 @@
 
 module Youido.Serve where
 
-import Youido.Database
 import Youido.Types
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger (logStdout)
@@ -19,7 +18,6 @@ import Data.Monoid
 
 
 
-import Database.PostgreSQL.Simple
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 

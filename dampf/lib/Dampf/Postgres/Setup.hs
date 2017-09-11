@@ -22,7 +22,7 @@ createUsers = do
 
     case ms of
         Just s  -> iforM_ ds $ \name spec -> do
-            conn <- createSuperUserConn name
+            conn <- createSuperUserPostgresConn
             let pass = lookupPassword (spec ^. user) s
 
             liftIO $ do
@@ -39,7 +39,7 @@ createUsers = do
 
         Nothing -> throwM NoDatabaseServer
 
-            
+
 createExtensions :: (MonadIO m, MonadThrow m) => DampfT m ()
 createExtensions = do
     ms <- view (config . postgres)
@@ -66,7 +66,7 @@ createDatabases = do
 
     case ms of
         Just _  -> iforM_ ds $ \name spec -> do
-            conn <- createSuperUserConn name
+            conn <- createSuperUserPostgresConn
 
             liftIO $ do
                 dbs  <- query conn
