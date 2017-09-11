@@ -39,14 +39,9 @@ packages:
 - '.'
 - location:
     git: https://github.com/diffusionkinetics/open.git
-    commit: 75abec3abec8766ff2e901bf768dedff9eb5da98
+    commit: 12a6800d4bccb0ecad9196467aa0d339571c470f
   extra-dep: true
   subdirs:
-  - plotlyhs
-  - dashdo
-  - youido
-  - datasets
-  - lucid-extras
   - postgresql-simple-expr
 
 # Dependency packages to be pulled from upstream that are not in the resolver

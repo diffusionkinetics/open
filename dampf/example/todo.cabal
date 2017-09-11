@@ -25,7 +25,6 @@ Library
                , scotty
                , postgresql-simple
                , postgresql-simple-expr
-               , youido
                , scotty
                , http-test
 
