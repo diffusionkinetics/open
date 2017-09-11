@@ -4,14 +4,20 @@ image todo:
 container todo:
   image: todo
   expose: [3166]
-  command: filocore serve
+  command: todo serve
+  useDatabase: todo
 
 postgresdb todo:
   migrations: migrations/
-  db_user: tomn
-  db_extensions: []
+  user: tomn
+  extensions: []
 
 domain todo.diffusionkinetics.com:
-  proxy_container: todo:3166
-  letsencrypt: true
+  proxyContainer: todo:3166
+  letsEncrypt: true
   static: www/
+
+test pingpong:
+  image: todo
+  command: todo test
+  when: [Deploy]

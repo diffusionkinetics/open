@@ -36,12 +36,16 @@ pprDampfApp a = vcat
     , text ""
     , nest 4 (pprDomains ds)
     , text ""
+    , text "Tests:"
+    , text ""
+    , nest 4 (pprTests ts)
     ]
   where
     is = a ^. images . to Map.toList
     cs = a ^. containers . to Map.toList
     bs = a ^. databases . to Map.toList
     ds = a ^. domains . to Map.toList
+    ts = a ^. tests . to Map.toList
 
 
 pprImages :: [(Text, ImageSpec)] -> Doc
@@ -74,6 +78,23 @@ pprContainerSpec spec = vcat
     e = spec ^. expose . non []
     c = spec ^. command . non "" . to T.unpack
     d = spec ^. useDatabase . non "" . to T.unpack
+
+pprTests :: [(Text, TestSpec)] -> Doc
+pprTests = vcat
+    . intersperse (text "")
+    . fmap (pprSpecs pprTestSpec)
+
+
+pprTestSpec :: TestSpec -> Doc
+pprTestSpec spec = vcat
+    [ text "image:"       <+> text i
+    , text "command:"     <+> text c
+    , text "when:"        <+> text w
+    ]
+    where
+    i = spec ^. tsImage . to T.unpack
+    c = spec ^. tsCommand . non "" . to T.unpack
+    w = spec ^. tsImage . to show
 
 
 pprDatabases :: [(Text, DatabaseSpec)] -> Doc

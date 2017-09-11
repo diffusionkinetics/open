@@ -17,6 +17,8 @@ module Dampf.Internal.AppFile.Types
   , HasDatabaseSpec(..)
   , DomainSpec(..)
   , HasDomainSpec(..)
+  , TestSpec(..)
+  , HasTestSpec(..)
   ) where
 
 import           Control.Lens
@@ -28,6 +30,7 @@ import           Data.Map.Strict            (Map)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
+import           Data.Char (toLower)
 
 import           Dampf.Internal.Yaml
 
@@ -68,7 +71,7 @@ data TestSpec = TestSpec
 makeClassy ''TestSpec
 
 instance FromJSON TestSpec where
-    parseJSON = genericParseJSON $ defaultOptions { fieldLabelModifier = drop 3}
+    parseJSON = genericParseJSON $ defaultOptions { fieldLabelModifier = drop 3 . map toLower}
 
 data DatabaseSpec = DatabaseSpec
     { _migrations   :: Maybe FilePath
@@ -101,17 +104,18 @@ data DampfApp = DA
     , _containers :: Map Text ContainerSpec
     , _databases  :: Map Text DatabaseSpec
     , _domains    :: Map Text DomainSpec
+    , _tests      :: Map Text TestSpec
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DampfApp
 
 
 instance Monoid DampfApp where
-    mempty = DA mempty mempty mempty mempty
+    mempty = DA mempty mempty mempty mempty mempty
 
 
-    mappend (DA a b c d) (DA a' b' c' d') = DA
-        (mappend a a') (mappend b b') (mappend c c') (mappend d d')
+    mappend (DA a b c d e) (DA a' b' c' d' e') = DA
+        (mappend a a') (mappend b b') (mappend c c') (mappend d d') (mappend e e')
 
 
 instance FromJSON DampfApp where
@@ -133,6 +137,10 @@ instance FromJSON DampfApp where
                 ["domain",    name] -> do
                     spec <- parseJSON v
                     return $ (domains . at name ?~ spec) mempty
+
+                ["test",    name] -> do
+                    spec <- parseJSON v
+                    return $ (tests . at name ?~ spec) mempty
 
                 _                   -> fail "Invalid specification type"
 
