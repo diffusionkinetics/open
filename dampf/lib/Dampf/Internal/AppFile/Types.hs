@@ -58,7 +58,8 @@ makeClassy ''ContainerSpec
 instance FromJSON ContainerSpec where
     parseJSON = gDecode
 
-data TestWhen = Deploy | Hourly | Daily | Frequently deriving (Show, Read, Eq, Ord, Generic)
+data TestWhen = Build | Deploy | Hourly | Daily | Frequently
+      deriving (Show, Read, Eq, Ord, Generic)
 
 instance FromJSON TestWhen
 

@@ -1,0 +1,6 @@
+dist
+.stack-work
+.git
+Dockerfile
+deploy/
+dampf.yaml
