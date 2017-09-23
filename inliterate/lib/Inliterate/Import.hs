@@ -15,6 +15,8 @@ import Data.List (intercalate)
 import Graphics.Plotly
 import Graphics.Plotly.Lucid ()
 
+import qualified Graphics.Svg as Svg
+
 data CodeType = Top | Eval | Do | Hide | Fake | Twocol | Noq deriving (Show, Eq, Read, Ord)
 
 class AskInliterate a where
@@ -61,6 +63,22 @@ instance AskInliterate (Html ()) where
 
 instance AskInliterate Plotly where
   askInliterate q cts plt = askInliterate q cts $ (toHtml plt :: Html ())
+
+
+instance AskInliterate Svg.Element where
+  askInliterate q cts svg
+     | Twocol `elem` cts = do
+         putStrLn "<div class=\"row\">"
+         putStrLn "<div class=\"col-md-6\">"
+         putStr "<pre class=\"haskell\"><code>"
+         putStrLn $ q
+         putStrLn "</code></pre>"
+         putStrLn "</div>"
+         putStrLn "<div class=\"col-md-6\">"
+         TL.putStrLn $ Svg.renderText svg
+         putStrLn "</div>"
+         putStrLn "</div>"
+     | otherwise = TL.putStrLn $ Svg.renderText svg
 
 instance {-# OVERLAPPABLE #-} (Show a, AskInliterate a) => AskInliterate [a] where
   askInliterate = answerWith lshow where
