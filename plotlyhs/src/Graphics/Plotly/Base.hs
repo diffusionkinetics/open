@@ -302,10 +302,16 @@ titleMargins = Margin 50 25 30 40 4
 
 -- |options for the layout of the whole plot
 data Layout = Layout
-  { _xaxis :: Maybe Axis
-  , _yaxis :: Maybe Axis
-  , _zaxis :: Maybe Axis
-  , _title :: Maybe Text
+  { _xaxis  :: Maybe Axis
+  , _xaxis2 :: Maybe Axis
+  , _xaxis3 :: Maybe Axis
+  , _xaxis4 :: Maybe Axis
+  , _yaxis  :: Maybe Axis
+  , _yaxis2 :: Maybe Axis
+  , _yaxis3 :: Maybe Axis
+  , _yaxis4 :: Maybe Axis
+  , _zaxis  :: Maybe Axis
+  , _title  :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
@@ -317,7 +323,7 @@ makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
