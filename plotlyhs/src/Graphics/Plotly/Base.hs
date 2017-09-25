@@ -211,12 +211,16 @@ data Trace = Trace
   , _k :: Maybe [Int] -- ^ k values, as ints
   , _tracecolor :: Maybe Color
   , _traceopacity :: Maybe Double
+
+  -- Sub-plots
+  , _tracexaxis :: Maybe Text -- ^ X-axis name
+  , _traceyaxis :: Maybe Text -- ^ Y-axis name
   } deriving Generic
 
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
