@@ -42,6 +42,7 @@ Library
                , lucid
                , lucid-extras
                , haskell-src-exts
+               , svg-builder
 
 
 Executable inlitpp
