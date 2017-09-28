@@ -24,7 +24,7 @@
     if (typeof(fieldName) === 'undefined' || !fieldName) {
       return s
     }
-  
+
     var pairStr = s.split("&")
     var fieldNameWithEqualSign = fieldName + "="
     pairStr.sort(function(a, b) {
@@ -47,11 +47,11 @@
     var settings = $.extend({
       // These are the defaults.
       uuidUrl: '/uuid',
-      uuidInterval: 3000,
+      uuidInterval: 10000,
 
       colorSelected: '#1F77B4',
       colorUnSelected: '#A5C8E1',
-      
+
       containerSelector: idToSelectorOrNull($(this).attr('id')),
       switcherElements: null,
       switcherAttr: 'href',
@@ -96,7 +96,7 @@
         var values = $(this).siblings('input[name]').map(function() {  // name must be specified!
           return this.value
         }).get()
-        
+
         var restyle = function() {
           if (values.length !== 0) {
             var os
@@ -202,7 +202,7 @@
 
             // select the same container from incomingHTML
             var containerLikeCurrent = $(incomingDOM).children(settings.containerSelector)
-            
+
             // if there is such container, replace current container with its contents
             // if no container found, then place all the incomingHTML into the container
             // useful for partial rendering of folder in rdashdo
@@ -210,11 +210,11 @@
               (containerLikeCurrent.length > 0) ?
                 $(containerLikeCurrent).contents() :
                 incomingDOM
-            
+
             // cached things are to stay the same (replace with values from old DOM)
             $(bigDOMorSmallContainer)
               .children('.dashdo-cashed-not-changed')
-              .each(function() { 
+              .each(function() {
                 var parent = $(this).parent()
                 var fieldName  = parent.data('dashdo-cashed')
                 var cachedContents = $("[data-dashdo-cashed='" + fieldName + "']").contents()
@@ -276,7 +276,7 @@
     }.bind(this)
 
     if(settings.switcherElements !== null) {
-      var firstEndpoint = 
+      var firstEndpoint =
         $(settings.switcherElements)
           .first()
           .attr(settings.switcherAttr)
