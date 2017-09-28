@@ -193,7 +193,7 @@
 
     var resubmit = function() {
       if(!!settings.containerSelector) {
-        var whatToSend = $(this).serialize();
+        var whatToSend = sortSerializedString($(this).serialize(), $(this).attr('data-last-changed-field'))
         requestHtmlFromServer(
           $(this).attr('action'),
           whatToSend,
