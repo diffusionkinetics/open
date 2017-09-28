@@ -211,12 +211,16 @@ data Trace = Trace
   , _k :: Maybe [Int] -- ^ k values, as ints
   , _tracecolor :: Maybe Color
   , _traceopacity :: Maybe Double
+
+  -- Sub-plots
+  , _tracexaxis :: Maybe Text -- ^ X-axis name
+  , _traceyaxis :: Maybe Text -- ^ Y-axis name
   } deriving Generic
 
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
@@ -257,6 +261,7 @@ data Axis = Axis
   , _axisvisible :: Maybe Bool
   , _tickvals :: Maybe [Value]
   , _ticktext :: Maybe [Text]
+  , _domain :: Maybe (Double,Double)
   } deriving Generic
 
 makeLenses ''Axis
@@ -265,7 +270,7 @@ instance ToJSON Axis where
   toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
@@ -297,10 +302,16 @@ titleMargins = Margin 50 25 30 40 4
 
 -- |options for the layout of the whole plot
 data Layout = Layout
-  { _xaxis :: Maybe Axis
-  , _yaxis :: Maybe Axis
-  , _zaxis :: Maybe Axis
-  , _title :: Maybe Text
+  { _xaxis  :: Maybe Axis
+  , _xaxis2 :: Maybe Axis
+  , _xaxis3 :: Maybe Axis
+  , _xaxis4 :: Maybe Axis
+  , _yaxis  :: Maybe Axis
+  , _yaxis2 :: Maybe Axis
+  , _yaxis3 :: Maybe Axis
+  , _yaxis4 :: Maybe Axis
+  , _zaxis  :: Maybe Axis
+  , _title  :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
@@ -312,7 +323,7 @@ makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
@@ -324,7 +335,10 @@ data Plotly = Plotly
   { _elemid :: Text
   , _traces :: [Trace]
   , _layout :: Layout
-  }
+  } deriving Generic
+
+instance ToJSON Plotly where
+  toJSON = genericToJSON jsonOptions
 
 makeLenses ''Plotly
 
