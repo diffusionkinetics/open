@@ -196,7 +196,7 @@
         var whatToSend = sortSerializedString($(this).serialize(), $(this).attr('data-last-changed-field'))
         requestHtmlFromServer(
           $(this).attr('action'),
-          whatToSend,
+          $(this).serialize(),
           function(data) {
             var incomingDOM = $.parseHTML(data, null, true)
 
