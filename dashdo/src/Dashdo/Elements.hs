@@ -96,7 +96,7 @@ toHtmls :: (ToHtml b, Monad m) => SimpleGetter t b -> SHtml m t ()
 toHtmls g = g ~> toHtml
 
 toParentFormField :: Lens' t b -> FormField b -> FormField t
-toParentFormField g (n, f) = 
+toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
@@ -107,19 +107,19 @@ g #> r = do
 
   subFieldsNumberName <- fresh
   putFormField (subFieldsNumberName, const)
-  
+
   (n, v, pars, ffs) <- lift get
-  let 
+  let
       stT          = renderTextT r
 
       subValue     = v ^. g
       subValueHash = (pack . show . hash) subValue
-      subValueHashChanged  = 
+      subValueHashChanged  =
         case find (((==) hashFieldName) . TL.toStrict . fst) pars of
           Nothing                -> True
           Just (_, oldHashValue) -> (subValueHash /= TL.toStrict oldHashValue)
 
-      subFieldsNumber = 
+      subFieldsNumber =
         case find (((==) subFieldsNumberName) . TL.toStrict . fst) pars of
           Nothing     -> -1  -- TODO: a hack, change to MaybeT or something
           Just (_, s) -> read ((unpack . TL.toStrict) s) :: Int
@@ -135,10 +135,25 @@ g #> r = do
 
         input_ [type_ "hidden", name_ hashFieldName, value_ subValueHash]
         input_ [type_ "hidden", name_ subFieldsNumberName, value_ $ (pack . show . length) subFs]
-        
+
         toHtmlRaw txt
 
-        {- put fields to the monad based on whole state 
-        counter has been corrected during runStateT, 
+        {- put fields to the monad based on whole state
+        counter has been corrected during runStateT,
         so we call fresh just to increment current monad's counter -}
         forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
+
+-- version of #> with no caching
+(##>) :: Monad m => Lens' t b -> SHtml m b () -> SHtml m t ()
+g ##> r = do
+  (n, v, pars, ffs) <- lift get
+  let
+      stT          = renderTextT r
+
+      subValue     = v ^. g
+
+
+  (txt, newS@(freshes, newb, ff, subFs)) <- (lift . lift) $ runStateT stT (n, subValue, pars, [])
+  lift $ put (freshes, v, ff, map (toParentFormField g) subFs)
+
+  toHtmlRaw txt
