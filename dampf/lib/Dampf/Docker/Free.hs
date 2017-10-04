@@ -42,14 +42,14 @@ interpBuild t i = do
 
 interpRm :: (MonadIO m) => Text -> DampfT m Text
 interpRm c = do
-    liftIO . putStrLn $ "Docker: Removing " ++ show c
-    liftIO $ putStrLn $ "$ docker rm "++show c
+    liftIO . putStrLn $ "Docker: Removing " ++ T.unpack c
+    liftIO $ putStrLn $ "$ docker rm "++T.unpack c
     (_, o, _) <- readProcess process
     return . TL.toStrict $ TL.decodeUtf8 o
   where
     process = {-setStdin closed
         . setStderr closed
-        $ -} proc "docker" ["rm", show c]
+        $ -} proc "docker" ["rm", T.unpack c]
 
 
 interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
@@ -63,8 +63,8 @@ interpRun n spec = do
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = do
-    liftIO . putStrLn $ "Docker: Stopping " ++ show c
-    void $ runDockerProcess ["stop", show c]
+    liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack c
+    void $ runDockerProcess ["stop", T.unpack c]
 
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
 runDockerProcess args = do
