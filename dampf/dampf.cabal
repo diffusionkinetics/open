@@ -33,16 +33,16 @@ library
       , Dampf.Postgres.Connect
       , Dampf.Postgres.Setup
       , Dampf.Types
+      , Dampf.AppFile.Pretty
+      , Dampf.AppFile.Types
+      , Dampf.ConfigFile.Pretty
+      , Dampf.ConfigFile.Types
+      , Dampf.Docker.Args
+      , Dampf.Docker.Args.Class
+      , Dampf.Docker.Args.Run
 
     other-modules:
-        Dampf.Internal.AppFile.Pretty
-      , Dampf.Internal.AppFile.Types
-      , Dampf.Internal.ConfigFile.Pretty
-      , Dampf.Internal.ConfigFile.Types
-      , Dampf.Internal.Docker.Args
-      , Dampf.Internal.Docker.Args.Class
-      , Dampf.Internal.Docker.Args.Run
-      , Dampf.Internal.Env
+        Dampf.Internal.Env
       , Dampf.Internal.Yaml
 
     ghc-options:
@@ -77,7 +77,7 @@ library
 
 executable dampf
     main-is: Main.hs
-    
+
     build-depends:
         base >=4.7 && <5
       , dampf

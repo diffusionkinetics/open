@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
-module Dampf.Internal.Docker.Args.Run where
+module Dampf.Docker.Args.Run where
 
 import           Control.Lens
 import           Control.Monad.Catch        (MonadThrow, throwM)
@@ -12,7 +12,7 @@ import           Data.Monoid
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 
-import           Dampf.Internal.Docker.Args.Class
+import           Dampf.Docker.Args.Class
 import           Dampf.Types
 
 
@@ -73,7 +73,7 @@ mkRunArgs :: (MonadIO m, MonadThrow m)
 mkRunArgs n spec = do
     ms <- view (config . postgres)
     md <- view (app . databases . at (spec ^. useDatabase . non ""))
-    
+
     case (ms, md) of
         (Just s, Just d)  -> return $ args { _envs = es s d }
         (Just _, Nothing) -> return args

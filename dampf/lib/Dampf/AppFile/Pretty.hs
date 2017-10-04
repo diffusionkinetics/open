@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dampf.Internal.AppFile.Pretty
+module Dampf.AppFile.Pretty
   ( pShowDampfApp
   ) where
 
@@ -11,7 +11,7 @@ import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           Text.PrettyPrint
 
-import           Dampf.Internal.AppFile.Types
+import           Dampf.AppFile.Types
 
 
 pShowDampfApp :: DampfApp -> String

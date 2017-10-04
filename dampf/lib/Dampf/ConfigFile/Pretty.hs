@@ -1,4 +1,4 @@
-module Dampf.Internal.ConfigFile.Pretty
+module Dampf.ConfigFile.Pretty
   ( pShowDampfConfig
   ) where
 
@@ -7,7 +7,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import           Text.PrettyPrint
 
-import           Dampf.Internal.ConfigFile.Types
+import           Dampf.ConfigFile.Types
 
 
 pShowDampfConfig :: DampfConfig -> String

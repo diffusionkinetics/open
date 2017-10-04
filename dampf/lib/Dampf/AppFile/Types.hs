@@ -4,7 +4,7 @@
 {-# LANGUAGE DuplicateRecordFields   #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
-module Dampf.Internal.AppFile.Types
+module Dampf.AppFile.Types
   ( -- * Application Type
     DampfApp(..)
   , HasDampfApp(..)

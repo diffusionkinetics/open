@@ -1,4 +1,4 @@
-module Dampf.Internal.Docker.Args.Class where
+module Dampf.Docker.Args.Class where
 
 import           Data.Text      (Text)
 import qualified Data.Text as T

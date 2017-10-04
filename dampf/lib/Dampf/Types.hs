@@ -34,10 +34,10 @@ import Data.Yaml
 import System.Directory
 import System.FilePath
 
-import Dampf.Internal.AppFile.Pretty as AppFile
-import Dampf.Internal.AppFile.Types as AppFile
-import Dampf.Internal.ConfigFile.Pretty as ConfigFile
-import Dampf.Internal.ConfigFile.Types as ConfigFile
+import Dampf.AppFile.Pretty as AppFile
+import Dampf.AppFile.Types as AppFile
+import Dampf.ConfigFile.Pretty as ConfigFile
+import Dampf.ConfigFile.Types as ConfigFile
 import Dampf.Internal.Env
 import Dampf.Internal.Yaml
 
@@ -117,6 +117,6 @@ loadConfigFile mf = do
     liftIO (decodeFile f >>= \case
         Just y  -> resolveEnvVars y >>= parseMonad (genericParseJSON options)
         Nothing -> throwM $ BadConfigFile f "") `catch`
-        
+
         catchYamlException (BadConfigFile f)
 
