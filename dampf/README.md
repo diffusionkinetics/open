@@ -13,29 +13,29 @@ Note that by extension any service that can run as a docker container (e.g. Redi
 
 The goals of dampf in managing this stack are:
 
-* Simplicity: focus on building your insanely awesome application instead of learning Kubernetes the hard way. Dampf is for developers 
+* Simplicity: focus on building your insanely awesome application instead of learning Kubernetes the hard way. Dampf is for developers
   who want to spend as little time as possible on system administration and DevOps.
 * DevOps at the application level: describe applications, not servers
-* Multiple interpreters: one dampf application can be deployed in many different ways: locally as a development environment, 
+* Multiple interpreters: one dampf application can be deployed in many different ways: locally as a development environment,
   directly to a dedicated server, or to any number of cloud solutions or hosting environments
 * as many common tasks as possible are built in and available through a common interface
 * dampf avoids vendor lock-in doubly: it is open source, MIT licenced; and the same application description can be executed in multiple environments.
 * Full stack integration testing is built-in from the beginning, integrating with your database.
 
-Dampf was created out of the conviction that too many teams and start-ups solve the same problems over and over again for stacks 
+Dampf was created out of the conviction that too many teams and start-ups solve the same problems over and over again for stacks
 that are very similar. Dampf is intended to get a new project into production quickly but also scale in the growth phase.
 
 ## Status
 
-The above is mostly wishful thinking. Dampf can currently deploy images, containers, domains and databases onto the local machine. 
+The above is mostly wishful thinking. Dampf can currently deploy images, containers, domains and databases onto the local machine.
 Testing and multiple interpreters are TODO.
 
 ## Application file
 
-Your application is specified in the dampf application YAML file, typically named `dampf.yaml`. The sections in this file describe docker images, 
+Your application is specified in the dampf application YAML file, typically named `dampf.yaml`. The sections in this file describe docker images,
 containers for services, databases and domains. An example application file is given in `dampf.yaml.example` in this repository.
 
-The application file specifies *what* your application is, not *how* it should be deployed. If it is not possible to describe your application entirely 
+The application file specifies *what* your application is, not *how* it should be deployed. If it is not possible to describe your application entirely
 using this format, you should not be using dampf.
 
 This file should be checked into version control together with your application code.
@@ -78,9 +78,9 @@ container mycontainer1:
   command: serve
 ```
 
-Declares that a container should be running from the specified image, optionally using the specified command (otherwise the 
+Declares that a container should be running from the specified image, optionally using the specified command (otherwise the
 default command for the image will be used). The list of ports will be exposed internally in the container. Dampf should manage the ports
-those are mapped to externally, so different containers can expose the same port and they will be mapped to different ports externally 
+those are mapped to externally, so different containers can expose the same port and they will be mapped to different ports externally
 (although this is not currently implemented).
 
 ### Domain section
@@ -94,7 +94,7 @@ domain {domain}:
   letsEncrypt: true|false # optional
 ```
 
-Example: 
+Example:
 
 ```
 domain mydomain.com
@@ -103,10 +103,10 @@ domain mydomain.com
   letsEncrypt: true
 ```
 
-Declares that the server should listen on a domain and serve static content and/or forward requests to a container. 
+Declares that the server should listen on a domain and serve static content and/or forward requests to a container.
 
 If a path to static content specified,
-then this content should be served first if the request matches a file in that path. 
+then this content should be served first if the request matches a file in that path.
 
 If a proxy container is specified, and if the request does not match
 file in a static path specified, then the request should be proxied to the running container, to the port specified (matching the internal port on the container).
@@ -148,25 +148,26 @@ Syntax:
 test {test name}:
   image: {image name}
   command: {command to run container in image}
-  when: [Deploy|Hourly|Daily|Frequently, ...]
+  when: [AtBuild|AtDeploy|Hourly|Daily|Frequently, ...]
 ```
 
 Example:
 
 ```
 test mytest:
-  image: myimage
-  command: runtest
-  when: [Deploy, Daily]
+  when: [AtDeploy, Daily]
+  units:
+    - run myimage mycommand arg1
+    - get http://foo.com =~ "Foo"
 ```
 
-Specifies a test which is to be run as a command inside an image.
+Specifies a test from a list of test units (commands to run in images, or URLS to probe).
 
 ## Configuration file
 
-The configuration file specifies *how* applications should be deployed, independently of *what* those applications are. An example configuration file ([.dampfcfg.yaml.example](https://github.com/diffusionkinetics/open/blob/master/dampf/.dampfcfg.yaml.example) is provided in this repository.
+The configuration file specifies *how* applications should be deployed, independently of *what* those applications are. An example configuration file ([.dampfcfg.yaml.example](https://github.com/diffusionkinetics/open/blob/master/dampf/.dampfcfg.yaml.example))is provided in this repository.
 
-This file should *not* be checked into version control as it contains secrets that can be used to compromise your setup. 
+This file should *not* be checked into version control as it contains secrets that can be used to compromise your setup.
 
 Syntax:
 
@@ -209,9 +210,18 @@ Build all the docker images in the application, (re)start the containers, run mi
 
 ### `newmigration` command
 
-Syntax: `dampf newmigration {migration name}` 
+Syntax: `dampf newmigration {migration name}`
 
 Create a new migration file in the migrations directory using the current time as the timestamp
+
+### `monitor` command
+
+Syntax: `dampf monitor {test name}`
+
+Run specified test (if non specified, run all tests except those only marked
+"AtBuild") against the live production environment.
+
+Status: Not implemented
 
 ## Environment variables and host names in containers.
 
