@@ -37,17 +37,13 @@ dockerIter (Stop c next)    = interpStop c >> next
 interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
 interpBuild t i = do
     liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
-    void $ runProcess process
-  where
-    process = {-setStdin closed
-        . setStdout closed
-        . setStderr closed
-        $ -} proc "docker" ["build", "-t", T.unpack t, i]
+    void $ runDockerProcess ["build", "-t", T.unpack t, i]
 
 
 interpRm :: (MonadIO m) => Text -> DampfT m Text
 interpRm c = do
     liftIO . putStrLn $ "Docker: Removing " ++ show c
+    liftIO $ putStrLn $ "$ docker rm "++show c
     (_, o, _) <- readProcess process
     return . TL.toStrict $ TL.decodeUtf8 o
   where
@@ -61,22 +57,16 @@ interpRun n spec = do
     args <- mkRunArgs n spec
     liftIO . putStrLn $ "Docker: Running "
         ++ T.unpack n ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
+    runDockerProcess $ toArgs args
 
-    void . runProcess . process $ toArgs args
-  where
-    process = {-setStdin closed
-        . setStdout closed
-        . setStderr closed
-        . -} proc "docker"
 
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = do
     liftIO . putStrLn $ "Docker: Stopping " ++ show c
-    void $ runProcess process
-  where
-    process = {-setStdin closed
-        . setStdout closed
-        . setStderr closed
-        $ -} proc "docker" ["stop", show c]
+    void $ runDockerProcess ["stop", show c]
 
+runDockerProcess :: MonadIO m => [String] -> DampfT m ()
+runDockerProcess args = do
+  liftIO $ putStrLn $ "$ docker "++unwords args
+  void $ runProcess (proc "docker" args)
