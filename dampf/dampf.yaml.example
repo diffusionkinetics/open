@@ -19,10 +19,17 @@ domain api.mydomain.com:
   proxyContainer: mycontainer1:3002
   letsEncrypt: true
 
-domain platform.mydomain.com
+domain platform.mydomain.com:
   proxyContainer: myadmincontainer:3102
   letsEncrypt: true
 
 domain mydomain.com:
   static: www/
   letsEncrypt: true
+
+test domaintest:
+  when: [Frequently]
+  units:
+    - run myimage foobar test
+    - get http://mydomain.com =~ mydomain
+    - get https://mydomain.com =~ mydomain

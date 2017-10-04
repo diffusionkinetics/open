@@ -84,7 +84,7 @@ instance FromJSON TestUnit where
         case T.words t of
             ("run":imgNm:rest) -> return $ TestRun imgNm (T.unwords rest)
             ("get":url:[]) -> return $ TestGet url Nothing
-            ("get":url:reg:_) -> return $ TestGet url (Just reg)
+            ("get":url:"=~":reg:_) -> return $ TestGet url (Just reg)
             _ -> fail $ "test unit parse fail: "++ T.unpack t
 
 instance FromJSON TestSpec where
