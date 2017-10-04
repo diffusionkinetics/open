@@ -6,12 +6,24 @@ dampf is a tool for managing the DANPF stack:
 * **D**ocker: your application code is specified as services running in docker containers, so you can use any language you like!
 * **A**MQP message queues: for transient communication between services
 * **N**GINX: domains and static serving by NGINX
-* **P**ostgreSQL: dampf managers your relational databases, including migrations if you want it to
+* **P**ostgreSQL: dampf manages your relational databases, including migrations if you want it to
 * **F**iles: persistent filesystems accessible to services
 
-Note that by extension any service that can run as a docker container (e.g. Redis) can be accommodated in this framework
+By extension any service that can run as a docker container (e.g. Redis) can be accommodated in this framework
 
-The goals of dampf in managing this stack are:
+Table of Contents
+-----------------
+
+[**Goals**](#goals)
+[**Status**](#status)
+[**Application file**](#application-file)
+[**Configuration file**](#configuration-file)
+[**Command line tool**](#command-line-tool)
+[**Environment variables and host names**](#environment-variables-and-host-names)
+
+## Goals
+
+The goals of dampf in managing the DANPF stack are:
 
 * Simplicity: focus on building your insanely awesome application instead of learning Kubernetes the hard way. Dampf is for developers
   who want to spend as little time as possible on system administration and DevOps.
@@ -21,6 +33,7 @@ The goals of dampf in managing this stack are:
 * as many common tasks as possible are built in and available through a common interface
 * dampf avoids vendor lock-in doubly: it is open source, MIT licenced; and the same application description can be executed in multiple environments.
 * Full stack integration testing is built-in from the beginning, integrating with your database.
+* Monitoring and testing [are the same thing.](https://plus.google.com/+RipRowan/posts/eVeouesvaVX)
 
 Dampf was created out of the conviction that too many teams and start-ups solve the same problems over and over again for stacks
 that are very similar. Dampf is intended to get a new project into production quickly but also scale in the growth phase.
@@ -169,7 +182,7 @@ test mytest:
     - get http://foo.com =~ "Foo"
 ```
 
-Specifies a test from a list of test units (commands to run in images, or URLS to probe).
+Specifies a test from a list of test units (commands to run in images, or URLs to probe).
 
 ## Configuration file
 
@@ -231,7 +244,7 @@ Run specified test (if non specified, run all tests except those only marked
 
 Status: Not implemented
 
-## Environment variables and host names in containers.
+## Environment variables and host names
 
 dampf will set environmental variables in your running containers. These can be used to connect to databases and other containers. You should use these because they will be set correctly during testing so your test containers will connect to a test database.
 
