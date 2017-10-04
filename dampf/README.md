@@ -146,9 +146,17 @@ Syntax:
 
 ```
 test {test name}:
-  image: {image name}
-  command: {command to run container in image}
   when: [AtBuild|AtDeploy|Hourly|Daily|Frequently, ...]
+  units:
+    - unit 1
+    - unit 2
+```
+Unit syntax:
+
+```
+run {image_name} {command} {args..}
+get {url}
+get {url} =~ {regex}
 ```
 
 Example:
