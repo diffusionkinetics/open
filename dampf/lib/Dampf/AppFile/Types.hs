@@ -18,6 +18,8 @@ module Dampf.AppFile.Types
   , DomainSpec(..)
   , HasDomainSpec(..)
   , TestSpec(..)
+  , TestWhen(..)
+  , TestUnit(..)
   , HasTestSpec(..)
   ) where
 
@@ -34,6 +36,9 @@ import           Data.Char (toLower)
 
 import           Dampf.Internal.Yaml
 
+type ImageName = Text
+type Command = Text
+type URL = Text
 
 data ImageSpec = ImageSpec
     { _dockerFile :: FilePath
@@ -47,9 +52,9 @@ instance FromJSON ImageSpec where
 
 
 data ContainerSpec = ContainerSpec
-    { _image        :: Text
+    { _image        :: ImageName
     , _expose       :: Maybe [Int]
-    , _command      :: Maybe Text
+    , _command      :: Maybe Command
     , _useDatabase  :: Maybe Text
     } deriving (Eq, Show, Generic)
 
@@ -58,18 +63,29 @@ makeClassy ''ContainerSpec
 instance FromJSON ContainerSpec where
     parseJSON = gDecode
 
-data TestWhen = Build | Deploy | Hourly | Daily | Frequently
-      deriving (Show, Read, Eq, Ord, Generic)
+data TestWhen = AtBuild | AtDeploy | Hourly | Daily | Frequently
+    deriving (Show, Read, Eq, Ord, Generic)
+
+data TestUnit = TestRun ImageName Command
+              | TestGet URL (Maybe Text) -- match regex
+    deriving (Eq, Show, Generic)
 
 instance FromJSON TestWhen
 
 data TestSpec = TestSpec
-  { _tsImage        :: Text
-  , _tsCommand      :: Maybe Text
-  , _tsWhen         :: [TestWhen]
-  } deriving (Eq, Show, Generic)
+    { _tsUnits        :: [TestUnit]
+    , _tsWhen         :: [TestWhen]
+    } deriving (Eq, Show, Generic)
 
 makeClassy ''TestSpec
+
+instance FromJSON TestUnit where
+    parseJSON = withText "test unit" $ \t->
+        case T.words t of
+            ("run":imgNm:rest) -> return $ TestRun imgNm (T.unwords rest)
+            ("get":url:[]) -> return $ TestGet url Nothing
+            ("get":url:reg:_) -> return $ TestGet url (Just reg)
+            _ -> fail $ "test unit parse fail: "++ T.unpack t
 
 instance FromJSON TestSpec where
     parseJSON = genericParseJSON $ defaultOptions { fieldLabelModifier = drop 3 . map toLower}

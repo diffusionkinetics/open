@@ -87,15 +87,17 @@ pprTests = vcat
 
 pprTestSpec :: TestSpec -> Doc
 pprTestSpec spec = vcat
-    [ text "image:"       <+> text i
-    , text "command:"     <+> text c
-    , text "when:"        <+> text w
+    [ text "when:"        <+> text w
+    , text "units:"
+    , nest 4 $ vcat (map pprTestUnit (spec ^. tsUnits))
     ]
     where
-    i = spec ^. tsImage . to T.unpack
-    c = spec ^. tsCommand . non "" . to T.unpack
-    w = spec ^. tsImage . to show
+    w = spec ^. tsWhen . to show
 
+pprTestUnit :: TestUnit -> Doc
+pprTestUnit (TestRun i c) = text "Run" <+> ttext i <+> ttext c
+pprTestUnit (TestGet i Nothing) = text "GET" <+> ttext i
+pprTestUnit (TestGet i (Just reg)) = text "GET" <+> ttext i <+> text "=~" <+> ttext reg
 
 pprDatabases :: [(Text, DatabaseSpec)] -> Doc
 pprDatabases = vcat
@@ -144,3 +146,5 @@ pprList = brackets . hsep . punctuate comma . fmap (text . show)
 pprTextList :: [Text] -> Doc
 pprTextList = brackets . hsep . punctuate comma . fmap (text . T.unpack)
 
+ttext :: Text -> Doc
+ttext = text . T.unpack
