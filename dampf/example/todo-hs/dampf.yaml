@@ -18,6 +18,6 @@ domain todo.diffusionkinetics.com:
   static: www/
 
 test pingpong:
-  image: todo
-  command: todo test
-  when: [Deploy]
+  when: [AtDeploy]
+  units:
+    - run todo todo test
