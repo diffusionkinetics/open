@@ -14,12 +14,12 @@ By extension any service that can run as a docker container (e.g. Redis) can be 
 Table of Contents
 -----------------
 
-[**Goals**](#goals)
-[**Status**](#status)
-[**Application file**](#application-file)
-[**Configuration file**](#configuration-file)
-[**Command line tool**](#command-line-tool)
-[**Environment variables and host names**](#environment-variables-and-host-names)
+* [**Goals**](#goals)
+* [**Status**](#status)
+* [**Application file**](#application-file)
+* [**Configuration file**](#configuration-file)
+* [**Command line tool**](#command-line-tool)
+* [**Environment variables and host names**](#environment-variables-and-host-names)
 
 ## Goals
 
