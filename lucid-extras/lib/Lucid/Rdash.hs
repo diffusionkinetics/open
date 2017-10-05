@@ -25,6 +25,7 @@ module Lucid.Rdash (
   , widget_
   , widgetBody_
   , spacer_
+  , rdashCSS
   ) where
 
 import qualified Data.Text as T

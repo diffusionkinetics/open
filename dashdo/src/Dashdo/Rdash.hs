@@ -35,14 +35,17 @@ rdash rdashdos headExtra = do
   renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
+        meta_ [name_ "viewport", content_ "width=device-width"] -- TODO: add attribute initial-scale=1
+        cdnFontAwesome
         cdnCSS
-        cdnThemeCSS
+        RD.rdashCSS
         cdnJqueryJS
+        cdnBootstrapJS
         headExtra
       body_ $ do
         let sb  = do RD.mkSidebar sidebarMain sidebarTitle $ sidebarList rdashdos
             sbf = RD.mkSidebarFooter (rowEven XS
-              [ a_ [href_ "https://github.com/filopodia/open"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
+              [ a_ [href_ "https://github.com/diffusionkinetics/open/dashdo"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
               , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
               ])
             sbw = RD.mkSidebarWrapper sb sbf
@@ -50,7 +53,8 @@ rdash rdashdos headExtra = do
               RD.mkHeaderBar [RD.mkMetaBox [RD.mkMetaTitle (span_ [id_ "dashdo-title"] mempty)]]
               div_ [id_ "dashdo-main"] mempty
             pgw = form_ [id_ "dashdo-form", method_ "post"] $ RD.mkPageWrapperOpen sbw cw
-        RD.mkIndexPage (RD.mkHead "Dashdo") (RD.mkBody pgw)
+        --RD.mkIndexPage (RD.mkHead "Dashdo") (
+        RD.mkBody pgw
         cdnBootstrapJS
         script_ [src_ "/js/dashdo.js"] ("" :: Text)
         script_ [src_ "/js/runners/rdashdo.js"] ("" :: Text)
