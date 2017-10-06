@@ -27,6 +27,7 @@ Library
    Exposed-modules:
                    Lucid.Bootstrap3
                  , Lucid.PreEscaped
+                 , Lucid.DataTables
                  , Lucid.Rdash
    Build-depends:
                  base                    >= 4.6 && < 5
