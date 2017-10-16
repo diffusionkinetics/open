@@ -3,7 +3,6 @@
 module Fuml.Supervised.Accuracy where
 
 import Fuml.Core
-import Fuml.Supervised
 import Numeric.LinearAlgebra
 import Data.List (partition, transpose)
 

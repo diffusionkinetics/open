@@ -70,7 +70,8 @@ dashdo = wrap plotlyCDN $ do
         mkCol [(MD,9)] $ do
             let trace :: Trace
                 trace = points (aes & x .~ (ikm ^. xaxis . tagVal . _2)
-                                    & y .~ (ikm ^. yaxis . tagVal . _2))
+                                    & y .~ (ikm ^. yaxis . tagVal . _2)
+                                    & color ?~ (getCol. irisClass) )
                                 iris
                 traceCtrs
                    = points (aes & x .~ (VS.! (ikm ^. xaxis . tagVal . _1))
@@ -78,3 +79,8 @@ dashdo = wrap plotlyCDN $ do
                                 ctrs
             toHtml $ plotly "foo" [trace, traceCtrs]
                        & layout . margin ?~ thinMargins
+
+getCol :: IrisClass -> RGB Double
+getCol Setosa = RGB 1 0 0
+getCol Versicolor = RGB 0 1 0
+getCol Virginica = RGB 0 0 1
