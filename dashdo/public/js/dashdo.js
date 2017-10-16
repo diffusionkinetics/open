@@ -241,10 +241,11 @@
         }
         uuid = data
       }).always(function() {
-        setTimeout(uuidLoop, settings.uuidInterval)
+        setTimeout(uuidLoop, Math.max(settings.uuidInterval, 1000));
       })
     }
-    uuidLoop()
+    if(settings.uuidInterval>0)
+      uuidLoop();
 
     var submitTimer = null
     var periodicSubmitLoop = function() {

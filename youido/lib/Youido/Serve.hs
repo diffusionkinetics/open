@@ -48,12 +48,18 @@ serve x y@(Youido _ _ _ users port) = do
      mapM_ (uncurry setHeader) hdrs
      raw conts
 
+dashdoCustomJS :: Html ()
+dashdoCustomJS =
+  script_ "$(function(){$('#dashdoform').dashdo({uuidInterval:-1})})"
+
+
 stdWrapper :: Html () -> Html () -> Html () -> Html ()
 stdWrapper hdrMore sidebar h = doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
+    cdnJqueryJS
     hdrMore
 
   body_ $ do
@@ -61,10 +67,9 @@ stdWrapper hdrMore sidebar h = doctypehtml_ $ do
       mkCol [(XS, 1)] $ sidebar
       mkCol [(XS, 11)] $ h
 
-    cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
-    script_ [src_ "/js/runners/base.js"] ""
+    dashdoCustomJS
 
 rdashWrapper :: Text -> Html () -> Html () -> Html () -> Html ()
 rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
@@ -72,16 +77,16 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
+    cdnJqueryJS
     hdrMore
   body_ $ do
     RD.mkIndexPage (RD.mkHead hdTxt) $ RD.mkBody $ do
       let cw = RD.mkPageContent h
 
       RD.mkPageWrapperOpen sidebar cw
-    cdnJqueryJS
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
-    script_ [src_ "/js/runners/base.js"] ""
+    dashdoCustomJS
 
 rdashSidebar :: Text -> [((Text, Text), Text)] -> Html ()
 rdashSidebar title links = do
