@@ -46,7 +46,7 @@ instance FromRequest DashdoReq where
 instance ToURL DashdoReq where
   toURL _ = "/"
 
-dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (Html ()))
+dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (MAjax (Html ())))
 dashdoHandler' _ d = do
   (iniHtml, ff) <- dashdoGenOut d (initial d) []
   let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
@@ -54,11 +54,11 @@ dashdoHandler' _ d = do
       wrapper h = container_ $ form_ [ action_ submitPath,
                                        method_ "post", id_ "dashdoform"]
                                      $ preEscaped $ TL.toStrict h
-      dispatch (_ :/ Initial) = return $ wrapper iniHtml
+      dispatch (_ :/ Initial) = return $ NoAjax $ wrapper iniHtml
       dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
         (thisHtml, _) <- dashdoGenOut d newval []
-        return $ wrapper thisHtml
+        return $ Ajax $ wrapper thisHtml
   return dispatch
 
 dashdoGlobal :: MonadIO m => YouidoT m ()

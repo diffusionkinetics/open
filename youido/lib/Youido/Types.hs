@@ -46,6 +46,18 @@ instance ToResponse (Html ()) where
                           (renderBS h)
   wrapHtml wrapper x = wrapper x
 
+data MAjax a = Ajax a | NoAjax a
+unMAjax :: MAjax a -> a
+unMAjax (Ajax x) = x
+unMAjax (NoAjax x) = x
+
+instance ToResponse (MAjax (Html ())) where
+  toResponse (h) = Response ok200
+                          [("Content-Type", "text/html; charset=utf-8")]
+                          (renderBS $ unMAjax h)
+  wrapHtml _ (Ajax x) = Ajax x
+  wrapHtml wrapper (NoAjax x) = NoAjax $ wrapper x
+
 instance ToResponse Value where
   toResponse v = Response ok200
                           [("Content-Type", "application/json; charset=utf-8")]
