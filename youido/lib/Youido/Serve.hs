@@ -76,14 +76,16 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
+    cdnFontAwesome
     cdnThemeCSS
+    RD.rdashCSS
     cdnJqueryJS
     hdrMore
   body_ $ do
-    RD.mkIndexPage (RD.mkHead hdTxt) $ RD.mkBody $ do
-      let cw = RD.mkPageContent h
 
-      RD.mkPageWrapperOpen sidebar cw
+    let cw = RD.mkPageContent h
+
+    RD.mkPageWrapperOpen sidebar cw
     cdnBootstrapJS
     script_ [src_ "/js/dashdo.js"] ""
     dashdoCustomJS

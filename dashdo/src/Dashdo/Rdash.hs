@@ -40,7 +40,6 @@ rdash rdashdos headExtra = do
         cdnCSS
         RD.rdashCSS
         cdnJqueryJS
-        cdnBootstrapJS
         headExtra
       body_ $ do
         let sb  = do RD.mkSidebar sidebarMain sidebarTitle $ sidebarList rdashdos
@@ -54,7 +53,7 @@ rdash rdashdos headExtra = do
               div_ [id_ "dashdo-main"] mempty
             pgw = form_ [id_ "dashdo-form", method_ "post"] $ RD.mkPageWrapperOpen sbw cw
         --RD.mkIndexPage (RD.mkHead "Dashdo") (
-        RD.mkBody pgw
+        pgw
         cdnBootstrapJS
         script_ [src_ "/js/dashdo.js"] ("" :: Text)
         script_ [src_ "/js/runners/rdashdo.js"] ("" :: Text)

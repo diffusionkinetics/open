@@ -4,7 +4,6 @@ module Lucid.Rdash (
     indexPage
   , mkAlert
   , mkAlerts
-  , mkBody
   , mkHead
   , mkHeaderBar
   , mkIndexPage
@@ -94,9 +93,6 @@ mkHead title = head_ $ do
   rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
-
-mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
-mkBody pgw = body_ pgw
 
 mkPageContent :: Monad m => HtmlT m () -> HtmlT m ()
 mkPageContent = div_ [id_ "content-wrapper"] . div_ [class_ "page-content"]
@@ -221,7 +217,7 @@ indexPage = do
 
     pgw = mkPageWrapperOpen sbw pcw
 
-    body = mkBody pgw
+    body = body_ pgw
     hd = mkHead "Dashboard"
 
 
