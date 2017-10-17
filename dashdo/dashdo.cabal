@@ -52,3 +52,5 @@ Library
                , template-haskell
                , aeson
                , plotlyhs
+               , deepseq
+               , safe-exceptions
