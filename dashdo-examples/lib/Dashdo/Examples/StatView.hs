@@ -106,13 +106,13 @@ process = do
         []  -> const True
         lst -> (`elem` ((fromIntegral . userID) <$> lst)) . procUid
 
-      processes = hbarChart 
+      processes = hbarChart
         $ map (decodeUtf8 . procName &&& procCPUPercent)
-        $ filter (filterProcesses $ ctl ^. processFilterType) 
+        $ filter (filterProcesses $ ctl ^. processFilterType)
         $ filter (userFilter) ps
-      
-      users = hbarChart 
-        $ filter ((> 0) . snd) 
+
+      users = hbarChart
+        $ filter ((> 0) . snd)
         $ map (pack . userName &&& userCPU) us where
           userCPU u = sum . map procCPUPercent . filter ((== uid) . procUid) $ ps where
             uid = fromIntegral (userID u)

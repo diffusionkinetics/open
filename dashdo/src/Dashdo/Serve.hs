@@ -25,24 +25,24 @@ import Network.HTTP.Types.Status
 import Control.Exception
 import Data.Hashable
 import Lucid
+import Control.DeepSeq
+import Control.Exception.Safe
 
 type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
-dashdoHandler r d = (do
+dashdoHandler r d = do
   (iniHtml, ff) <- r $ dashdoGenOut d (initial d) []
   print $ hash iniHtml
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
-         (thisHtml, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catch` (\e -> do
+         (thisHtml, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catchAnyDeep ` (\e -> do
           let es :: String
-              es = "Dashdo error: " <> show (e::SomeException)
-          return (div_ (toHtml es) <> iniHtml, undefined)
-                            )
-         html thisHtml) `catch` (\e-> do
-           let es = "Dashdo handler create error: " <> show (e::SomeException)
-           putStrLn es
-           fail es)
+              es = "<div  class=\"alert alert-danger\" role=\"alert\"><pre>Error: " <> show e<> "</pre></div>"
+
+              foo = TL.pack es <>iniHtml
+          return (foo, []) )
+         html thisHtml
 
 getRandomUUID :: IO Text
 getRandomUUID = fromStrict . UUID.toText <$> randomIO
