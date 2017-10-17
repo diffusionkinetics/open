@@ -35,7 +35,7 @@ test :: SHtml IO Bool ()
 test = do
   b <- getValue
   "The person is male: "
-  if b then "yes" else "no"
+  if b then "yes" else error "not male test"
 
 hello :: SHtml IO Text ()
 hello = do
@@ -53,7 +53,7 @@ example irisd = wrap plotlyCDN $ do
 --                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
 
   h2_ "Testing Dashdo"
-  
+
   isMale <<~ select [("Male", True),("Female", False)]
   br_ []
 
@@ -72,10 +72,10 @@ example irisd = wrap plotlyCDN $ do
   "Greetings using (#>):"
   pname #> hello
   br_ []
-  
+
   isMale #> test
   br_ []
-  
+
   xaxis <<~ select axes
   yaxis <<~ select axes
   toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"

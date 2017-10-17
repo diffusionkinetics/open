@@ -24,6 +24,7 @@ import Data.Monoid
 import Network.HTTP.Types.Status
 import Control.Exception
 import Data.Hashable
+import Lucid
 
 type RunInIO m = forall a. m a -> IO a
 
@@ -33,8 +34,12 @@ dashdoHandler r d = (do
   print $ hash iniHtml
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
-         (thisHtml, _) <- liftIO $ r $ dashdoGenOut d newval ps
-         html thisHtml) `catch` (\e-> do 
+         (thisHtml, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catch` (\e -> do
+          let es :: String
+              es = "Dashdo error: " <> show (e::SomeException)
+          return (div_ (toHtml es) <> iniHtml, undefined)
+                            )
+         html thisHtml) `catch` (\e-> do
            let es = "Dashdo handler create error: " <> show (e::SomeException)
            putStrLn es
            fail es)
