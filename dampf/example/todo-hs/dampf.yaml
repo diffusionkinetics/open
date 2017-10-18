@@ -1,0 +1,23 @@
+image todo:
+  dockerFile: .
+
+container todo:
+  image: todo
+  expose: [3166]
+  command: todo serve
+  useDatabase: todo
+
+postgresdb todo:
+  migrations: migrations/
+  user: tomn
+  extensions: []
+
+domain todo.diffusionkinetics.com:
+  proxyContainer: todo:3166
+  letsEncrypt: true
+  static: www/
+
+test pingpong:
+  when: [AtDeploy]
+  units:
+    - run todo todo test

@@ -9,42 +9,59 @@ import Control.Monad.State.Strict
 import Lens.Micro
 import Data.Monoid ((<>))
 
-type FormField t = (Int, t -> Text -> t)
+type FormField t = (Text, t -> Text -> t)
 type FormFields t = [FormField t]
+type FieldName = Text
 
-type SHtml t a = HtmlT (State (Int,t,FormFields t)) a
+type SHtml m t a = HtmlT (StateT ([FieldName],t,[(TL.Text, TL.Text)],FormFields t) m) a
 
-data Dashdo t = forall b. Dashdo
+data RDashdo m = forall t. RDashdo
+  { rdFid    :: String
+  , rdTitle  :: Text
+  , rdDashdo :: Dashdo m t }
+
+data Dashdo m t = Dashdo
   { initial :: t
-  , fetch :: t -> IO b
-  , render :: t -> b -> SHtml t () }
+  , render :: SHtml m t () }
 
-runSHtml :: t -> SHtml t () -> (FormFields t, TL.Text)
-runSHtml val shtml =
+runSHtml :: Monad m => t -> SHtml m t () -> [(TL.Text, TL.Text)] -> m (FormFields t, TL.Text)
+runSHtml val shtml pars = do
   let stT = renderTextT shtml
-      (t, (_, _, ffs)) = runState stT (0, val, [])
-  in (ffs, t)
+      iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
+  (t, (_, _, _, ffs)) <- runStateT stT (iniFldNams, val,pars, [])
+  return (ffs, t)
 
-fieldName :: Int -> Attribute
-fieldName n = name_ $ "f"<>pack (show n)
-
-fresh :: SHtml a Int
+fresh :: Monad m => SHtml m a FieldName
 fresh = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n+1, v, ffs)
+  (n:ns, v, pars, ffs) <- lift $ get
+  lift $ put (ns, v, pars, ffs)
   return n
 
-freshAndValue :: SHtml a (a, Int)
+freshAndValue :: Monad m => SHtml m a (a, FieldName)
 freshAndValue = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n+1, v, ffs)
+  (n:ns, v, pars, ffs) <- lift $ get
+  lift $ put (ns, v, pars, ffs)
   return (v, n)
 
-putFormField :: FormField t -> SHtml t ()
+named :: Monad m => FieldName -> SHtml m t a -> SHtml m t a
+named nm mx = do
+  (ns, v, pars, ffs) <- lift $ get
+  lift $ put (nm:ns, v, pars, ffs)
+  mx
+
+getValue :: Monad m =>  SHtml m a a
+getValue = do
+  (_, v, _, _) <- lift $ get
+  return $ v
+
+putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
-  (n, v, ffs) <- lift $ get
-  lift $ put (n, v, ff:ffs)
+  (n, v, pars, ffs) <- lift $ get
+  lift $ put (n, v, pars, ff:ffs)
   return ()
 
 lensSetter :: ASetter' s a -> (s -> a -> s)
 lensSetter l x y = x & l .~ y
+
+lensPusher :: ASetter' s [a] -> (s -> a -> s)
+lensPusher l x y = x & l %~ ((:) y)

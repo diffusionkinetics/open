@@ -1,0 +1,38 @@
+Name:                todo
+Version:             0.1.0.0
+Synopsis:
+Description:
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen <tanielsen@gmail.com>
+Maintainer:          Tom Nielsen <tanielsen@gmail.com>
+build-type:          Simple
+Cabal-Version: 	     >= 1.8
+homepage:            https://github.com/diffusionkinetics/open/dampf/example
+bug-reports:         https://github.com/diffusionkinetics/open/issues
+category:            Web
+Tested-With:         GHC == 8.0.1
+
+Library
+   ghc-options:       -Wall
+   hs-source-dirs:    lib
+   Exposed-modules:
+               Todo.Serve
+               Todo.Test
+               Todo.Items
+   Build-depends:
+                 base                    >= 4.6 && < 5
+               , text
+               , aeson
+               , scotty
+               , postgresql-simple
+               , postgresql-simple-expr
+               , scotty
+               , bytestring
+               , http-test
+
+executable todo
+   main-is: Main.hs
+   Build-depends:
+                 base                    >= 4.6 && < 5
+               , todo

@@ -3,11 +3,11 @@ version:             0.1.0.0
 synopsis:            Functional Machine Learning
 description:         Functional Machine Learning using combinators for classification,
                      regression, clustering and dimensionality reduction.
-homepage:            https://github.com/glutamate/fuml
+homepage:            https://github.com/diffusionkinetics/open/tree/master/fuml
 license:             MIT
 license-file:        LICENSE
 author:              Tom Nielsen
-maintainer:          tanielsen@gmail.com
+maintainer:          tomn@diffusionkinetics.com
 copyright:           Tom Nielsen
 category:            Statistics
 build-type:          Simple
@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 
 source-repository head
   type:     git
-  location: https://github.com/glutamate/fuml
+  location: https://github.com/diffusionkinetics/open
 
 library
   hs-source-dirs:    lib
@@ -46,7 +46,6 @@ library
                      , microlens
                      , mtl
                      , random-fu
-  default-language:    Haskell2010
 
 Test-Suite test-fuml
   type:       exitcode-stdio-1.0

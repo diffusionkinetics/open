@@ -8,4 +8,4 @@ RUN apt-get update \
 RUN cd /tmp && echo "resolver: lts-8.5" > stack.yaml && echo "packages: []" >> stack.yaml \
  && cat stack.yaml \
  && stack setup \
- && stack install lens scotty hmatrix uuid random-fu
+ && stack install lens scotty hmatrix uuid random-fu haskell-src-exts

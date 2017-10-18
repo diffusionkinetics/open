@@ -7,7 +7,7 @@ import qualified Data.Text.IO as T
 
 main = do
   putStr "\n"
-  dumpDoc "example.ihs"
-  d <- readDoc "example.ihs"
+  dumpDoc "TestInliteratePreProc.hs"
+  d <- readDoc "TestInliteratePreProc.hs"
 
   T.putStrLn $ genHaskell d

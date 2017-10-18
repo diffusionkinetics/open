@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.TestDashdo where
 
 import Numeric.Datasets.Iris
 
@@ -6,7 +7,9 @@ import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
+import Dashdo.FlexibleInput
 import Control.Monad
+import Control.Monad.State.Strict
 import Lucid
 import Data.Monoid ((<>))
 import Data.Text (Text, unpack, pack)
@@ -26,34 +29,61 @@ data Example = Example
 
 makeLenses ''Example
 
+testDashdo = runDashdoIO $ Dashdo initv (example iris)
 
-main = do
-  runDashdo theDashdo
+test :: SHtml IO Bool ()
+test = do
+  b <- getValue
+  "The person is male: "
+  if b then "yes" else "no"
 
-theDashdo = Dashdo initv (return . const ()) (example iris)
+hello :: SHtml IO Text ()
+hello = do
+  id <<~ textInput
+  br_ []
+  txt  <- getValue
+  "Hello, " <> (toHtml txt) <> "!"
 
-example :: [Iris] -> Example -> () -> SHtml Example ()
-example irisd nm () = wrap plotlyCDN $ do
-  let ptitle = if _isMale nm then "Mr " else "Ms "
-      trace :: Trace
+example :: [Iris] -> SHtml IO Example ()
+example irisd = wrap plotlyCDN $ do
+  nm  <- getValue
+  let trace :: Trace
       trace = points (aes & x .~ (nm ^. xaxis . tagVal)
                           & y .~ (nm ^. yaxis . tagVal)) irisd
 --                      & marker ?~ (defMarker & markercolor ?~ catColors (map irisClass irisd))
 
   h2_ "Testing Dashdo"
-  textInput pname
-  select [("Male", True),("Female", False)] isMale
+
+  isMale <<~ select [("Male", True),("Female", False)]
   br_ []
-  "Hello "<> ptitle <> (toHtml $ nm ^. pname)
-  select axes xaxis
-  select axes yaxis
+
+  "Name input #1:"
+  pname <<~ textInput
+  br_ []
+
+  "Name input #2:"
+  pname <<~ textInput
+  br_ []
+
+  "Name input #3:"
+  pname <<~ textInput
+  br_ []
+
+  "Greetings using (#>):"
+  pname #> hello
+  br_ []
+
+  isMale #> test
+  br_ []
+
+  xaxis <<~ select axes
+  yaxis <<~ select axes
   toHtml  $ plotly "foo" [trace] & layout . title ?~  "my plot"
 
 axes = [tagOpt "sepal length" sepalLength,
         tagOpt "sepal width" sepalWidth,
         tagOpt "petal length" petalLength,
         tagOpt "petal width" petalWidth]
-
 
 initv = Example "Simon" True (snd $ axes!!0) (snd $ axes!!1)
 

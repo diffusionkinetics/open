@@ -1,0 +1,35 @@
+image myimage:
+  dockerFile: .
+
+container mycontainer1:
+  image: myimage
+  expose: [3002]
+
+container myadmincontainer:
+  image: myimage
+  expose: [3102]
+  command: foobar serve
+
+postgresdb mydb:
+  migrations: migrations/
+  user: myuser
+  extensions: ["hstore"]
+
+domain api.mydomain.com:
+  proxyContainer: mycontainer1:3002
+  letsEncrypt: true
+
+domain platform.mydomain.com:
+  proxyContainer: myadmincontainer:3102
+  letsEncrypt: true
+
+domain mydomain.com:
+  static: www/
+  letsEncrypt: true
+
+test domaintest:
+  when: [Frequently]
+  units:
+    - run myimage foobar test
+    - get http://mydomain.com =~ mydomain
+    - get https://mydomain.com =~ mydomain

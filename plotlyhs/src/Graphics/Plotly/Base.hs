@@ -54,13 +54,13 @@ import Graphics.Plotly.Utils
 -- * Traces
 
 -- |How should traces be drawn? (lines or markers)
-data Mode = Markers | Lines deriving Show
+data Mode = Markers | Lines | ModeText deriving Show
 
 instance {-# OVERLAPS #-} ToJSON [Mode] where
-  toJSON = toJSON . intercalate "+" . map (map toLower . show)
+  toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Mode" . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Bar deriving Show
+data TraceType = Scatter | Scatter3D | Bar | Mesh3D | Pie deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -95,10 +95,18 @@ instance ToJSON a => ToJSON (ListOrElem a) where
   toJSON (List xs) = toJSON xs
   toJSON (All x) = toJSON x
 
+data Sizemode = Diameter | Area deriving (Show, Eq)
+
+instance ToJSON Sizemode where
+  toJSON = toJSON . map toLower . show
+
 -- | Marker specification
 data Marker = Marker
   { _size :: Maybe (ListOrElem Value)
+  , _sizeref :: Maybe Value
+  , _sizeMode :: Maybe Sizemode
   , _markercolor :: Maybe (ListOrElem Value)
+  , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
   , _symbol :: Maybe Symbol
   , _opacity :: Maybe Double
   } deriving (Generic, Eq)
@@ -106,11 +114,11 @@ data Marker = Marker
 makeLenses ''Marker
 
 instance ToJSON Marker where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "markercolor" "color" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "marker" . unLens}
 
 -- | default marker specification
 defMarker :: Marker
-defMarker  = Marker Nothing Nothing Nothing Nothing
+defMarker  = Marker Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 
 -- | Dash type specification
@@ -127,10 +135,10 @@ instance ToJSON Orientation where
   toJSON Vertical = "v"
 
 -- | Are we filling area plots from the zero line or to the next Y value?
-data Fill = ToZeroY | ToNextY deriving Show
+data Fill = FillNone | ToZeroY | ToNextY | ToZeroX | ToNextX | ToSelf | ToNext deriving Show
 
 instance ToJSON Fill where
-  toJSON = toJSON . map toLower . show
+  toJSON = toJSON . map toLower . dropInitial "Fill" . show
 
 -- | line specification
 data Line = Line
@@ -147,49 +155,122 @@ instance ToJSON Line where
 defLine :: Line
 defLine = Line Nothing Nothing Nothing
 
+data HoverElem = HoverX | HoverY | HoverZ | HoverText | HoverName
+  deriving (Generic, Show)
+
+data HoverInfo = HoverPlus [HoverElem] | HoverAll | HoverNone | HoverSkip
+  deriving (Generic, Show)
+
+instance ToJSON HoverInfo where
+  toJSON (HoverPlus elems) = toJSON . intercalate "+" $ (map toLower . dropInitial "Hover" . show) <$> elems
+  toJSON x                 = toJSON . map toLower . dropInitial "Hover" $ show x
+
+data HoverOn = HoverPoints | HoverFills deriving (Generic, Show)
+
+instance {-# OVERLAPS #-} ToJSON [HoverOn] where
+  toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Hover" . show)
+
+data TextPosition
+  = TopLeft    | TopCenter    | TopRight
+  | MiddleLeft | MiddleCenter | MiddleRight
+  | BottomLeft | BottomCenter | BottomRight
+  deriving (Generic, Show)
+
+instance ToJSON TextPosition where
+  toJSON = toJSON . camelTo2 ' ' . show
+
 -- | A `Trace` is the component of a plot. Multiple traces can be superimposed.
 data Trace = Trace
   { _x :: Maybe [Value] -- ^ x values, as numbers
   , _y :: Maybe [Value] -- ^ y values, as numbers
+  , _z :: Maybe [Value] -- ^ z values, as numbers
+  , _values :: Maybe [Value] -- values for pie chart
+  , _labels :: Maybe [Text] -- labels for pie chart
+  , _hole :: Maybe Value -- pie chart hole property
   , _mode :: Maybe [Mode] -- ^ select one or two modes.
   , _name :: Maybe Text -- ^ name of this trace, for legend
   , _text :: Maybe [Text]
+  , _textposition :: Maybe TextPosition
   , _tracetype :: TraceType
   , _marker :: Maybe Marker
   , _line :: Maybe Line
   , _fill :: Maybe Fill
   , _orientation :: Maybe Orientation
+  , _visible :: Maybe Value
+  , _traceshowlegend :: Maybe Bool
+  , _legendgroup :: Maybe Text
+  , _customdata :: Maybe [Value]
+  , _hoverinfo :: Maybe HoverInfo
+  , _hovertext :: Maybe (ListOrElem Text)
+  , _hoveron :: Maybe [HoverOn]
+  , _connectgaps :: Maybe Bool
+
+  -- 3D mesh
+  , _i :: Maybe [Int] -- ^ i values, as ints
+  , _j :: Maybe [Int] -- ^ j values, as ints
+  , _k :: Maybe [Int] -- ^ k values, as ints
+  , _tracecolor :: Maybe Color
+  , _traceopacity :: Maybe Double
+
+  -- Sub-plots
+  , _tracexaxis :: Maybe Text -- ^ X-axis name
+  , _traceyaxis :: Maybe Text -- ^ Y-axis name
   } deriving Generic
 
 makeLenses ''Trace
 
+mkTrace :: TraceType -> Trace
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
 -- |an empty scatter plot
 scatter :: Trace
-scatter = Trace Nothing Nothing Nothing Nothing Nothing Scatter Nothing Nothing Nothing Nothing
+scatter = mkTrace Scatter
+
+-- |an empty 3D scatter plot
+scatter3d :: Trace
+scatter3d = mkTrace Scatter3D
 
 -- |an empty bar plot
 bars :: Trace
-bars = Trace Nothing Nothing Nothing Nothing Nothing Bar Nothing Nothing Nothing Nothing
+bars = mkTrace Bar
 
+-- |an empty 3D mesh plot
+mesh3d :: Trace
+mesh3d = mkTrace Mesh3D
+
+-- | an empty pie chart
+pie :: Trace
+pie = mkTrace Pie
 
 instance ToJSON Trace where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "tracetype" "type" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = renamer}
+    where renamer = dropInitial "trace" . unLens
+
+data AxisType = Log | Date | Category deriving Show
+
+instance ToJSON AxisType where
+  toJSON = toJSON . map toLower . show
 
 -- |Options for axes
 data Axis = Axis
   { _range :: Maybe (Double,Double)
+  , _axistype :: Maybe AxisType
   , _axistitle :: Maybe Text
   , _showgrid :: Maybe Bool
   , _zeroline :: Maybe Bool
+  , _axisvisible :: Maybe Bool
+  , _tickvals :: Maybe [Value]
+  , _ticktext :: Maybe [Text]
+  , _domain :: Maybe (Double,Double)
   } deriving Generic
 
 makeLenses ''Axis
 
 instance ToJSON Axis where
-  toJSON = genericToJSON jsonOptions {fieldLabelModifier = rename "axistitle" "axis" . unLens}
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "axis" . unLens}
 
 defAxis :: Axis
-defAxis = Axis Nothing Nothing Nothing Nothing
+defAxis = Axis Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- * Layouts
 
@@ -221,9 +302,16 @@ titleMargins = Margin 50 25 30 40 4
 
 -- |options for the layout of the whole plot
 data Layout = Layout
-  { _xaxis :: Maybe Axis
-  , _yaxis :: Maybe Axis
-  , _title :: Maybe Text
+  { _xaxis  :: Maybe Axis
+  , _xaxis2 :: Maybe Axis
+  , _xaxis3 :: Maybe Axis
+  , _xaxis4 :: Maybe Axis
+  , _yaxis  :: Maybe Axis
+  , _yaxis2 :: Maybe Axis
+  , _yaxis3 :: Maybe Axis
+  , _yaxis4 :: Maybe Axis
+  , _zaxis  :: Maybe Axis
+  , _title  :: Maybe Text
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
@@ -235,7 +323,7 @@ makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
@@ -247,7 +335,10 @@ data Plotly = Plotly
   { _elemid :: Text
   , _traces :: [Trace]
   , _layout :: Layout
-  }
+  } deriving Generic
+
+instance ToJSON Plotly where
+  toJSON = genericToJSON jsonOptions
 
 makeLenses ''Plotly
 

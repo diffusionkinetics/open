@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell #-}
+module Dashdo.Examples.IrisKMeans where
 
 import Numeric.Datasets.Iris
 
 import Dashdo
 import Dashdo.Types
 import Dashdo.Serve
-import Dashdo.Elements
+import Dashdo.Elements hiding (numInput)
+import Dashdo.FlexibleInput hiding (textInput)
 import Control.Monad
+import Control.Monad.State.Strict
 import Lucid
 import Lucid.Bootstrap3
 import Lucid.Bootstrap
@@ -41,9 +44,11 @@ irisData
     ~~ [sepalLength, sepalWidth, petalLength, petalWidth])
     iris
 
-main = runDashdo $ pureDashdo ikm0 dashdo
+irisKMeans = runDashdoIO $ Dashdo ikm0 dashdo
 
-dashdo ikm = wrap plotlyCDN $ do
+dashdo :: SHtml IO IKM ()
+dashdo = wrap plotlyCDN $ do
+    ikm <- getValue
     let ctrs :: [VS.Vector Double]
         ctrs = model $ runIdentity $ runSupervisor (kmeans $ ikm ^. nclusters) Nothing irisData
 
@@ -52,20 +57,21 @@ dashdo ikm = wrap plotlyCDN $ do
         mkCol [(MD,3)] $ div_ [class_ "well"] $ do
             "X Variable"
             br_ []
-            select axes xaxis
+            xaxis <<~ select axes
             br_ []
             "y Variable"
             br_ []
-            select axes yaxis
+            yaxis <<~ select axes
             br_ []
             "Cluster count"
             br_ []
-            numInput (Just 0) Nothing (Just 1) nclusters
+            nclusters <<~ numInput  & minVal ?~ 0 & step ?~ 1
 
         mkCol [(MD,9)] $ do
             let trace :: Trace
                 trace = points (aes & x .~ (ikm ^. xaxis . tagVal . _2)
-                                    & y .~ (ikm ^. yaxis . tagVal . _2))
+                                    & y .~ (ikm ^. yaxis . tagVal . _2)
+                                    & color ?~ (getCol. irisClass) )
                                 iris
                 traceCtrs
                    = points (aes & x .~ (VS.! (ikm ^. xaxis . tagVal . _1))
@@ -73,3 +79,8 @@ dashdo ikm = wrap plotlyCDN $ do
                                 ctrs
             toHtml $ plotly "foo" [trace, traceCtrs]
                        & layout . margin ?~ thinMargins
+
+getCol :: IrisClass -> RGB Double
+getCol Setosa = RGB 1 0 0
+getCol Versicolor = RGB 0 1 0
+getCol Virginica = RGB 0 0 1

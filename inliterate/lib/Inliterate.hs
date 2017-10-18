@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, StandaloneDeriving #-}
+{-# LANGUAGE OverloadedStrings, StandaloneDeriving, CPP #-}
 
 module Inliterate where
 
@@ -18,8 +18,11 @@ import qualified Data.Sequence as Seq
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Lucid
 import Data.Monoid ((<>))
+#if MIN_VERSION_haskell_src_exts(1,18,0)
 import Language.Haskell.Exts hiding (Do)
-
+#else
+import Language.Haskell.Exts.Annotated hiding (Do)
+#endif
 import Inliterate.Inspect
 import Inliterate.Import
 

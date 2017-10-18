@@ -14,6 +14,7 @@ category:            Statistics, Web
 Cabal-Version: 	     >= 1.10
 extra-source-files:
         public/js/dashdo.js
+        public/js/runners/*.js
 
 Library
    ghc-options:       -Wall -fno-warn-type-defaults
@@ -26,9 +27,15 @@ Library
                  , Dashdo.Serve
                  , Dashdo.Types
                  , Dashdo.Elements
+                 , Dashdo.Rdash
+                 , Dashdo.FlexibleInput
+
+   Other-modules: Dashdo.FileEmbed
+
    Build-depends:
                  base                    >= 4.6 && <5
                , scotty
+               , http-types
                , lucid
                , lucid-extras
                , text
@@ -41,4 +48,9 @@ Library
                , random
                , file-embed
                , hashable
-
+               , wai-extra
+               , template-haskell
+               , aeson
+               , plotlyhs
+               , deepseq
+               , safe-exceptions

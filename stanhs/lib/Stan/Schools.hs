@@ -1,24 +1,30 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Stan.Schools where
 
 import Stan.AST
+import Stan.Data
+import Data.Monoid ((<>))
+
 
 schools :: [Stan]
 schools = [
-  Data [ TypeDecl (Bounded (Just 0) Nothing Int) "J" []
-       , TypeDecl Real "y" [Var "J"]
-       , TypeDecl (Bounded (Just 0) Nothing Real) "sigma" [Var "J"]
+  Data [ lower 0 Int ::: "J"
+       , Real ::: "y"!["J"]
+       , lower 0 Real ::: "sigma"!["J"]
        ],
-  Parameters [ TypeDecl Real "mu" []
-             , TypeDecl (Bounded (Just 0) Nothing Real) "tau" []
-             , TypeDecl Real "eta" [Var "J"]
+  Parameters [ Real ::: "mu"
+             , lower 0 Real ::: "tau"
+             , Real ::: "eta"!["J"]
              ],
-  TransformedParameters [ TypeDecl Real "theta" [Var "J"]
-                        , For "j" 1 (Var "J")
-                             [Assign ("theta",[Var "j"]) (Var "mu" + Var "tau" * (Ix (Var "eta") [Var "j"]))]
+  TransformedParameters [ Real ::: "theta"!["J"]
+                        , For "j" 1 "J" [
+                            "theta"!["j"] := "mu" + "tau" * "eta"!["j"]
+                            ]
 
                         ],
-  Model [ Distribute ("eta",[]) "normal" [0,1]
-        , Distribute ("y",[]) "normal" [Var "theta",Var "sigma"]
+  Model [ "eta" :~ normal (0,1)
+        , "y" :~ normal ("theta","sigma")
         ]
   ]
 
@@ -30,3 +36,8 @@ y = [28,  8, -3,  7, -1,  1, 18, 12]
 
 sigma :: [Double]
 sigma = [15, 10, 16, 11,  9, 11, 10, 18]
+
+schoolData :: StanData
+schoolData =   "J" <~ j <>
+               "y" <~ y <>
+               "sigma" <~ sigma

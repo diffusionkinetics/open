@@ -70,3 +70,17 @@ navBar attrs brand items = do
     div_ [class_ "collapse navbar-collapse"] $ do
       ul_ [class_ "nav navbar-nav navbar-right"] $ do
         mapM_ li_ items
+
+loginForm :: Monad m => HtmlT m ()
+loginForm = form_ [class_ "form-signin"] $ do
+  h2_ [class_ "form-signin-heading"] $ "Please sign in"
+  label_ [for_ "inputEmail", class_ "sr-only"] "Email address"
+  input_ [type_ "email", id_ "inputEmail", class_ "form-control", placeholder_ "Email address", required_ "", autofocus_]
+  label_ [for_ "inputPassword", class_ "sr-only"] "Password"
+  input_ [type_ "password", id_ "inputPassword", class_ "form-control", placeholder_ "Password", required_ ""]
+  div_ [class_ "checkbox"] $
+    label_ $ do
+      input_ [type_ "checkbox", value_ "remember-me"]
+      "Remember me"
+  button_ [class_ "btn btn-lg btn-primary btn-block", type_ "submit"] "Sign in"
+

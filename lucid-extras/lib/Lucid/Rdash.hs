@@ -1,6 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lucid.Rdash (indexPage) where
+module Lucid.Rdash (
+    indexPage
+  , mkAlert
+  , mkAlerts
+  , mkHead
+  , mkHeaderBar
+  , mkIndexPage
+  , mkMetaBox
+  , mkMetaTitle
+  , mkPageContent
+  , mkPageWrapperOpen
+  , mkSidebar
+  , mkSidebarFooter
+  , mkSidebarItem
+  , mkSidebarWrapper
+  , mkWidget
+  , mkWidgets
+  , mkWidgetContent
+  , mkWidgetIcon
+  , sidebarMain
+  , sidebarTitle
+  , widget_
+  , widgetBody_
+  , spacer_
+  , rdashCSS
+  ) where
 
 import qualified Data.Text as T
 import Data.List
@@ -18,7 +43,7 @@ toHtml = Lucid.toHtml
 rdashCSS, sidebarMain, sidebarTitle :: Monad m => HtmlT m ()
 
 rdashCSS = link_ [rel_ "stylesheet",
-                  href_  "http://cdn.filopodia.com/rdash-ui/1.0.1/css/rdash.css"]
+                  href_  "https://cdn.diffusionkinetics.com/rdash-ui/1.0.1/css/rdash.css"]
 
 ariaHidden, tooltip_ :: Term arg result => arg -> result
 
@@ -68,9 +93,6 @@ mkHead title = head_ $ do
   rdashCSS
   cdnJqueryJS
   cdnBootstrapJS
-  
-mkBody :: (Monad m) => HtmlT m () -> HtmlT m ()
-mkBody pgw = body_ pgw
 
 mkPageContent :: Monad m => HtmlT m () -> HtmlT m ()
 mkPageContent = div_ [id_ "content-wrapper"] . div_ [class_ "page-content"]
@@ -126,16 +148,25 @@ mkWidgetContent title comment =
 
 mkWidget :: Monad m => HtmlT m () -> HtmlT m () -> HtmlT m ()
 mkWidget wIcon wContent =
-  div_ [class_ "widget"] $
-  div_ [class_ "widget-body"] $
-  wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
+  widget_ $
+   widgetBody_ $
+    wIcon >> wContent >> div_ [class_ "clearfix"] (return ())
 
 mkWidgets :: Monad m => [[HtmlT m ()]] -> HtmlT m ()
 mkWidgets widgets =
-  div_ [class_ "row"] . sequence_ $ intersperse spacer (map go widgets)
+  div_ [class_ "row"] . sequence_ $ intersperse spacer_ (map go widgets)
   where
-    spacer = div_ [class_ "spacer visible-xs"] $ return ()
     go = mapM_ (mkCol [(XS, 12), (MD, 6), (LG, 3)])
+
+spacer_ :: Monad m => HtmlT m ()
+spacer_ = div_ [class_ "spacer visible-xs"] $ return ()
+
+widget_ ::Monad m => HtmlT m () -> HtmlT m ()
+widget_ = div_ [class_ "widget"]
+
+widgetBody_ ::Monad m => HtmlT m () -> HtmlT m ()
+widgetBody_ = div_ [class_ "widget-body"]
+
 
 mkTable :: Monad m => HtmlT m () -> [[HtmlT m ()]] -> HtmlT m ()
 mkTable title content = mkCol [(LG, 6)] $ do
@@ -186,7 +217,7 @@ indexPage = do
 
     pgw = mkPageWrapperOpen sbw pcw
 
-    body = mkBody pgw
+    body = body_ pgw
     hd = mkHead "Dashboard"
 
 
@@ -244,4 +275,3 @@ loadingTable = mkCol [(LG, 6)] $ do
     loading = div_ [class_ "loading"] $ do
       div_ [class_ "double-bounce1"] (return ())
       div_ [class_ "double-bounce2"] (return ())
-

@@ -17,6 +17,7 @@ where
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Devel
 import Data.Default
+--import Debug.Trace
 
 
 -- Type synonyms mostly just for documentation purposes...
@@ -59,9 +60,6 @@ instance Default BFGSOpts where
   def = BFGSOpts 1.0E-7 1.0E-7 200
 
 
-epsilon :: Double
-epsilon = 3.0E-8
-
 
 -- BFGS solver data to carry between steps: current point, function
 -- value at point, gradient at point, current direction, current
@@ -94,7 +92,7 @@ bfgsCollect f df b0 = map snd $ iterate step (False,b0)
 bfgsInit :: Fn -> GradFn -> Point -> Either String BFGS
 bfgsInit f df p0 = case (hasnan f0, hasnan g0) of
   (False, False) -> Right $ BFGS p0 f0 g0 (-g0) (ident n) (maxStep p0)
-  errs -> Left $ nanMsg p0 (Just f0) (Just g0)
+  _ -> Left $ nanMsg p0 (Just f0) (Just g0)
   where n = size p0 ; f0 = f p0 ; g0 = df p0
 
 
@@ -102,17 +100,17 @@ bfgsInit f df p0 = case (hasnan f0, hasnan g0) of
 -- until converged or maximum iterations exceeded.
 --
 bfgsWith :: BFGSOpts -> Fn -> GradFn -> Point -> Hessian -> Either String (Point, Hessian)
-bfgsWith opt@(BFGSOpts _ _ maxiters) f df p0 h0 =
+bfgsWith opt@(BFGSOpts _ _ maxiters') f df p0 h0 =
   case (hasnan f0, hasnan g0) of
     (False, False) -> go 0 b0
     errs -> Left $ nanMsg p0 (Just f0) (Just g0)
   where go iters b =
-          if iters > maxiters
+          if iters > maxiters'
           then Left "maximum iterations exceeded in bfgs"
           else case bfgsStepWith opt f df b of
             Left err -> Left err
             Right (True, b') -> Right (p b', h b')
-            Right (False, b') -> go (iters+1) b'
+            Right (False, b') -> go (iters+1) $ {- trace (show $ (iters, fp b')) -} b'
         f0 = f p0 ; g0 = df p0
         b0 = BFGS p0 f0 g0 (-g0) h0 (maxStep p0)
 
@@ -128,7 +126,7 @@ bfgsStep = bfgsStepWith def
 -- in C, 2nd ed.
 --
 bfgsStepWith :: BFGSOpts -> Fn -> GradFn -> BFGS -> Either String (Bool, BFGS)
-bfgsStepWith (BFGSOpts ptol gtol _) f df (BFGS p fp g xi h stpmax) =
+bfgsStepWith (BFGSOpts ptol' gtol' _) f df (BFGS p fp g xi h stpmax) =
   case lineSearch f p fp g xi stpmax of
     Left err -> Left err
     Right (pn, fpn) ->
@@ -142,14 +140,14 @@ bfgsStepWith (BFGSOpts ptol gtol _) f df (BFGS p fp g xi h stpmax) =
             hn = h + ((dpdg + dghdg) / dpdg^2) `scale` (dp `outer` dp) -
                  (1/dpdg) `scale` (h <> (dg `outer` dp) + (dp `outer` dg) <> h)
             xin = -hn #> gn
-            cvg = maxabsratio dp p < ptol || maxabsratio' (fpn `max` 1) gn p < gtol
+            cvg = maxabsratio dp p < ptol' || maxabsratio' (fpn `max` 1) gn p < gtol'
 
 
 -- Generate error messages for NaN production in function and gradient
 -- calculations.
 --
 nanMsg :: Point -> Maybe Double -> Maybe Gradient -> String
-nanMsg p fval grad = "NaNs produced: p = " ++ show p ++
+nanMsg p' fval grad = "NaNs produced: p = " ++ show p' ++
                      maybe "" (("  fval = " ++) . show) fval ++
                      maybe "" (("  grad = " ++) . show) grad
 
@@ -266,6 +264,8 @@ maxabsratio' scale n d = maxElement $ zipVectorWith (absratio' scale) n d
 -- *BFGS> bfgs tstf1 tstgrad1 (fromList [-10,-10])
 -- Right (fromList [3.0,4.0])
 --
+
+{-
 tstf1 :: Fn
 tstf1 p = (x-3)^2 + (y-4)^2
   where [x,y] = toList p
@@ -323,3 +323,4 @@ nantstf p = log x + (x-3)^2 + (y-4)^2
 nantstgrad :: GradFn
 nantstgrad p = fromList [1/x+2*(x-3),2*(y-4)]
   where [x,y] = toList p
+-}

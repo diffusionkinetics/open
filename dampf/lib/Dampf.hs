@@ -1,39 +1,35 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module Dampf where
 
-import GHC.Generics
-import Data.Yaml
-import Data.Aeson
-import qualified Data.HashMap.Lazy as HM
-import Control.Monad
-import qualified Data.Text as T
+import Control.Lens
+import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.IO.Class   (MonadIO, liftIO)
 
-data Dampf = Image T.Text ImageSpec  deriving Show
+import Dampf.Docker
+import Dampf.Nginx
+import Dampf.Postgres
+import Dampf.Types
 
-newtype Dampfs = Dampfs {unDampfs :: [Dampf] } deriving Show
 
-instance FromJSON Dampfs where
-  parseJSON = withObject "Dampf config" $ \hm -> do
-    fmap Dampfs $ forM (HM.toList hm) $ \(k,v) -> do
-      case T.words k of 
-        ["image", imname] -> do 
-          imspec <- parseJSON v
-          return $ Image imname imspec
-        _ -> fail $ "unknown dampf spec: "++ T.unpack k
+dump :: (MonadIO m) => DampfT m ()
+dump = do
+    a <- view app
+    c <- view config
 
-data ImageSpec = ImageSpec
-  { dockerFile :: FilePath } deriving (Generic, Show)
+    liftIO $ do
+        putStrLn $ pShowDampfApp a
+        putStrLn $ pShowDampfConfig c
 
-instance FromJSON ImageSpec
 
-dumpYaml :: FilePath -> IO ()
-dumpYaml fp = do
-  Just v <- decodeFile fp
-  print (v::Value)
+goBuild :: (MonadIO m, MonadThrow m) => DampfT m ()
+goBuild = do
+    setupDB
+    buildDocker
 
-dumpCfg :: FilePath -> IO ()
-dumpCfg fp = do
-  ev <- decodeFileEither fp
-  case ev of
-    Right v -> print (v::Dampfs)
-    Left e -> fail $ show e
+
+goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
+goDeploy = do
+    goBuild
+    deployDocker
+    runMigrations Nothing
+    deployDomains
+
