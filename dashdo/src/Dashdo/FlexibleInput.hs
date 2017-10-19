@@ -27,21 +27,27 @@ class FlexibleInput a where
   type InputVal a
   (<<~) :: Monad m => Lens' s (InputVal a) -> a -> SHtml m s ()
 
-data TextInput = TextInput { textInputClasses :: Text }
+data TextInput = TextInput
+  { textInputClasses :: Text
+  , textInputPlaceHolder :: Maybe Text
+  }
 
 makeFields ''TextInput
 
 textInput :: TextInput
-textInput = TextInput ""
+textInput = TextInput "" Nothing
 
 instance FlexibleInput TextInput where
   type InputVal TextInput = Text
-  f <<~ (TextInput cs) = do
+  f <<~ (TextInput cs mph) = do
     n <- fresh
     val <- getValue
+    let phA = case mph of
+               Nothing -> []
+               Just ph -> [placeholder_ ph]
 
     putFormField (n, lensSetter f)
-    input_ [type_ "text", class_ cs, name_ n, value_ (val ^. f)]
+    input_ $ [type_ "text", class_ cs, name_ n, value_ (val ^. f)]++phA
 
 data NumInput a = NumInput
   { numInputClasses :: Text
@@ -111,8 +117,8 @@ instance (Eq a) => FlexibleInput (Checkbox a) where
   type InputVal (Checkbox a) = a
   f <<~ (Checkbox text vTrue vFalse) = do
     (val, n) <- freshAndValue
-    let 
-      ft s t = 
+    let
+      ft s t =
         case t of
           "true" -> lensSetter f s vTrue
           _      -> lensSetter f s vFalse
