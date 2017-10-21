@@ -100,12 +100,13 @@ toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
-toParentAction :: Lens' t b -> (b -> m ()) -> (t -> m ())
-toParentAction g act = \big -> act $ big ^. g
+toParentAction :: Lens' t b -> (Text, b -> m ()) -> (Text, t -> m ())
+toParentAction g (nm,act) = (nm,\big -> act $ big ^. g)
 
 onClickDo :: Monad m => (t -> m ()) -> SHtml m t Text
 onClickDo act = do
-  putAction act
+  nm <- fresh
+  putAction (nm,act)
   return undefined
 
 (#>) :: (Monad m, Hashable b) => Lens' t b -> SHtml m b () -> SHtml m t ()

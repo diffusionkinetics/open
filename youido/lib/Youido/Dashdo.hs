@@ -34,7 +34,9 @@ dashdoGlobal' = do
   return $ h1 <> h2
 
 -- request for a dashdo app
-data DashdoReq = Initial | Submit [(TL.Text, TL.Text)]
+data DashdoReq = Initial
+               | Submit [(TL.Text, TL.Text)]
+               | Action Text
 
 instance FromRequest DashdoReq where
   fromRequest rq = case fromRequest rq of
@@ -47,7 +49,7 @@ instance ToURL DashdoReq where
 
 dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (MAjax (Html ())))
 dashdoHandler' _ d = do
-  (iniHtml, ff) <- dashdoGenOut d (initial d) []
+  (iniHtml, ff, acts) <- dashdoGenOut d (initial d) []
   let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
       wrapper :: TL.Text -> Html ()
       wrapper h = container_ $ form_ [ action_ submitPath,

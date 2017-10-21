@@ -6,12 +6,16 @@ import qualified Data.Text.Lazy as TL
 import Data.List
 import Dashdo.Types
 import Data.Monoid ((<>))
+import Data.Text (Text, pack)
 
 
-dashdoGenOut :: Monad m => Dashdo m a -> a -> [(TL.Text, TL.Text)] -> m (TL.Text, FormFields a)
-dashdoGenOut (Dashdo _ r) x pars = do
-  (formFs, htmlText) <- runSHtml x r pars
-  return (htmlText, formFs)
+dashdoGenOut :: Monad m
+             => Dashdo m a
+             -> a
+             -> [(TL.Text, TL.Text)]
+             -> m (TL.Text, FormFields a, [(Text, a -> m ())] )
+dashdoGenOut (Dashdo _ r) x pars = runSHtml x r pars
+
 
 parseForm :: a -> FormFields a -> [(TL.Text, TL.Text)] -> a
 parseForm x [] _ = x

@@ -32,16 +32,16 @@ type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
 dashdoHandler r d = do
-  (iniHtml, ff) <- r $ dashdoGenOut d (initial d) []
+  (iniHtml, ff, _) <- r $ dashdoGenOut d (initial d) []
   print $ hash iniHtml
   return $ \ps -> do
          let newval = parseForm (initial d) ff ps
-         (thisHtml, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catchAnyDeep ` (\e -> do
+         (thisHtml, _, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catchAnyDeep ` (\e -> do
           let es :: String
               es = "<div  class=\"alert alert-danger\" role=\"alert\"><pre>Error: " <> show e<> "</pre></div>"
 
               foo = TL.pack es <>iniHtml
-          return (foo, []) )
+          return (foo, [], []) )
          html thisHtml
 
 getRandomUUID :: IO Text
@@ -58,7 +58,7 @@ runDashdo = runDashdoPort 3000
 
 runDashdoPort :: Monad m => Int -> RunInIO m -> Dashdo m a -> IO ()
 runDashdoPort prt r d = do
-  (iniHtml, _) <- r $ dashdoGenOut d (initial d) []
+  (iniHtml, _, _) <- r $ dashdoGenOut d (initial d) []
   h <- dashdoHandler r d
   serve prt iniHtml [("", "", h)]
 

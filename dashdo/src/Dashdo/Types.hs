@@ -20,7 +20,7 @@ data DD m t = DD
   , _value :: t
   , _rawParams :: [(TL.Text, TL.Text)]
   , _formFields :: FormFields t
-  , _actions :: [t -> m ()]
+  , _actions :: [(Text, t -> m ())]
   }
 
 makeLenses ''DD
@@ -36,12 +36,16 @@ data Dashdo m t = Dashdo
   { initial :: t
   , render :: SHtml m t () }
 
-runSHtml :: Monad m => t -> SHtml m t () -> [(TL.Text, TL.Text)] -> m (FormFields t, TL.Text)
+runSHtml :: Monad m
+         => t
+         -> SHtml m t ()
+         -> [(TL.Text, TL.Text)]
+         -> m (TL.Text, FormFields t, [(Text, t -> m ())])
 runSHtml val shtml pars = do
   let stT = renderTextT shtml
       iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
-  (t, (DD _ _ _ ffs _)) <- runStateT stT (DD iniFldNams val pars [] [])
-  return (ffs, t)
+  (t, (DD _ _ _ ffs acts)) <- runStateT stT (DD iniFldNams val pars [] [])
+  return (t, ffs, acts)
 
 fresh :: Monad m => SHtml m a FieldName
 fresh = do
@@ -62,7 +66,7 @@ putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
   formFields %= (ff:)
 
-putAction :: Monad m => (t -> m ()) -> SHtml m t ()
+putAction :: Monad m => (Text, t -> m ()) -> SHtml m t ()
 putAction ff = do
   actions %= (ff:)
 
