@@ -8,12 +8,24 @@ import qualified Data.Text.Lazy as TL
 import Control.Monad.State.Strict
 import Lens.Micro
 import Data.Monoid ((<>))
+import Lens.Micro.TH
+import Lens.Micro
+import Lens.Micro.Mtl
 
 type FormField t = (Text, t -> Text -> t)
 type FormFields t = [FormField t]
 type FieldName = Text
 
-type SHtml m t a = HtmlT (StateT ([FieldName],t,[(TL.Text, TL.Text)],FormFields t) m) a
+data DD t = DD
+  { _freshSupply :: [FieldName]
+  , _value :: t
+  , _rawParams :: [(TL.Text, TL.Text)]
+  , _formFields :: FormFields t
+  }
+
+makeLenses ''DD
+
+type SHtml m t a = HtmlT (StateT (DD t) m) a
 
 data RDashdo m = forall t. RDashdo
   { rdFid    :: String
@@ -28,37 +40,27 @@ runSHtml :: Monad m => t -> SHtml m t () -> [(TL.Text, TL.Text)] -> m (FormField
 runSHtml val shtml pars = do
   let stT = renderTextT shtml
       iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
-  (t, (_, _, _, ffs)) <- runStateT stT (iniFldNams, val,pars, [])
+  (t, (DD _ _ _ ffs)) <- runStateT stT (DD iniFldNams val pars [])
   return (ffs, t)
 
 fresh :: Monad m => SHtml m a FieldName
 fresh = do
-  (n:ns, v, pars, ffs) <- lift $ get
-  lift $ put (ns, v, pars, ffs)
-  return n
+  head <$> (freshSupply <<%= tail)
 
 freshAndValue :: Monad m => SHtml m a (a, FieldName)
-freshAndValue = do
-  (n:ns, v, pars, ffs) <- lift $ get
-  lift $ put (ns, v, pars, ffs)
-  return (v, n)
+freshAndValue = (,) <$> getValue <*> fresh
 
 named :: Monad m => FieldName -> SHtml m t a -> SHtml m t a
 named nm mx = do
-  (ns, v, pars, ffs) <- lift $ get
-  lift $ put (nm:ns, v, pars, ffs)
+  freshSupply %= (nm:)
   mx
 
 getValue :: Monad m =>  SHtml m a a
-getValue = do
-  (_, v, _, _) <- lift $ get
-  return $ v
+getValue = use value
 
 putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
-  (n, v, pars, ffs) <- lift $ get
-  lift $ put (n, v, pars, ff:ffs)
-  return ()
+  formFields %= (ff:)
 
 lensSetter :: ASetter' s a -> (s -> a -> s)
 lensSetter l x y = x & l .~ y
