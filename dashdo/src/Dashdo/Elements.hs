@@ -100,6 +100,14 @@ toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
+toParentAction :: Lens' t b -> (b -> m ()) -> (t -> m ())
+toParentAction g act = \big -> act $ big ^. g
+
+onClickDo :: Monad m => (t -> m ()) -> SHtml m t Text
+onClickDo act = do
+  putAction act
+  return undefined
+
 (#>) :: (Monad m, Hashable b) => Lens' t b -> SHtml m b () -> SHtml m t ()
 g #> r = do
   hashFieldName <- fresh  -- before n is taken from state
@@ -108,7 +116,7 @@ g #> r = do
   subFieldsNumberName <- fresh
   putFormField (subFieldsNumberName, const)
 
-  DD n v pars ffs <- lift get
+  DD n v pars ffs acts <- lift get
   let
       stT          = renderTextT r
 
@@ -131,7 +139,7 @@ g #> r = do
         span_ [class_ "dashdo-cashed-not-changed"] ""
         forM_ [1..subFieldsNumber] $ \fieldN -> fresh >> putFormField ("f" <> ((pack . show) fieldN), const)
       else do
-        (txt, (DD _ _ _ subFs)) <- (lift . lift) $ runStateT stT (DD n subValue pars [])
+        (txt, (DD _ _ _ subFs subActs)) <- (lift . lift) $ runStateT stT (DD n subValue pars [] [])
 
         input_ [type_ "hidden", name_ hashFieldName, value_ subValueHash]
         input_ [type_ "hidden", name_ subFieldsNumberName, value_ $ (pack . show . length) subFs]
@@ -142,18 +150,18 @@ g #> r = do
         counter has been corrected during runStateT,
         so we call fresh just to increment current monad's counter -}
         forM_ subFs $ \(ff) -> fresh >> putFormField (toParentFormField g ff)
-
+        forM_ subActs $ \(act) -> putAction $ toParentAction g act --  (toParentFormField g ff)
 -- version of #> with no caching
 (##>) :: Monad m => Lens' t b -> SHtml m b () -> SHtml m t ()
 g ##> r = do
-  DD n v pars ffs <- lift get
+  DD n v pars ffs acts <- lift get
   let
       stT          = renderTextT r
 
       subValue     = v ^. g
 
 
-  (txt, DD freshes _ ff subFs) <- (lift . lift) $ runStateT stT (DD n subValue pars [])
-  lift $ put (DD freshes v ff (map (toParentFormField g) subFs ++ ffs ))
+  (txt, DD freshes _ ff subFs subActs) <- (lift . lift) $ runStateT stT (DD n subValue pars [] [])
+  lift $ put (DD freshes v ff (map (toParentFormField g) subFs ++ ffs ) (map (toParentAction g) subActs ++ acts ))
 
   toHtmlRaw txt
