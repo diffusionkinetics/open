@@ -68,7 +68,8 @@ dashdoHandler' _ d = do
         case lookup nm acts of
           Nothing -> liftIO $ putStrLn $ "Error: no such action"++ unpack nm
           Just go -> go newval
-        return $ Ajax $ wrapper iniHtml
+        (thisHtml, _, _) <- dashdoGenOut d newval []
+        return $ Ajax $ wrapper thisHtml
   return dispatch
 
 dashdoGlobal :: MonadIO m => YouidoT m ()

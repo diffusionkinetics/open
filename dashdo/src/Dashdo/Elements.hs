@@ -5,6 +5,7 @@ module Dashdo.Elements where
 import Dashdo.Types
 
 import Lucid
+import Lucid.Base (makeAttribute)
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import Graphics.Plotly (Plotly)
@@ -103,11 +104,12 @@ toParentFormField g (n, f) =
 toParentAction :: Lens' t b -> (Text, b -> m ()) -> (Text, t -> m ())
 toParentAction g (nm,act) = (nm,\big -> act $ big ^. g)
 
-onClickDo :: Monad m => (t -> m ()) -> SHtml m t Text
+onClickDo :: Monad m => (t -> m ()) -> SHtml m t [Attribute]
 onClickDo act = do
   nm <- fresh
   putAction (nm,act)
-  return undefined
+  return [ makeAttribute "data-dashdo-action" nm
+         ]
 
 (#>) :: (Monad m, Hashable b) => Lens' t b -> SHtml m b () -> SHtml m t ()
 g #> r = do
