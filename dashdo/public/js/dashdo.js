@@ -44,6 +44,7 @@
   }
 
   $.fn.dashdo = function(options) {
+    var that = $(this);
     var settings = $.extend({
       // These are the defaults.
       uuidUrl: '/uuid',
@@ -90,6 +91,16 @@
     }
 
     var restyleAndSetClickHandlers = function() {
+      $('[data-dashdo-action]').each(function(i, e) {
+        $(e).click(function(){
+          var actNm = $(this).attr("data-dashdo-action");
+          var url = that.attr('action')+"/action/"+actNm
+          resubmit(url);
+        })
+      })
+      $('[data-dashdo-redirect]').each(function(i, e) {
+        location.href = $(this).attr("data-dashdo-redirect");
+      })
       $('.dashdo-plotly-select .js-plotly-plot').each(function() {  // TODO what if there is no graph?
         var graphData = this.data[0]
         var axis = (graphData.orientation === 'h') ? 'y' : 'x'
@@ -191,11 +202,12 @@
     }
     restyleAndSetClickHandlers()
 
-    var resubmit = function() {
+    var resubmit = function(url) {
       if(!!settings.containerSelector) {
         var whatToSend = sortSerializedString($(this).serialize(), $(this).attr('data-last-changed-field'))
+        url = typeof url !== 'undefined' ? url : $(this).attr('action');
         requestHtmlFromServer(
-          $(this).attr('action'),
+          url,
           $(this).serialize(),
           function(data) {
             var incomingDOM = $.parseHTML(data, null, true)

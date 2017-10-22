@@ -43,6 +43,7 @@ Library
                , mtl
                , microlens
                , microlens-th
+               , microlens-mtl
                , uuid
                , bytestring
                , random
