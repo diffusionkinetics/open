@@ -98,6 +98,9 @@
           resubmit(url);
         })
       })
+      $('[data-dashdo-redirect]').each(function(i, e) {
+        location.href = $(this).attr("data-dashdo-redirect");
+      })
       $('.dashdo-plotly-select .js-plotly-plot').each(function() {  // TODO what if there is no graph?
         var graphData = this.data[0]
         var axis = (graphData.orientation === 'h') ? 'y' : 'x'
