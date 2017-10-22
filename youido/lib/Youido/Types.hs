@@ -120,6 +120,19 @@ instance FromRequest () where
     [""] -> Just ()
     _ -> Nothing
 
+--capture any name
+data Name a = Name Text a
+
+instance FromRequest a => FromRequest (Name a) where
+  fromRequest (rq,pars) = case pathInfo rq of
+      p:ps -> let newrq = rq {pathInfo = ps}
+              in fmap (Name p) $ fromRequest (newrq,pars)
+
+      [] -> Nothing
+
+instance ToURL a=> ToURL (Name a)
+  where toURL (Name nm x) = "/"<> nm <> toURL x
+
 --split on method
 data GetOrPost a b = Get a | Post b
 

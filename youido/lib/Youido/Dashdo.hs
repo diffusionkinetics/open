@@ -6,13 +6,13 @@ module Youido.Dashdo (dashdoGlobal, dashdo, DashdoReq (Initial)) where
 
 import Youido.Types
 import Youido.Serve
-import Dashdo.Types
+import Dashdo.Types hiding (FormFields)
 import Dashdo.Serve
 import Dashdo
 import Control.Monad.IO.Class
 import Network.Wai
 import Data.Text.Lazy (toStrict)
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Monoid
 import qualified Data.Text.Lazy as TL
 import Lucid
@@ -36,12 +36,15 @@ dashdoGlobal' = do
 -- request for a dashdo app
 data DashdoReq = Initial
                | Submit [(TL.Text, TL.Text)]
-               | Action Text
+               | Action Text [(TL.Text, TL.Text)]
 
 instance FromRequest DashdoReq where
   fromRequest rq = case fromRequest rq of
     Just (Get ())-> Just Initial
-    Just (Post (FormFields ffs)) -> Just $ Submit ffs
+    Just (Post (Left ((_ :/ Name actName (FormFields ffs) :: "action" :/ Name FormFields))))
+       -> Just $ Action actName ffs
+    Just (Post (Right (FormFields ffs)))
+       -> Just $ Submit ffs
     Nothing -> Nothing
 
 instance ToURL DashdoReq where
@@ -58,8 +61,14 @@ dashdoHandler' _ d = do
       dispatch (_ :/ Initial) = return $ NoAjax $ wrapper iniHtml
       dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
-        (thisHtml, _) <- dashdoGenOut d newval []
+        (thisHtml, _, _) <- dashdoGenOut d newval []
         return $ Ajax $ wrapper thisHtml
+      dispatch (_ :/ Action nm ffs) = do
+        let newval = parseForm (initial d) ff ffs
+        case lookup nm acts of
+          Nothing -> liftIO $ putStrLn $ "Error: no such action"++ unpack nm
+          Just go -> go newval
+        return $ Ajax $ wrapper iniHtml
   return dispatch
 
 dashdoGlobal :: MonadIO m => YouidoT m ()
