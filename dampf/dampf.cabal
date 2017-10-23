@@ -55,6 +55,7 @@ library
 
     build-depends:
         base >= 4.7 && < 5
+      , wreq
       , aeson
       , containers
       , directory
@@ -73,7 +74,9 @@ library
       , unordered-containers
       , vector
       , yaml
-
+      , regex-base
+      , regex-posix
+      , bytestring
 
 executable dampf
     main-is: Main.hs

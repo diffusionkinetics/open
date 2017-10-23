@@ -44,6 +44,7 @@ run (Options af cf p cmd) = do
         NewMigration db mig -> newMigrationCmd db mig
         RunMigrations db    -> runMigrations db
         SetupDatabase       -> setupDB
+        Monitor test        -> runMonitor test
 
 
 -- Command Line Options
@@ -64,6 +65,7 @@ data Command
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
     | SetupDatabase
+    | Monitor (Maybe Text)
     deriving (Show)
 
 
@@ -128,6 +130,11 @@ parseCommand = O.subparser $
                 (O.helper <*> pure SetupDatabase)
                 (O.progDesc "Setup the databases"))
 
+    <> O.command "monitor"
+            (O.info
+                (O.helper <*> parseMonitor)
+                (O.progDesc "Run specified test (if not specified, run all tests) against live production environment"))
+
 
 parseBackup :: Parser Command
 parseBackup = Backup
@@ -144,6 +151,9 @@ parseRunMigrations :: Parser Command
 parseRunMigrations = RunMigrations
     <$> optional (O.argument readerText (O.metavar "DATABASE"))
 
+parseMonitor :: Parser Command
+parseMonitor = Monitor
+    <$> optional (O.argument readerText (O.metavar "TEST"))
 
 readerText :: ReadM Text
 readerText = T.pack <$> O.readerAsk
