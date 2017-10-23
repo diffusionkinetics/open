@@ -43,7 +43,7 @@ import Prelude hiding
     , minimum
     , elem
     , notElem
-    , filter
+    , filterF
     )
 import qualified Prelude
 
@@ -162,8 +162,8 @@ genericLength = Fold (\n _ -> n + 1) 0 id (+)
 {-# INLINABLE genericLength #-}
 
 -- | Only process items that satisfy a predicate
-filter :: (b -> Bool) -> Fold b c -> Fold b c
-filter p (Fold step initial extract comb) = Fold step1 initial extract comb where
+filterF :: (b -> Bool) -> Fold b c -> Fold b c
+filterF p (Fold step initial extract comb) = Fold step1 initial extract comb where
   step1 acc val =
     if p val then step acc val else acc
 
@@ -173,7 +173,7 @@ average = (/) <$> sum <*> genericLength
 
 -- | frequency
 frequencyTrue :: Fold Bool Double
-frequencyTrue = (/) <$> filter id genericLength <*> genericLength
+frequencyTrue = (/) <$> filterF id genericLength <*> genericLength
 
 -- | group Fold processing by an extracted key. Using a composite `a` gives a
 -- pivot table
