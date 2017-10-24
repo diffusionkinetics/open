@@ -1,10 +1,10 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, TemplateHaskell, Rank2Types #-}
+{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, FlexibleContexts, Rank2Types #-}
 
 module Dashdo.Serve where
 
 import Dashdo
+import Dashdo.Files
 import Dashdo.Types
-import Dashdo.FileEmbed
 
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
@@ -47,12 +47,6 @@ dashdoHandler r d = do
 getRandomUUID :: IO Text
 getRandomUUID = fromStrict . UUID.toText <$> randomIO
 
-dashdoJS :: BLS.ByteString
-dashdoJS = BLS.fromStrict $(embedFile "public/js/dashdo.js")
-
-dashdoJSrunnerBase :: BLS.ByteString
-dashdoJSrunnerBase = BLS.fromStrict $(embedFile "public/js/runners/base.js")
-
 runDashdo :: Monad m => RunInIO m -> Dashdo m a -> IO ()
 runDashdo = runDashdoPort 3000
 
@@ -84,11 +78,10 @@ serve port iniHtml handlers = do
       raw dashdoJS
     get "/js/runners/:runner" $ do
       runner <- param "runner"
-      let runnersEmbedded = $(embedDir "public/js/runners")
       case L.find ((== runner) . fst) runnersEmbedded of
         Just    (_,content) -> do
           setHeader "Content-Type" "application/javascript"
-          raw $ BLS.fromStrict content
+          raw content
         Nothing -> do
           status status404
 

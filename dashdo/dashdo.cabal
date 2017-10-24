@@ -29,8 +29,7 @@ Library
                  , Dashdo.Elements
                  , Dashdo.Rdash
                  , Dashdo.FlexibleInput
-
-   Other-modules: Dashdo.FileEmbed
+                 , Dashdo.Files
 
    Build-depends:
                  base                    >= 4.6 && <5
@@ -47,7 +46,7 @@ Library
                , uuid
                , bytestring
                , random
-               , file-embed
+               , file-embed >=0.0.9
                , hashable
                , wai-extra
                , template-haskell

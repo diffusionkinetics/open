@@ -6,6 +6,7 @@ import Dashdo.Types
 import Lucid
 import Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Text hiding (map, intersperse, length)
 import Data.Monoid
@@ -36,6 +37,13 @@ rdash rdashdos headExtra = do
       head_ $ do
         meta_ [charset_ "utf-8"]
         meta_ [name_ "viewport", content_ "width=device-width"] -- TODO: add attribute initial-scale=1
+        -- If href doesn't end with a slash, redirect to the one with slashes
+        -- this is needed to make relative urls work
+        script_ $ T.unlines
+            [ "if (!window.location.href.match(/\\/$/)) {"
+            , "  window.location.href = window.location.href + '/';"
+            , "}"
+            ]
         cdnFontAwesome
         cdnCSS
         RD.rdashCSS
@@ -55,8 +63,8 @@ rdash rdashdos headExtra = do
         --RD.mkIndexPage (RD.mkHead "Dashdo") (
         pgw
         cdnBootstrapJS
-        script_ [src_ "/js/dashdo.js"] ("" :: Text)
-        script_ [src_ "/js/runners/rdashdo.js"] ("" :: Text)
+        script_ [src_ "js/dashdo.js"] ("" :: Text)
+        script_ [src_ "js/runners/rdashdo.js"] ("" :: Text)
 
 controls :: Monad m => HtmlT m () -> HtmlT m ()
 controls content = do
