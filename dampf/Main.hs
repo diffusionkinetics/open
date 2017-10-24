@@ -65,7 +65,7 @@ data Command
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
     | SetupDatabase
-    | Monitor (Maybe Text)
+    | Monitor [Text]
     deriving (Show)
 
 
@@ -153,7 +153,7 @@ parseRunMigrations = RunMigrations
 
 parseMonitor :: Parser Command
 parseMonitor = Monitor
-    <$> optional (O.argument readerText (O.metavar "TEST"))
+    <$> many (O.argument readerText (O.metavar "TESTS"))
 
 readerText :: ReadM Text
 readerText = T.pack <$> O.readerAsk

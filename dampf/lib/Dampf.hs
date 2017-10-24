@@ -4,11 +4,12 @@ module Dampf where
 import Control.Lens
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
+import Control.Applicative      (pure, liftA2)
 
 import Network.Wreq
 import Data.Text (Text, unpack)
 import Data.Monoid ((<>))
-import Data.Maybe (maybeToList)
+import Data.Maybe (catMaybes)
 import Data.Map.Strict (Map)
 
 import Text.Regex.Posix
@@ -45,8 +46,8 @@ goDeploy = do
     deployDomains
 
 
-runMonitor :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
-runMonitor mb_test = tests_to_run >>= mapM_ runUnits where 
+runMonitor :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m ()
+runMonitor tests_arg = report (show tests_arg) *> tests_to_run >>= mapM_ runUnits where 
 
   runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
   runUnits (test_name, TestSpec units _) = do
@@ -76,9 +77,9 @@ runMonitor mb_test = tests_to_run >>= mapM_ runUnits where
   report = liftIO . putStrLn
 
   tests_to_run :: Monad m => DampfT m [(Text, TestSpec)]
-  tests_to_run = case mb_test of
-    Nothing -> all_tests <&> Map.toList  
-    Just tn -> all_tests <&> map (tn,) . maybeToList . Map.lookup tn
+  tests_to_run = case tests_arg of
+    [] -> all_tests <&> Map.toList
+    xs -> all_tests <&> catMaybes . liftA2 (\k -> fmap (k,) . Map.lookup k) xs . pure
 
   all_tests :: Monad m => DampfT m (Map Text TestSpec)
   all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
