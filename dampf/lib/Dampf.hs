@@ -47,7 +47,7 @@ goDeploy = do
 
 
 runMonitor :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m ()
-runMonitor tests_arg = report (show tests_arg) *> tests_to_run >>= mapM_ runUnits where 
+runMonitor tests_arg = tests_to_run >>= mapM_ runUnits where 
 
   runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
   runUnits (test_name, TestSpec units _) = do
