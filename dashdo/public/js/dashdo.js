@@ -47,7 +47,7 @@
     var that = $(this);
     var settings = $.extend({
       // These are the defaults.
-      uuidUrl: '/uuid',
+      uuidUrl: 'uuid',
       uuidInterval: 10000,
 
       colorSelected: '#1F77B4',
@@ -86,6 +86,7 @@
         type: 'POST',
         url: url,
         data: data,
+        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
         success: onSuccess,
       })
     }
