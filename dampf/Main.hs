@@ -16,6 +16,7 @@ import qualified Options.Applicative.Types as O
 import           Dampf
 import           Dampf.Postgres
 import           Dampf.Types
+import           Dampf.Monitor
 
 
 -- Running Dampfs
