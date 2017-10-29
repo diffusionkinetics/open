@@ -1,7 +1,5 @@
 {-# language OverloadedStrings, TupleSections #-}
-module Dampf.Monitor 
-  (runMonitor)
-    where
+module Dampf.Monitor where
 
 import Dampf.Docker.Free (runDockerT)
 import Dampf.Docker.Types (run)
@@ -23,7 +21,7 @@ import Text.Regex.Posix
 import qualified Data.Map.Strict as Map
 
 runMonitor :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m ()
-runMonitor tests_arg = tests_to_run >>= mapM_ runUnits where 
+runMonitor tests_arg = mapM_ runUnits <=< tests_to_run where 
 
   runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
   runUnits (test_name, TestSpec units _) = do
@@ -49,17 +47,15 @@ runMonitor tests_arg = tests_to_run >>= mapM_ runUnits where
               then report "success"
               else report ("pattern " <> show pattern <> " didn't match") *> liftIO exitFailure
 
-  report :: (MonadIO m) => String -> DampfT m ()
-  report = liftIO . putStrLn
+report :: (MonadIO m) => String -> DampfT m ()
+report = liftIO . putStrLn
 
-  tests_to_run :: Monad m => DampfT m [(Text, TestSpec)]
-  tests_to_run = case tests_arg of
-    [] -> all_tests <&> Map.toList
-    xs -> all_tests <&> catMaybes . liftA2 (\k -> fmap (k,) . Map.lookup k) xs . pure
+tests_to_run :: Monad m => DampfT m [(Text, TestSpec)]
+tests_to_run [] = all_tests <&> Map.toList
+tests_to_run xs = all_tests <&> catMaybes . liftA2 (\k -> fmap (k,) . Map.lookup k) xs . pure
 
-  all_tests :: Monad m => DampfT m (Map Text TestSpec)
-  all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
+all_tests :: Monad m => DampfT m (Map Text TestSpec)
+all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 
-  isOnlyAtBuild :: TestSpec -> Bool
-  isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
-
+isOnlyAtBuild :: TestSpec -> Bool
+isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
