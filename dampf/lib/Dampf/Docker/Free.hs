@@ -66,6 +66,7 @@ interpStop c = do
     liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack c
     void $ runDockerProcess ["stop", T.unpack c]
 
+
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
 runDockerProcess args = do
   liftIO $ putStrLn $ "$ docker "++unwords args

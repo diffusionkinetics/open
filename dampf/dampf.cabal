@@ -25,6 +25,7 @@ library
       , Dampf.Docker
       , Dampf.Docker.Free
       , Dampf.Docker.Types
+      , Dampf.Monitor
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
@@ -55,6 +56,7 @@ library
 
     build-depends:
         base >= 4.7 && < 5
+      , wreq
       , aeson
       , containers
       , directory
@@ -73,7 +75,9 @@ library
       , unordered-containers
       , vector
       , yaml
-
+      , regex-base
+      , regex-posix
+      , bytestring
 
 executable dampf
     main-is: Main.hs

@@ -16,6 +16,7 @@ import qualified Options.Applicative.Types as O
 import           Dampf
 import           Dampf.Postgres
 import           Dampf.Types
+import           Dampf.Monitor
 
 
 -- Running Dampfs
@@ -44,6 +45,7 @@ run (Options af cf p cmd) = do
         NewMigration db mig -> newMigrationCmd db mig
         RunMigrations db    -> runMigrations db
         SetupDatabase       -> setupDB
+        Monitor test        -> runMonitor test
 
 
 -- Command Line Options
@@ -64,6 +66,7 @@ data Command
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
     | SetupDatabase
+    | Monitor [Text]
     deriving (Show)
 
 
@@ -128,6 +131,11 @@ parseCommand = O.subparser $
                 (O.helper <*> pure SetupDatabase)
                 (O.progDesc "Setup the databases"))
 
+    <> O.command "monitor"
+            (O.info
+                (O.helper <*> parseMonitor)
+                (O.progDesc "Run specified test (if not specified, run all tests) against live production environment"))
+
 
 parseBackup :: Parser Command
 parseBackup = Backup
@@ -144,6 +152,9 @@ parseRunMigrations :: Parser Command
 parseRunMigrations = RunMigrations
     <$> optional (O.argument readerText (O.metavar "DATABASE"))
 
+parseMonitor :: Parser Command
+parseMonitor = Monitor
+    <$> many (O.argument readerText (O.metavar "TESTS"))
 
 readerText :: ReadM Text
 readerText = T.pack <$> O.readerAsk
