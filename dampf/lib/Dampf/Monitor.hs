@@ -6,6 +6,7 @@ import Dampf.Docker.Types (run)
 import Dampf.Types
 
 import Control.Lens
+import Control.Monad            ((<=<))
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 import Control.Applicative      (pure, liftA2)
@@ -20,8 +21,10 @@ import Data.Map.Strict (Map)
 import Text.Regex.Posix
 import qualified Data.Map.Strict as Map
 
-runMonitor :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m ()
-runMonitor tests_arg = mapM_ runUnits <=< tests_to_run where 
+type Tests = [Text]
+
+runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
+runMonitor = mapM_ runUnits <=< tests_to_run where 
 
   runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
   runUnits (test_name, TestSpec units _) = do
@@ -50,7 +53,7 @@ runMonitor tests_arg = mapM_ runUnits <=< tests_to_run where
 report :: (MonadIO m) => String -> DampfT m ()
 report = liftIO . putStrLn
 
-tests_to_run :: Monad m => DampfT m [(Text, TestSpec)]
+tests_to_run :: Monad m => Tests -> DampfT m [(Text, TestSpec)]
 tests_to_run [] = all_tests <&> Map.toList
 tests_to_run xs = all_tests <&> catMaybes . liftA2 (\k -> fmap (k,) . Map.lookup k) xs . pure
 
