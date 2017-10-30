@@ -1,0 +1,2 @@
+module Beetle.Base where
+
