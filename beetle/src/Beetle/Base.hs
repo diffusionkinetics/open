@@ -30,7 +30,9 @@ callAPI x = do
         putBS (BS8.pack url) (BSL.toStrict $ jbs)
         case eitherDecode' jbs of
           Right v -> return v
-          Left err -> fail $ "decode: "++err
+          Left err -> fail $ "decode: "++err++"\nFull result: \n"
+                             ++BS8.unpack (BSL.toStrict jbs)
+                             ++"\nURL: "++url
   case mv of
     Just respBS -> do
       --liftIO $ hPutStrLn stderr $ "got cached value"
