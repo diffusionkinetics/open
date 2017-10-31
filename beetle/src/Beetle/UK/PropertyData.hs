@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, FlexibleInstances, GADTs  #-}
+{-# LANGUAGE DeriveGeneric, FlexibleInstances  #-}
 
 module Beetle.UK.PropertyData where
 

@@ -41,3 +41,4 @@ Library
                  , time
                  , vector
                  , wreq
+                 , higher-leveldb
