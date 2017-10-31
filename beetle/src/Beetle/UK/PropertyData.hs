@@ -33,6 +33,6 @@ instance FromJSON PriceResp where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = drop 1 }
 
 
-getPrices :: MonadKV m => Key Prices -> m PriceResp
+getPrices :: MonadKV m => Key Prices -> m (Either String PriceResp)
 getPrices k = do
-   fmap wdata $ callAPI k
+   fmap (fmap wdata) $ callAPI k

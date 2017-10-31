@@ -18,7 +18,7 @@ data Key a = Key { theKey :: String, unKey :: a }
 class ToURL a where
   toURL :: a -> String
 
-callAPI :: (ToURL a, FromJSON b, MonadKV m) => a -> m b
+callAPI :: (ToURL a, FromJSON b, MonadKV m) => a -> m (Either String b)
 callAPI x = do
   let url = toURL x
   mv <- getBS (BS8.pack url)
@@ -29,8 +29,8 @@ callAPI x = do
         --liftIO $ BS.hPutStrLn stderr $ BSL.toStrict $ jbs
         putBS (BS8.pack url) (BSL.toStrict $ jbs)
         case eitherDecode' jbs of
-          Right v -> return v
-          Left err -> fail $ "decode: "++err++"\nFull result: \n"
+          Right v -> return $ Right v
+          Left err -> return $ Left $ "decode: "++err++"\nFull result: \n"
                              ++BS8.unpack (BSL.toStrict jbs)
                              ++"\nURL: "++url
   case mv of
@@ -38,7 +38,7 @@ callAPI x = do
       --liftIO $ hPutStrLn stderr $ "got cached value"
       case decode $ BSL.fromStrict respBS of
         Nothing -> getIt
-        Just v -> return v
+        Just v -> return $ Right v
     Nothing -> getIt
 
 class MonadIO m => MonadKV m where
