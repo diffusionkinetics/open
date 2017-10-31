@@ -68,6 +68,7 @@ readDataset (CSVNamedRecord opts) bs =
     Left err -> error err
 
 data Source = URL String
+            | File FilePath
 
 -- | A dataset is a record telling us how to load the data
 
@@ -99,6 +100,10 @@ csvDatasetPreprocess preF src = (csvDataset src) { preProcess = Just preF }
 csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset src = Dataset src Nothing Nothing $ CSVRecord NoHeader defaultDecodeOptions
 
+csvDatasetSkipHdr :: FromRecord a =>  Source -> Dataset a
+csvDatasetSkipHdr src = Dataset src Nothing Nothing $ CSVRecord HasHeader defaultDecodeOptions
+
+
 -- |Define a dataset from a source for a CSV file with a known header
 csvHdrDataset :: FromNamedRecord a => Source -> Dataset a
 csvHdrDataset src = Dataset src Nothing Nothing $ CSVNamedRecord defaultDecodeOptions
@@ -127,6 +132,8 @@ getFileFromSource cacheDir (URL url) = do
        let bs = rsp ^. Wreq.responseBody
        BL.writeFile fnm bs
        return bs
+getFileFromSource _ (File fnm) = do
+  BL.readFile fnm
 
 -- * Helper functions for parsing
 

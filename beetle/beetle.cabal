@@ -1,0 +1,44 @@
+Name:                beetle
+Version:             0.1
+Synopsis:            ETL with various data sources
+Description:         ETL with some UK commercially relevant data sources
+
+License:             MIT
+License-file:        LICENSE
+Author:              Tom Nielsen <tanielsen@gmail.com>
+Maintainer:          Tom Nielsen <tanielsen@gmail.com>
+build-type:          Simple
+Cabal-Version: 	     >= 1.10
+homepage:            https://github.com/diffusionkinetics/open/beetle
+bug-reports:         https://github.com/diffusionkinetics/open/issues
+category:            Data
+Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+extra-source-files:
+                   changelog.md
+
+source-repository head
+  type:     git
+  location: https://github.com/diffusionkinetics/open
+
+Library
+   ghc-options:       -Wall
+   hs-source-dirs:    src
+   other-extensions: TemplateHaskell
+   default-language:  Haskell2010
+
+   Exposed-modules:
+                   Beetle.Base
+                   Beetle.UK.PropertyData
+   Build-depends:
+                   base                    >= 4.6 && < 5
+                 , aeson
+                 , attoparsec >= 0.13
+                 , bytestring
+                 , cassava
+                 , hashable
+                 , microlens
+                 , text
+                 , time
+                 , vector
+                 , wreq
+                 , higher-leveldb
