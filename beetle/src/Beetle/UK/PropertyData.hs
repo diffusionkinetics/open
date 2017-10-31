@@ -19,7 +19,6 @@ instance ToURL (Key Prices) where
 
 data Wrapper a = Wrapper
   { wstatus :: String
-  , wpoints_analysed :: Int
   , wdata :: a
   } deriving Generic
 
@@ -27,10 +26,13 @@ instance FromJSON a => FromJSON (Wrapper a) where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = drop 1 }
 
 data PriceResp = PriceResp
-  { average :: Double
+  { paverage :: Double
   } deriving Generic
 
-instance FromJSON PriceResp
+instance FromJSON PriceResp where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = drop 1 }
 
-getPrices :: Key Prices -> IO PriceResp
-getPrices k = fmap wdata $ callAPI k
+
+getPrices :: MonadKV m => Key Prices -> m PriceResp
+getPrices k = do
+   fmap wdata $ callAPI k

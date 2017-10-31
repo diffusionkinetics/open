@@ -1,42 +1,48 @@
-{-# LANGUAGE DeriveGeneric, FlexibleInstances  #-}
+{-# LANGUAGE DeriveGeneric, FlexibleInstances, OverloadedStrings  #-}
 
 module Beetle.Base where
 
 import Data.Aeson
 import qualified Network.Wreq as Wreq
 import Lens.Micro ((^.))
-import Data.ByteString
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 import Database.LevelDB.Higher
 import Control.Monad.IO.Class
+import System.IO
+import Data.Monoid
 
 data Key a = Key { theKey :: String, unKey :: a }
 
 class ToURL a where
   toURL :: a -> String
 
-callAPI :: (ToURL a, FromJSON b, MonadKV m, MonadIO m) => a -> m b
+callAPI :: (ToURL a, FromJSON b, MonadKV m) => a -> m b
 callAPI x = do
   let url = toURL x
   mv <- getBS (BS8.pack url)
   let getIt = do
+        --liftIO $ hPutStrLn stderr $ "calling api "++url
         rsp <- liftIO (Wreq.get url)
         let jbs = rsp ^. Wreq.responseBody
+        --liftIO $ BS.hPutStrLn stderr $ BSL.toStrict $ jbs
         putBS (BS8.pack url) (BSL.toStrict $ jbs)
-        case decode jbs of
-          Just v -> return v
+        case eitherDecode' jbs of
+          Right v -> return v
+          Left err -> fail $ "decode: "++err
   case mv of
     Just respBS -> do
+      --liftIO $ hPutStrLn stderr $ "got cached value"
       case decode $ BSL.fromStrict respBS of
         Nothing -> getIt
         Just v -> return v
     Nothing -> getIt
 
-class Monad m => MonadKV m where
-  getBS :: ByteString -> m (Maybe ByteString)
-  putBS :: ByteString -> ByteString -> m ()
-  rmKey :: ByteString -> m ()
+class MonadIO m => MonadKV m where
+  getBS :: BS.ByteString -> m (Maybe BS.ByteString)
+  putBS :: BS.ByteString -> BS.ByteString -> m ()
+  rmKey :: BS.ByteString -> m ()
 
 instance MonadKV IO where
   getBS _ = return Nothing
