@@ -68,6 +68,7 @@ readDataset (CSVNamedRecord opts) bs =
     Left err -> error err
 
 data Source = URL String
+            | File FilePath
 
 -- | A dataset is a record telling us how to load the data
 
@@ -127,6 +128,8 @@ getFileFromSource cacheDir (URL url) = do
        let bs = rsp ^. Wreq.responseBody
        BL.writeFile fnm bs
        return bs
+getFileFromSource _ (File fnm) = do
+  BL.readFile fnm
 
 -- * Helper functions for parsing
 
