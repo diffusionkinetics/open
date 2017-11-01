@@ -44,12 +44,12 @@ solveNm :: Monad m => (Vector Double -> m Double)
                    -> Simplex
                    -> Double
                    -> Int
-                   -> m Simplex
-solveNm f s0 tol maxiter = go s0 0 where
-  go sim iter | iter > maxiter = return sim
-              | otherwise = do
-                  snext <- nmStep f sim
-                  go (sortSimplex snext) (iter+1)
+                   -> m ([Double], Simplex)
+solveNm f s0 tol maxiter = go [] s0 0 where
+  go path sim iter | iter > maxiter = return (path,sim)
+                   | otherwise = do
+                        snext <- nmStep f sim
+                        go (snd (head snext):path) (sortSimplex snext) (iter+1)
 
 
 nmStep :: Monad m => (Vector Double -> m Double) -> Simplex -> m Simplex
