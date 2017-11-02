@@ -5,6 +5,7 @@ module Fuml.Supervised.Accuracy where
 import Fuml.Core
 import Numeric.LinearAlgebra
 import Data.List (partition, transpose)
+import Control.Parallel.Foldl hiding (sum)
 
 accuracy :: (Eq o) => [(Vector Double, o)] -> Predict p o -> Double
 accuracy theData model =
@@ -17,6 +18,13 @@ rmse theData model =
   let getDev (v,y) = let d = y - predict model v in d*d
       devs = map getDev theData
   in sqrt $ sum devs / realToFrac (length devs)
+
+varExplained :: [(Vector Double, Double)] -> Predict p Double -> Double
+varExplained d p =
+  let allVar = fold (premap snd variance) d
+      predOutcomes = map (predict p . fst) d
+      predVar = fold variance predOutcomes
+  in predVar/allVar
 
 splitData :: Int -> Int -> [a] -> ([a], [a])
 splitData nfolds fold xs

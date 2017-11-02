@@ -8,6 +8,7 @@ resolver: lts-8.5
 packages:
 - '.'
 - ../datasets
+- ../parfoldl
 - location:
     git: https://github.com/glutamate/random-fu.git
     commit: 4274fc99b22610951853c03cf4bf23bab906a8c7

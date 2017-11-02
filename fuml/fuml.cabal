@@ -46,6 +46,7 @@ library
                      , microlens
                      , mtl
                      , random-fu
+                     , parfoldl
 
 Test-Suite test-fuml
   type:       exitcode-stdio-1.0
