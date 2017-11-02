@@ -9,6 +9,7 @@ import Youido.Serve
 import Dashdo.Types hiding (FormFields)
 import Dashdo.Serve
 import Dashdo
+import Dashdo.Files
 import Control.Monad.IO.Class
 import Network.Wai
 import Data.Text.Lazy (toStrict)
