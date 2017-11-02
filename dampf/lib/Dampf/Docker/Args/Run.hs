@@ -10,11 +10,11 @@ import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Text                  (Text)
+import           Data.Bool (bool)
 import qualified Data.Text as T
 
 import           Dampf.Docker.Args.Class
 import           Dampf.Types
-
 
 -- Argument Types for "docker run"
 
@@ -46,6 +46,7 @@ data RunArgs = RunArgs
     , _net      :: Text
     , _publish  :: [Int]
     , _envs     :: Map Text Text
+    , _rmArg    :: Bool
     , _img      :: Text
     , _cmd      :: Text
     } deriving (Eq, Show)
@@ -55,6 +56,7 @@ makeClassy ''RunArgs
 
 instance ToArgs RunArgs where
     toArgs r = ["run"]
+        <> bool ["--rm"] [] (r ^. rmArg)
         <> flagArg (r ^. detach)
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
@@ -97,6 +99,7 @@ defaultRunArgs n spec = RunArgs
     , _restart  = Always
     , _net      = "host"
     , _publish  = spec ^. expose . non []
+    , _rmArg    = True
     , _envs     = Map.empty
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""

@@ -30,6 +30,12 @@ data DockerF next
     | Run Text ContainerSpec (Text -> next)
     | RunWith RunArgs (Text -> next)
     | Stop Text next
+    | NetworkCreate Text next
+    | NetworkConnect Text ContainerSpec next
+    | NetworkDisconnect Text ContainerSpec next
+    | NetworkLs (Text -> next)
+    | NetworkRm [Text] (Text -> next)
+    | NetworkInspect [Text] (Text -> next)
     deriving (Functor)
 
 
@@ -53,3 +59,21 @@ runWith args = liftF (RunWith args id)
 
 stop :: (MonadIO m) => Text -> DockerT m ()
 stop c = liftF (Stop c ())
+
+networkCreate :: (MonadIO m) => Text -> DockerT m ()
+networkCreate net = liftF (NetworkCreate net ())
+
+networkConnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
+networkConnect net spec = liftF (NetworkConnect net spec ())
+
+networkDisconnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
+networkDisconnect net spec = liftF (NetworkDisconnect net spec ())
+
+networkLS :: (MonadIO m) => DockerT m Text
+networkLS = liftF (NetworkLs id)
+
+networkRM :: (MonadIO m) => [Text] -> DockerT m Text
+networkRM nets = liftF (NetworkRm nets id)
+
+networkInspect :: (MonadIO m) => [Text] -> DockerT m Text
+networkInspect nets = liftF (NetworkInspect nets id)

@@ -34,6 +34,12 @@ dockerIter (Rm c next)      = interpRm c >>= next
 dockerIter (Run c s next)   = interpRun c s >>= next
 dockerIter (Stop c next)    = interpStop c >> next
 dockerIter (RunWith args next)   = interpRunWith args >>= next
+dockerIter (NetworkCreate n next) = interpNetworkCreate n >> next
+dockerIter (NetworkConnect n s next) = interpNetworkConnect n s >> next
+dockerIter (NetworkDisconnect n s next) = interpNetworkDisconnect n s >> next
+dockerIter (NetworkLs next) = interpNetworkLS >>= next
+dockerIter (NetworkRm nets next) = interpNetworkRM nets >>= next
+dockerIter (NetworkInspect nets next) = interpNetworkInspect nets >>= next
 
 
 interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
@@ -73,3 +79,30 @@ runDockerProcess :: MonadIO m => [String] -> DampfT m ()
 runDockerProcess args = do
     liftIO $ putStrLn $ "$ docker "++unwords args
     runProcess_ (proc "docker" args)
+
+
+
+interpNetworkCreate :: (MonadIO m, MonadThrow m) => Text -> DampfT m ()
+interpNetworkCreate netName = do
+  liftIO . putStrLn $ "Docker: Creating netNamework " ++ T.unpack netName
+  runDockerProcess ["netNamework", "create", T.unpack netName]
+  
+interpNetworkConnect :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
+interpNetworkConnect netName spec = 
+  runDockerProcess ["netNamework", "connect", T.unpack netName, spec ^. image . to T.unpack]
+  
+interpNetworkDisconnect :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
+interpNetworkDisconnect netName spec =
+  runDockerProcess ["netNamework", "disconnect", T.unpack netName, spec ^. image . to T.unpack]
+
+interpNetworkLS :: (MonadIO m, MonadThrow m) => DampfT m Text
+interpNetworkLS = 
+  readDockerProcess ["network", "ls"]
+
+interpNetworkRM :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m Text
+interpNetworkRM nets = 
+  readDockerProcess $ ["network", "rm"] ++ fmap T.unpack nets
+
+interpNetworkInspect :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m Text
+interpNetworkInspect nets = 
+  readDockerProcess $ ["network", "rm"] ++ fmap T.unpack nets
