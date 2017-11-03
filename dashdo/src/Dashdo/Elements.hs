@@ -101,10 +101,10 @@ toParentFormField g (n, f) =
   (n, f')
     where f' t txt = t & g .~ (f (t ^. g) txt)
 
-toParentAction :: Lens' t b -> (Text, b -> m ()) -> (Text, t -> m ())
+toParentAction :: Lens' t b -> (Text, b -> m ActionResult) -> (Text, t -> m ActionResult)
 toParentAction g (nm,act) = (nm,\big -> act $ big ^. g)
 
-onClickDo :: Monad m => (t -> m ()) -> SHtml m t [Attribute]
+onClickDo :: Monad m => (t -> m ActionResult) -> SHtml m t [Attribute]
 onClickDo act = do
   nm <- fresh
   putAction (nm,act)

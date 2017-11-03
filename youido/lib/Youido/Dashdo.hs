@@ -54,7 +54,8 @@ instance ToURL DashdoReq where
 dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (MAjax (Html ())))
 dashdoHandler' _ d = do
   (_, ff, acts) <- dashdoGenOut d (initial d) []
-  let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
+  let fst3 (x,_,_) = x
+      submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
       wrapper :: TL.Text -> Html ()
       wrapper h = container_ $ form_ [ action_ submitPath,
                                        method_ "post", id_ "dashdoform"]
@@ -68,10 +69,15 @@ dashdoHandler' _ d = do
         return $ Ajax $ wrapper thisHtml
       dispatch (_ :/ Action nm ffs) = do
         let newval = parseForm (initial d) ff ffs
-        case lookup nm acts of
-          Nothing -> liftIO $ putStrLn $ "Error: no such action"++ unpack nm
-          Just go -> go newval
-        (thisHtml, _, _) <- dashdoGenOut d newval []
+        thisHtml <- case lookup nm acts of
+                      Nothing -> do
+                        liftIO $ putStrLn $ "Error: no such action"++ unpack nm
+                        fmap fst3 $ dashdoGenOut d newval []
+                      Just go -> do
+                        ares <- go newval
+                        case ares of
+                          DoNothing -> fmap fst3 $  dashdoGenOut d newval []
+                          Reset -> fmap fst3 $ dashdoGenOut d (initial d) []
         return $ Ajax $ wrapper thisHtml
   return dispatch
 

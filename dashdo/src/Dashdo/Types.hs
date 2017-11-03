@@ -15,12 +15,14 @@ type FormField t = (Text, t -> Text -> t)
 type FormFields t = [FormField t]
 type FieldName = Text
 
+data ActionResult = Reset | DoNothing | Goto String
+
 data DD m t = DD
   { _freshSupply :: [FieldName]
   , _value :: t
   , _rawParams :: [(TL.Text, TL.Text)]
   , _formFields :: FormFields t
-  , _actions :: [(Text, t -> m ())]
+  , _actions :: [(Text, t -> m ActionResult)]
   }
 
 makeLenses ''DD
@@ -40,7 +42,7 @@ runSHtml :: Monad m
          => t
          -> SHtml m t ()
          -> [(TL.Text, TL.Text)]
-         -> m (TL.Text, FormFields t, [(Text, t -> m ())])
+         -> m (TL.Text, FormFields t, [(Text, t -> m ActionResult)])
 runSHtml val shtml pars = do
   let stT = renderTextT shtml
       iniFldNams = map (("f"<>) . pack . show) [(0::Int)..]
@@ -66,7 +68,7 @@ putFormField :: Monad m => FormField t -> SHtml m t ()
 putFormField ff = do
   formFields %= (ff:)
 
-putAction :: Monad m => (Text, t -> m ()) -> SHtml m t ()
+putAction :: Monad m => (Text, t -> m ActionResult) -> SHtml m t ()
 putAction ff = do
   actions %= (ff:)
 
