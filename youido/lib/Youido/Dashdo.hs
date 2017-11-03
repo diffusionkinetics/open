@@ -53,13 +53,15 @@ instance ToURL DashdoReq where
 
 dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (MAjax (Html ())))
 dashdoHandler' _ d = do
-  (iniHtml, ff, acts) <- dashdoGenOut d (initial d) []
+  (_, ff, acts) <- dashdoGenOut d (initial d) []
   let submitPath = pack $ "/"++(symbolVal (Proxy::Proxy s))
       wrapper :: TL.Text -> Html ()
       wrapper h = container_ $ form_ [ action_ submitPath,
                                        method_ "post", id_ "dashdoform"]
                                      $ preEscaped $ TL.toStrict h
-      dispatch (_ :/ Initial) = return $ NoAjax $ wrapper iniHtml
+      dispatch (_ :/ Initial) = do
+        (iniHtml, _, _) <- dashdoGenOut d (initial d) []
+        return $ NoAjax $ wrapper iniHtml
       dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
         (thisHtml, _, _) <- dashdoGenOut d newval []
