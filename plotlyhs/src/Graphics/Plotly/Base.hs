@@ -71,6 +71,16 @@ data Color = ColRGBA Int Int Int Int -- ^ use this RGBA color for every point in
            | ColRGB Int Int Int -- ^ use this RGB color for every point in the trace
            | ColIx Int  -- ^ use a different color index for each point
 
+instance Eq Color where
+  (ColRGBA r0 g0 b0 a0) == (ColRGBA r1 g1 b1 a1) = (r0,g0,b0,a0) == (r1,g1,b1,a1)
+  (ColRGB  r0 g0 b0)    == (ColRGB  r1 g1 b1)    = (r0,g0,b0)    == (r1,g1,b1)
+  (ColIx   i0)          == (ColIx   i1)          = i0 == i1
+
+  (ColRGBA r0 g0 b0 1)  == (ColRGB  r1 g1 b1)    = (r0,g0,b0) == (r1,g1,b1)
+  (ColRGB  r0 g0 b0)    == (ColRGBA r1 g1 b1 1)  = (r0,g0,b0) == (r1,g1,b1)
+
+  _ == _ = False
+
 instance ToJSON Color where
   toJSON (ColRGB r g b) = toJSON $ "rgb("<>show r<>","<>show g<>","<>show b<>")"
   toJSON (ColRGBA r g b a) = toJSON $ "rgba("<>show r<>","<>show g<>","<>show b<>","<> show a<>")"
