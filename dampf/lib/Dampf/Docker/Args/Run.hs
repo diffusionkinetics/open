@@ -103,5 +103,4 @@ defaultRunArgs n spec = RunArgs
     , _envs     = Map.empty
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""
-    }
-
+    } 

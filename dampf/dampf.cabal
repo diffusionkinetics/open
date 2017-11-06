@@ -41,6 +41,7 @@ library
       , Dampf.Docker.Args
       , Dampf.Docker.Args.Class
       , Dampf.Docker.Args.Run
+      , Dampf.Docker.Args.Network
 
     other-modules:
         Dampf.Internal.Env
