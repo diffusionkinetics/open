@@ -2,7 +2,7 @@
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
    OverloadedLabels, TypeOperators, DataKinds, KindSignatures #-}
 
-module Youido.Dashdo (dashdoGlobal, dashdo, DashdoReq (Initial)) where
+module Youido.Dashdo (dashdoGlobal, dashdo, DashdoReq (Initial, InitialWith)) where
 
 import Youido.Types
 import Youido.Serve
@@ -13,7 +13,7 @@ import Dashdo.Files
 import Control.Monad.IO.Class
 import Network.Wai
 import Data.Text.Lazy (toStrict)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack, unpack, intercalate)
 import Data.Monoid
 import qualified Data.Text.Lazy as TL
 import Lucid
@@ -34,21 +34,32 @@ dashdoGlobal' = do
   let h2 = H $ \(_ :: "js" :/ "dashdo.js" :/ () ) -> return $ JS dashdoJS
   return $ h1 <> h2
 
+ffsStrict :: [(TL.Text, TL.Text)] -> [(Text, Text)]
+ffsStrict ffs = map (\(k,v)-> (TL.toStrict k, TL.toStrict v)) ffs
+
+ffsLazy :: [(Text, Text)] -> [(TL.Text, TL.Text)]
+ffsLazy ffs = map (\(k,v)-> (TL.fromStrict k, TL.fromStrict v)) ffs
+
 -- request for a dashdo app
 data DashdoReq = Initial
+               | InitialWith [(Text, Text)]
                | Submit [(TL.Text, TL.Text)]
                | Action Text [(TL.Text, TL.Text)]
 
 instance FromRequest DashdoReq where
   fromRequest rq = case fromRequest rq of
-    Just (Get ())-> Just Initial
+    Just (Get (Right ()))-> Just Initial
     Just (Post (Left ((_ :/ Name actName (FormFields ffs) :: "action" :/ Name FormFields))))
        -> Just $ Action actName ffs
     Just (Post (Right (FormFields ffs)))
        -> Just $ Submit ffs
+    Just (Get (Left ((_ :/ FormFields ffs :: "with" :/ FormFields))))
+       -> Just $ InitialWith $ ffsStrict ffs
     Nothing -> Nothing
 
 instance ToURL DashdoReq where
+  toURL (InitialWith pars)
+    = "/with?"<>(intercalate "&" $ map (\(k,v)->k<>"="<>v) pars)
   toURL _ = "/"
 
 dashdoHandler' :: forall s m t. (KnownSymbol s, MonadIO m, Show t) => Key s -> Dashdo m t -> m (s :/ DashdoReq -> m (MAjax (Html ())))
@@ -62,6 +73,10 @@ dashdoHandler' _ d = do
                                      $ preEscaped $ TL.toStrict h
       dispatch (_ :/ Initial) = do
         (iniHtml, _, _) <- dashdoGenOut d (initial d) []
+        return $ NoAjax $ wrapper iniHtml
+      dispatch (_ :/ InitialWith ffs) = do
+        let newval = parseForm (initial d) ff $ ffsLazy ffs
+        (iniHtml, _, _) <- dashdoGenOut d newval []
         return $ NoAjax $ wrapper iniHtml
       dispatch (_ :/ Submit ffs) = do
         let newval = parseForm (initial d) ff ffs
