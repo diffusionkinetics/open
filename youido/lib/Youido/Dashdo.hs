@@ -93,6 +93,8 @@ dashdoHandler' _ d = do
                         case ares of
                           DoNothing -> fmap fst3 $  dashdoGenOut d newval []
                           Reset -> fmap fst3 $ dashdoGenOut d (initial d) []
+                          Goto url -> return $
+                             "<div data-dashdo-redirect=\""<> TL.pack url <> "\"></div>"
         return $ Ajax $ wrapper thisHtml
   return dispatch
 
