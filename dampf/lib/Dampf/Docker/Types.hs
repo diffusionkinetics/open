@@ -64,8 +64,14 @@ stop c = liftF (Stop c ())
 netCreate :: (MonadIO m) => Text -> DockerT m ()
 netCreate net = liftF (NetworkCreate net ())
 
+netCreateWith :: (MonadIO m) => CreateArgs -> DockerT m ()
+netCreateWith args = liftF (NetworkCreateWith args ())
+
 netConnect :: (MonadIO m) => Text -> Text -> DockerT m ()
 netConnect net cont = liftF (NetworkConnect net cont ())
+
+netConnectWith :: (MonadIO m) => ConnectArgs -> DockerT m ()
+netConnectWith args = liftF (NetworkConnectWith args ())
 
 netDisconnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
 netDisconnect net spec = liftF (NetworkDisconnect net spec ())
