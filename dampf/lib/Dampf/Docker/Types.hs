@@ -16,8 +16,7 @@ import Control.Monad.Trans.Free (FreeT, liftF)
 import Data.Text                (Text)
 
 import Dampf.Types
-import Dampf.Docker.Args.Run
-
+import Dampf.Docker.Args
 
 -- Docker Monad
 
@@ -31,7 +30,9 @@ data DockerF next
     | RunWith RunArgs (Text -> next)
     | Stop Text next
     | NetworkCreate Text next
-    | NetworkConnect Text ContainerSpec next
+    | NetworkCreateWith CreateArgs next
+    | NetworkConnect Text Text next
+    | NetworkConnectWith ConnectArgs next
     | NetworkDisconnect Text ContainerSpec next
     | NetworkLs (Text -> next)
     | NetworkRm [Text] (Text -> next)
@@ -60,20 +61,20 @@ runWith args = liftF (RunWith args id)
 stop :: (MonadIO m) => Text -> DockerT m ()
 stop c = liftF (Stop c ())
 
-networkCreate :: (MonadIO m) => Text -> DockerT m ()
-networkCreate net = liftF (NetworkCreate net ())
+netCreate :: (MonadIO m) => Text -> DockerT m ()
+netCreate net = liftF (NetworkCreate net ())
 
-networkConnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
-networkConnect net spec = liftF (NetworkConnect net spec ())
+netConnect :: (MonadIO m) => Text -> Text -> DockerT m ()
+netConnect net cont = liftF (NetworkConnect net cont ())
 
-networkDisconnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
-networkDisconnect net spec = liftF (NetworkDisconnect net spec ())
+netDisconnect :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
+netDisconnect net spec = liftF (NetworkDisconnect net spec ())
 
-networkLS :: (MonadIO m) => DockerT m Text
-networkLS = liftF (NetworkLs id)
+netLS :: (MonadIO m) => DockerT m Text
+netLS = liftF (NetworkLs id)
 
-networkRM :: (MonadIO m) => [Text] -> DockerT m Text
-networkRM nets = liftF (NetworkRm nets id)
+netRM :: (MonadIO m) => [Text] -> DockerT m Text
+netRM nets = liftF (NetworkRm nets id)
 
-networkInspect :: (MonadIO m) => [Text] -> DockerT m Text
-networkInspect nets = liftF (NetworkInspect nets id)
+netInspect :: (MonadIO m) => [Text] -> DockerT m Text
+netInspect nets = liftF (NetworkInspect nets id)

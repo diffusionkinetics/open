@@ -1,50 +1,50 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveFoldable #-}
 module Dampf.Docker.Args.Network where
 
 import Dampf.Docker.Args.Class
 import Data.Text (Text)
 import Control.Lens
 import Data.Monoid ((<>))
+
 import qualified Data.Text as T
 
 data Driver = Bridge 
 
-class DefArgs a where
-  def :: a
-
 instance Show Driver where 
   show Bridge = "bridge"
 
-data Create = Create {
+data CreateArgs = CreateArgs {
     _driver :: Driver
+  , _createNet :: Text
 } 
 
-instance DefArgs Create where
-  def = Create Bridge
-
--- data Connect = Connect {
---     _alias :: Maybe Arg
---   , _ip :: Maybe Arg
---   , _link :: Maybe Arg
--- } deriving (Foldable)
-
-{-instance ToArgs Connect where toArgs = foldArgs-}
-
-instance DefArgs Connect where
-  def = Connect Nothing Nothing Nothing
-
-data Connect = Connect {
+data ConnectArgs = ConnectArgs {
     _alias :: Maybe Text
   , _ip :: Maybe Text
   , _link :: Maybe [Text]
+  , _connectToNet :: Text 
+  , _containerName :: Text
 }
 
-makeClassy ''Connect
-makeClassy ''Create
+defCreateArg :: Text -> CreateArgs
+defCreateArg = CreateArgs Bridge 
 
-instance ToArgs Connect where
+defConnectArg :: Text -> Text -> ConnectArgs
+defConnectArg net container = ConnectArgs Nothing Nothing Nothing net container
+
+makeClassy ''ConnectArgs
+makeClassy ''CreateArgs
+
+instance ToArgs CreateArgs where
+  toArgs s = ["network", "create"]
+    <> s ^. driver . to show . to (namedArg "driver")
+    <> [s ^. createNet . to show]
+
+
+instance ToArgs ConnectArgs where
   toArgs s = ["network", "connect"] 
     <> s ^. alias . _Just . to (namedTextArg "alias")
     <> s ^. ip . _Just . to (namedTextArg "ip")
     <> ["--link"] <> toListOf (link . _Just . traverse . to T.unpack) s
+    <> [s ^. connectToNet . to T.unpack]
+    <> [s ^. containerName . to T.unpack]

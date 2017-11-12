@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Dampf.Docker.Free
   ( -- * Docker Interpreter
@@ -18,7 +19,6 @@ import           System.Process.Typed
 
 import           Dampf.Docker.Types
 import           Dampf.Docker.Args
-import           Dampf.Docker.Args.Run (RunArgs)
 import           Dampf.Types
 
 
@@ -29,17 +29,20 @@ runDockerT = iterT dockerIter
 
 
 dockerIter :: (MonadIO m, MonadThrow m) => DockerF (DampfT m a) -> DampfT m a
-dockerIter (Build t i next) = interpBuild t i >> next
-dockerIter (Rm c next)      = interpRm c >>= next
-dockerIter (Run c s next)   = interpRun c s >>= next
-dockerIter (Stop c next)    = interpStop c >> next
-dockerIter (RunWith args next)   = interpRunWith args >>= next
-dockerIter (NetworkCreate n next) = interpNetworkCreate n >> next
-dockerIter (NetworkConnect n s next) = interpNetworkConnect n s >> next
-dockerIter (NetworkDisconnect n s next) = interpNetworkDisconnect n s >> next
-dockerIter (NetworkLs next) = interpNetworkLS >>= next
-dockerIter (NetworkRm nets next) = interpNetworkRM nets >>= next
-dockerIter (NetworkInspect nets next) = interpNetworkInspect nets >>= next
+dockerIter = \case
+  Build t i next -> interpBuild t i >> next
+  Rm c next      -> interpRm c >>= next
+  Run c s next   -> interpRun c s >>= next
+  Stop c next    -> interpStop c >> next
+  RunWith args next             -> interpRunWith args >>= next
+  NetworkCreate net next        -> interp (defCreateArg net) >> next
+  NetworkCreateWith args next   -> interp args >> next 
+  NetworkConnect net cont next  -> interp (defConnectArg net cont) >> next
+  NetworkConnectWith args next  -> interp args >> next
+  NetworkDisconnect n s next    -> interpNetworkDisconnect n s >> next
+  NetworkLs next                -> interpNetworkLS >>= next
+  NetworkRm nets next           -> interpNetworkRM nets >>= next
+  NetworkInspect nets next      -> interpNetworkInspect nets >>= next
 
 
 interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
@@ -80,20 +83,16 @@ runDockerProcess args = do
     liftIO $ putStrLn $ "$ docker "++unwords args
     runProcess_ (proc "docker" args)
 
+-- 
 
+interp :: (MonadIO m, MonadThrow m, ToArgs arg) => arg -> DampfT m ()
+interp = runDockerProcess . toArgs
 
-interpNetworkCreate :: (MonadIO m, MonadThrow m) => Text -> DampfT m ()
-interpNetworkCreate netName = do
-  liftIO . putStrLn $ "Docker: Creating netNamework " ++ T.unpack netName
-  runDockerProcess ["netNamework", "create", T.unpack netName]
-  
-interpNetworkConnect :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
-interpNetworkConnect netName spec = 
-  runDockerProcess ["netNamework", "connect", T.unpack netName, spec ^. image . to T.unpack]
-  
+--
+
 interpNetworkDisconnect :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
 interpNetworkDisconnect netName spec =
-  runDockerProcess ["netNamework", "disconnect", T.unpack netName, spec ^. image . to T.unpack]
+  runDockerProcess ["network", "disconnect", T.unpack netName, spec ^. image . to T.unpack]
 
 interpNetworkLS :: (MonadIO m, MonadThrow m) => DampfT m Text
 interpNetworkLS = 

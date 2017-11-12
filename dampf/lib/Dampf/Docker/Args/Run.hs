@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+
 
 module Dampf.Docker.Args.Run where
 
@@ -90,7 +93,6 @@ mkRunArgs n spec = do
         , ("PGUSER", d ^. user)
         , ("PGPASSWORD", s ^. users . at (d ^. user) . non "")
         ]
-
 
 defaultRunArgs :: Text -> ContainerSpec -> RunArgs
 defaultRunArgs n spec = RunArgs
