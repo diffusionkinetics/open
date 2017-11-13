@@ -5,6 +5,7 @@ module Youido.Serve where
 
 import Youido.Types
 import Web.Scotty
+import Web.Scotty.Cookie
 import Network.Wai.Middleware.RequestLogger (logStdout)
 import Network.Wai.Middleware.HttpAuth
 
@@ -14,10 +15,10 @@ import Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
 import Control.Concurrent.STM
 import qualified Data.IntMap
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Monoid
 import Control.Monad.State.Strict hiding (get)
-
+import Text.Read
 
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -44,6 +45,9 @@ serve x y@(Youido _ _ _ users port) = do
           "Youidoapp"
     get "/login" $ do
       html $ renderText $ stdHtmlPage (return ()) $ container_ $ loginForm "/login" Nothing
+    get "/logout" $ do
+
+      redirect "/"
     post "/login" $ do
       femail <- param "inputEmail"
       fpasswd <- param "inputPassword"
@@ -66,8 +70,21 @@ newSession :: TVar (Data.IntMap.IntMap ()) -> ActionM ()
 newSession tv = do
   n <- liftIO $ randomRIO (0,99999999999)
   liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n ())
+  setSimpleCookie "youisess" (pack $ show n)
   return ()
 
+lookupSession :: TVar (Data.IntMap.IntMap ()) -> ActionM (Maybe Int)
+lookupSession tv = do
+  mt <- undefined <$> getCookie "youisess"
+  return undefined
+
+
+
+deleteSession :: TVar (Data.IntMap.IntMap ()) -> Int -> ActionM ()
+deleteSession tv n = do
+  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.delete n)
+  deleteCookie "youisess"
+  return ()
 
 
 dashdoCustomJS :: Html ()

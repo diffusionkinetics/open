@@ -48,6 +48,7 @@ library
                      , stm
                      , containers
                      , random
+                     , scotty-cookie
 
 executable test-youido
   main-is: TestYouido.hs
