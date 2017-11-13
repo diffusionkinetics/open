@@ -12,14 +12,16 @@ import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
-
+import Control.Concurrent.STM
+import qualified Data.IntMap
 import Data.Text (Text)
 import Data.Monoid
-import Control.Monad.State.Strict
+import Control.Monad.State.Strict hiding (get)
 
 
 import Control.Monad.IO.Class
 import Control.Monad.Reader
+import System.Random
 
 type Session = ()
 
@@ -32,37 +34,59 @@ serveY x (YouidoT sm) = do
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
 serve x y@(Youido _ _ _ users port) = do
+  session <- newTVarIO (Data.IntMap.empty)
   scotty port $ do
-   middleware $ logStdout
-   when (not $ null users) $
-     middleware $ basicAuth (\u p -> case lookup u users of
-                                       Nothing -> return False
-                                       Just passwd -> return $ p == passwd)
-        "Youidoapp"
-   matchAny (regex "/*") $ do
-     rq <- request
-     pars <- params
-     --liftIO $ print ("got request", rq)
-     Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars)) x
-     status stat
-     mapM_ (uncurry setHeader) hdrs
-     raw conts
+    middleware $ logStdout
+    when (not $ null users) $
+      middleware $ basicAuth (\u p -> case lookup u users of
+                                        Nothing -> return False
+                                        Just passwd -> return $ p == passwd)
+          "Youidoapp"
+    get "/login" $ do
+      html $ renderText $ stdHtmlPage (return ()) $ container_ $ loginForm "/login" Nothing
+    post "/login" $ do
+      femail <- param "inputEmail"
+      fpasswd <- param "inputPassword"
+      let incorrect = renderText $ stdHtmlPage (return ()) $
+             container_ $ loginForm "/login" $ Just "Incorrect user or password"
+      case lookup femail users of
+        Nothing -> html incorrect
+        Just passwd | passwd == fpasswd -> redirect "/"
+                    | otherwise -> html incorrect
+    matchAny (regex "/*") $ do
+      rq <- request
+      pars <- params
+      --liftIO $ print ("got request", rq)
+      Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars)) x
+      status stat
+      mapM_ (uncurry setHeader) hdrs
+      raw conts
+
+newSession :: TVar (Data.IntMap.IntMap ()) -> ActionM ()
+newSession tv = do
+  n <- liftIO $ randomRIO (0,99999999999)
+  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n ())
+  return ()
+
+
 
 dashdoCustomJS :: Html ()
 dashdoCustomJS =
   script_ "$(function(){$('#dashdoform').dashdo({uuidInterval:-1})})"
 
-
-stdWrapper :: Html () -> Html () -> Html () -> Html ()
-stdWrapper hdrMore sidebar h = doctypehtml_ $ do
+stdHtmlPage :: Html () -> Html () -> Html ()
+stdHtmlPage hdrMore tbody = doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
     cdnJqueryJS
     hdrMore
+  body_ tbody
 
-  body_ $ do
+stdWrapper :: Html () -> Html () -> Html () -> Html ()
+stdWrapper hdrMore sidebar h =
+  stdHtmlPage hdrMore $ do
     container_ $ row_ $ do
       mkCol [(XS, 1)] $ sidebar
       mkCol [(XS, 11)] $ h

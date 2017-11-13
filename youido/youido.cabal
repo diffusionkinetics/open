@@ -45,6 +45,9 @@ library
                      , void
                      , datasets
                      , microlens-platform
+                     , stm
+                     , containers
+                     , random
 
 executable test-youido
   main-is: TestYouido.hs
