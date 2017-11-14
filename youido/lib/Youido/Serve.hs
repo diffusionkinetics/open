@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables,
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections,
              DeriveGeneric, ExtendedDefaultRules, FlexibleContexts#-}
 
 module Youido.Serve where
@@ -7,7 +7,6 @@ import Youido.Types
 import Web.Scotty
 import Web.Scotty.Cookie
 import Network.Wai.Middleware.RequestLogger (logStdout)
-import Network.Wai.Middleware.HttpAuth
 
 import Lucid
 import Lucid.Bootstrap
@@ -15,10 +14,10 @@ import Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
 import Control.Concurrent.STM
 import qualified Data.IntMap
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Monoid
 import Control.Monad.State.Strict hiding (get)
-import Text.Read
+import Text.Read (readMaybe)
 
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -33,54 +32,65 @@ serveY x (YouidoT sm) = do
   y <- runReaderT (execStateT sm (Youido [] "Not found!" id [] 3000)) x
   serve x y
 
+loginPage :: Maybe (Html ()) -> Html ()
+loginPage mwarn = stdHtmlPage (return ()) $ container_ $
+   row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
+
 serve :: a -> Youido (ReaderT a IO) -> IO ()
 serve x y@(Youido _ _ _ users port) = do
-  session <- newTVarIO (Data.IntMap.empty)
+  sessions <- newTVarIO (Data.IntMap.empty)
   scotty port $ do
     middleware $ logStdout
-    when (not $ null users) $
-      middleware $ basicAuth (\u p -> case lookup u users of
-                                        Nothing -> return False
-                                        Just passwd -> return $ p == passwd)
-          "Youidoapp"
     get "/login" $ do
-      html $ renderText $ stdHtmlPage (return ()) $ container_ $ loginForm "/login" Nothing
+      html $ renderText $ loginPage Nothing
     get "/logout" $ do
-
-      redirect "/"
+      msess <- lookupSession sessions
+      case msess of
+        Nothing -> return ()
+        Just (i,_) -> deleteSession sessions i
+      html $ renderText $ loginPage $ Just $ div_ [class_ "alert alert-info"] "Goodbye!"
     post "/login" $ do
       femail <- param "inputEmail"
       fpasswd <- param "inputPassword"
-      let incorrect = renderText $ stdHtmlPage (return ()) $
-             container_ $ loginForm "/login" $ Just "Incorrect user or password"
+      let incorrect = renderText $ loginPage $ Just $
+                div_ [class_ "alert alert-danger"] "Incorrect user or password"
       case lookup femail users of
         Nothing -> html incorrect
-        Just passwd | passwd == fpasswd -> redirect "/"
+        Just passwd | passwd == fpasswd -> newSession sessions femail >> redirect "/"
                     | otherwise -> html incorrect
     matchAny (regex "/*") $ do
-      rq <- request
-      pars <- params
-      --liftIO $ print ("got request", rq)
-      Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars)) x
-      status stat
-      mapM_ (uncurry setHeader) hdrs
-      raw conts
+      let go email = do
+            rq <- request
+            pars <- params
+            --liftIO $ print ("got request", rq)
+            Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars,email)) x
+            status stat
+            mapM_ (uncurry setHeader) hdrs
+            raw conts
+      msess <- lookupSession sessions
+      case msess of
+        Nothing -> if null users then go "" else redirect "/login"
+        Just (i,u) -> go u
 
-newSession :: TVar (Data.IntMap.IntMap ()) -> ActionM ()
-newSession tv = do
+newSession :: TVar (Data.IntMap.IntMap a) -> a -> ActionM ()
+newSession tv email = do
   n <- liftIO $ randomRIO (0,99999999999)
-  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n ())
+  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n email)
   setSimpleCookie "youisess" (pack $ show n)
   return ()
 
-lookupSession :: TVar (Data.IntMap.IntMap ()) -> ActionM (Maybe Int)
+lookupSession :: TVar (Data.IntMap.IntMap a) -> ActionM (Maybe (Int, a))
 lookupSession tv = do
-  mt <- undefined <$> getCookie "youisess"
-  return undefined
+  mi <- (>>=readMaybe) . fmap unpack <$> getCookie "youisess"
+  case mi of
+    Nothing -> return Nothing
+    Just i -> do
+      mp <- liftIO $ readTVarIO tv
+      return $ fmap (i,) $ Data.IntMap.lookup i mp
 
 
 
-deleteSession :: TVar (Data.IntMap.IntMap ()) -> Int -> ActionM ()
+deleteSession :: TVar (Data.IntMap.IntMap a) -> Int -> ActionM ()
 deleteSession tv n = do
   liftIO $ atomically $ modifyTVar' tv (Data.IntMap.delete n)
   deleteCookie "youisess"

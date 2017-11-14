@@ -24,6 +24,11 @@ import Network.Wai.Parse
 import Lens.Micro.Platform
 import Control.Monad.Trans
 
+--------------------------------------------------------------------------
+---                 RESPONSES
+--------------------------------------------------------------------------
+
+
 -- | Repsonse from a handler - contents as bytestring, and headers
 data Response = Response
   { code :: Status -- ^ http status
@@ -79,9 +84,15 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
   toResponse (Left x) = toResponse x
   toResponse (Right y) = toResponse y
 
+--------------------------------------------------------------------------
+---                 REQUESTS
+--------------------------------------------------------------------------
+
+type Email = Text
+
 -- types that can be parsed from a request, maybe
 class FromRequest a where
-  fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
+  fromRequest :: (Request,[(TL.Text, TL.Text)], Email) -> Maybe a
 
 class ToURL a where
   toURL :: a -> Text
@@ -104,18 +115,18 @@ instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
   toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
 
 instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
-  fromRequest (rq,pars) = case pathInfo rq of
+  fromRequest (rq,pars,e) = case pathInfo rq of
       p:ps -> let sv = symbolVal (Proxy::Proxy s) in
               if p ==  pack sv
                 then let newrq = rq {pathInfo = ps}
-                     in fmap (Key :/) $ fromRequest (newrq,pars)
+                     in fmap (Key :/) $ fromRequest (newrq,pars,e)
                 else Nothing
       [] -> Nothing
 
 instance ToURL () where toURL _ = "/"
 
 instance FromRequest () where
-  fromRequest (rq,_) = case pathInfo rq of
+  fromRequest (rq,_,_) = case pathInfo rq of
     [] -> Just ()
     [""] -> Just ()
     _ -> Nothing
@@ -124,9 +135,9 @@ instance FromRequest () where
 data Name a = Name Text a
 
 instance FromRequest a => FromRequest (Name a) where
-  fromRequest (rq,pars) = case pathInfo rq of
+  fromRequest (rq,pars,e) = case pathInfo rq of
       p:ps -> let newrq = rq {pathInfo = ps}
-              in fmap (Name p) $ fromRequest (newrq,pars)
+              in fmap (Name p) $ fromRequest (newrq,pars,e)
 
       [] -> Nothing
 
@@ -137,9 +148,9 @@ instance ToURL a=> ToURL (Name a)
 data GetOrPost a b = Get a | Post b
 
 instance (FromRequest a, FromRequest b) => FromRequest (GetOrPost a b) where
-  fromRequest (rq,pars) = case requestMethod rq of
-    "GET" -> fmap Get $ fromRequest (rq,pars)
-    "POST" -> fmap Post $ fromRequest (rq,pars)
+  fromRequest (rq,pars,e) = case requestMethod rq of
+    "GET" -> fmap Get $ fromRequest (rq,pars,e)
+    "POST" -> fmap Post $ fromRequest (rq,pars,e)
 
 instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
   fromRequest rqpars = case (fromRequest rqpars, fromRequest rqpars) of
@@ -150,8 +161,12 @@ instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
 newtype FormFields = FormFields [(TL.Text, TL.Text)]
 
 instance FromRequest FormFields where
-  fromRequest (_,pars) = Just $ FormFields pars
+  fromRequest (_,pars,e) = Just $ FormFields pars
 
+
+--------------------------------------------------------------------------
+---                 HANDLERS
+--------------------------------------------------------------------------
 
 -- | handler box, parametrised on a monad
 data Handler m where
@@ -168,7 +183,7 @@ data Youido m = Youido
   { _handlers :: [Handler m] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
   , _wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
-  , _basicAuthUsers :: [(ByteString, ByteString)]
+  , _basicAuthUsers :: [(Text, Text)]
   , _port :: Int
   }
 
@@ -180,7 +195,7 @@ newtype YouidoT m a = YouidoT {unYouidoT :: StateT (Youido m) m a}
 handle :: (FromRequest a, ToResponse b, Monad m) => (a -> m b) -> YouidoT m ()
 handle f = handlers %= ((H f):)
 
-user :: Monad m => ByteString -> ByteString -> YouidoT m ()
+user :: Monad m => Text -> Text -> YouidoT m ()
 user u p =  basicAuthUsers %= ((u,p):)
 
 liftY :: Monad m => m a -> YouidoT m a
@@ -189,7 +204,7 @@ liftY mx = YouidoT (lift mx)
 -- | get a response from a request, given a list of handlers
 run :: Monad m
     => Youido m
-    -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
+    -> (Request, [(TL.Text, TL.Text)],Email) -- ^ incoming request
     -> m Response
 run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
 run (Youido (H f : hs) notFound wrapperf users p) rq = do

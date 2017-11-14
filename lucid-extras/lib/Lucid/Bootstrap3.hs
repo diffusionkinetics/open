@@ -76,7 +76,7 @@ loginForm url mwarn = form_ [class_ "form-signin", method_ "post", action_ url] 
   h2_ [class_ "form-signin-heading"] $ "Please sign in"
   case mwarn of
     Nothing -> return ()
-    Just warn -> div_ [class_ "alert alert-danger"] warn
+    Just warn -> warn
   label_ [for_ "inputEmail", class_ "sr-only"] "Email address"
   input_ [type_ "email", id_ "inputEmail", name_ "inputEmail", class_ "form-control", placeholder_ "Email address", required_ "", autofocus_]
   label_ [for_ "inputPassword", class_ "sr-only"] "Password"

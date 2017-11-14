@@ -29,7 +29,7 @@ data Countries = Countries
                | Country Text
 
 instance FromRequest Countries where
-  fromRequest (rq,_) = case pathInfo rq of
+  fromRequest (rq,_,_) = case pathInfo rq of
     "countries":_ -> Just Countries
     "country":cnm:_ -> Just $ Country cnm
     _ -> Nothing
