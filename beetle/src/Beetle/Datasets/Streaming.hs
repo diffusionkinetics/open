@@ -24,8 +24,10 @@ readStreamDataset :: ReadAs a -> SBS.ByteString IO () -> Stream (Of (Either Stri
 readStreamDataset (CSVRecord hhdr opts) sbs
   = fmap (const ()) $ S.map (either (Left . unCsvException) Right) $ decodeWithErrors opts hhdr sbs
 
-foldDataset :: Dataset a -> (b -> Either String a -> IO b) -> b -> IO b
-foldDataset ds accf x0 = do
+foldDataset :: Dataset a -> b -> (b -> Either String a -> IO b) -> IO b
+foldDataset ds x0 accf  = do
   let s = streamDataset ds
   S.foldM_ accf (return x0) (return) s
--- S.foldM_ :: Monad m => (x -> a -> m x) -> m x -> (x -> m b) -> Stream (Of a) m r -> m b
+
+mapDataset_ :: Dataset a -> (Either String a -> IO ()) -> IO ()
+mapDataset_ ds f = foldDataset ds () (\() x -> f x)
