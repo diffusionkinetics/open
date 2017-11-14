@@ -19,7 +19,6 @@ import Data.Monoid
 import Control.Monad.State.Strict hiding (get)
 import Text.Read (readMaybe)
 
-import Control.Monad.IO.Class
 import Control.Monad.Reader
 import System.Random
 
@@ -37,9 +36,9 @@ loginPage mwarn = stdHtmlPage (return ()) $ container_ $
    row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ users port) = do
+serve x y@(Youido _ _ _ users port') = do
   sessions <- newTVarIO (Data.IntMap.empty)
-  scotty port $ do
+  scotty port' $ do
     middleware $ logStdout
     get "/login" $ do
       html $ renderText $ loginPage Nothing
