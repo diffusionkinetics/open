@@ -41,7 +41,3 @@ runDocker imgNm mCmd = do
   dbs <- view (app . databases)
   let firstDb = safeHead $ keys dbs
   runDockerT $ run ("run"<>imgNm) $ ContainerSpec imgNm Nothing mCmd firstDb
-
-safeHead :: [a] -> Maybe a
-safeHead (x:_) = Just x
-safeHead [] = Nothing

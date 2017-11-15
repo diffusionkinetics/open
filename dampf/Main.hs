@@ -53,7 +53,7 @@ run (Options af cf p cmd) = do
         SetupDatabase       -> setupDB
         Monitor test        -> runMonitor test
         Provision pt        -> goProvision pt
-
+        Env cmds            -> envCmd cmds
 
 -- Command Line Options
 
@@ -73,6 +73,7 @@ data Command
     | Dump
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
+    | Env [Text]
     | SetupDatabase
     | Monitor [Text]
     | Provision ProvisionType
@@ -147,6 +148,10 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseMonitor)
                 (O.progDesc "Run specified test (if not specified, run all tests) against live production environment"))
+    <> O.command "env"
+            (O.info
+                (O.helper <*> parseEnv)
+                (O.progDesc "Run command locally in an environment that can access database"))
     <> O.command "provision"
             (O.info
                 (O.helper <*> parseProvision)
@@ -181,6 +186,11 @@ parseRunMigrations = RunMigrations
 parseMonitor :: Parser Command
 parseMonitor = Monitor
     <$> many (O.argument readerText (O.metavar "TESTS"))
+
+
+parseEnv :: Parser Command
+parseEnv = Env
+    <$> many (O.argument readerText (O.metavar "CMDS"))
 
 readerText :: ReadM Text
 readerText = T.pack <$> O.readerAsk
