@@ -128,7 +128,10 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseRunMigrations)
                 (O.progDesc "Run unapplied database migrations"))
-
+    <> O.command "run"
+            (O.info
+                (O.helper <*> parseRun)
+                (O.progDesc "Run container"))
     <> O.command "setupdb"
             (O.info
                 (O.helper <*> pure SetupDatabase)
