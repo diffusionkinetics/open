@@ -17,6 +17,7 @@ import           Dampf
 import           Dampf.Postgres
 import           Dampf.Types
 import           Dampf.Monitor
+import           Dampf.Docker
 
 
 -- Running Dampfs
@@ -42,6 +43,7 @@ run (Options af cf p cmd) = do
         Build               -> goBuild
         Deploy              -> goDeploy
         Dump                -> dump
+        Run img mcmd        -> runDocker img mcmd
         NewMigration db mig -> newMigrationCmd db mig
         RunMigrations db    -> runMigrations db
         SetupDatabase       -> setupDB
@@ -62,6 +64,7 @@ data Command
     = Backup (Maybe Text)
     | Build
     | Deploy
+    | Run Text (Maybe Text)
     | Dump
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
@@ -116,13 +119,13 @@ parseCommand = O.subparser $
                 (O.helper <*> pure Dump)
                 (O.progDesc "Show the dampf context"))
 
-    <> O.command "newmigration" 
+    <> O.command "newmigration"
             (O.info
                 (O.helper <*> parseNewMigration)
                 (O.progDesc "Create a new database migration"))
 
     <> O.command "runmigrations"
-            (O.info 
+            (O.info
                 (O.helper <*> parseRunMigrations)
                 (O.progDesc "Run unapplied database migrations"))
 
@@ -141,6 +144,10 @@ parseBackup :: Parser Command
 parseBackup = Backup
     <$> optional (O.argument readerText (O.metavar "DATABASE"))
 
+parseRun :: Parser Command
+parseRun = Run
+    <$> O.argument readerText (O.metavar "IMAGE")
+    <*> optional (O.argument readerText (O.metavar "COMMAND"))
 
 parseNewMigration :: Parser Command
 parseNewMigration = NewMigration

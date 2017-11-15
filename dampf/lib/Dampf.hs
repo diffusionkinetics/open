@@ -28,6 +28,6 @@ goBuild = do
 goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
 goDeploy = do
     goBuild
-
     runMigrations Nothing
+    deployDocker
     deployDomains
