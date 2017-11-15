@@ -12,12 +12,14 @@ import qualified Data.Text as T
 import           Options.Applicative            (Parser, ReadM)
 import qualified Options.Applicative as O
 import qualified Options.Applicative.Types as O
+import           Options.Generic
 
 import           Dampf
 import           Dampf.Postgres
 import           Dampf.Types
 import           Dampf.Monitor
 import           Dampf.Docker
+import           Dampf.Provision
 
 
 -- Running Dampfs
@@ -32,6 +34,8 @@ main = O.execParser parser >>= run
 
 
 run :: Options -> IO ()
+run (Options af cf p (Provision pt)) =
+    goProvision pt
 run (Options af cf p cmd) = do
     a   <- loadAppFile af
     c   <- loadConfigFile cf >>= \case
@@ -48,6 +52,7 @@ run (Options af cf p cmd) = do
         RunMigrations db    -> runMigrations db
         SetupDatabase       -> setupDB
         Monitor test        -> runMonitor test
+        Provision pt        -> goProvision pt
 
 
 -- Command Line Options
@@ -70,6 +75,7 @@ data Command
     | RunMigrations (Maybe Text)
     | SetupDatabase
     | Monitor [Text]
+    | Provision ProvisionType
     deriving (Show)
 
 
@@ -141,6 +147,16 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseMonitor)
                 (O.progDesc "Run specified test (if not specified, run all tests) against live production environment"))
+    <> O.command "provision"
+            (O.info
+                (O.helper <*> parseProvision)
+                (O.progDesc "Provision a server"))
+
+instance ParseField ProvisionType
+
+parseProvision :: Parser Command
+parseProvision = Provision
+    <$> parseField (Just "SingleServer | Development | CI") Nothing
 
 
 parseBackup :: Parser Command
