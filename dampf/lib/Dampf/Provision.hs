@@ -15,18 +15,12 @@ import GHC.Generics
 default (Text)
 
 data ProvisionType =
-   SingleServer | Development | CI | Test
+   SingleServer | Development | CI
     deriving (Show, Read, Eq, Generic)
 
 goProvision :: (MonadIO m, MonadThrow m) => ProvisionType -> m ()
-goProvision Test = shelly $ test
-goProvision _ = shelly $ core >> ufw >> docker >> nginx >> postgresql
-
-test :: Sh ()
-test = do
-  cdpkg <- existsCmd "dpkg"
-  cfoo <- existsCmd "foobar"
-  liftIO $ print (cdpkg, cfoo)
+goProvision Development = shelly $ core >> docker >> nginx >> postgresql
+goProvision _ = shelly $ core >> ufw >> docker >> nginx >> certbot >> postgresql
 
 core :: Sh ()
 core = do
@@ -49,16 +43,22 @@ postgresql = unlessExistsCmd "psql" $ do
   aptUpdate
   aptInstall ["postgresql-10"]
 
-
 ufw :: Sh ()
 ufw = unlessExistsCmd "ufw" $ do
   aptInstall ["ufw"]
-  bash_ "ufw" ["default deny incoming"]
-  bash_ "ufw" ["default allow outgoing"]
-  bash_ "ufw" ["allow ssh"]
-  bash_ "ufw" ["allow 80"]
-  bash_ "ufw" ["allow 443"]
-  bash_ "ufw" ["enable"]
+  run_ "ufw" ["default deny incoming"]
+  run_ "ufw" ["default allow outgoing"]
+  run_ "ufw" ["allow ssh"]
+  run_ "ufw" ["allow 80"]
+  run_ "ufw" ["allow 443"]
+  run_ "ufw" ["enable"]
+
+certbot :: Sh ()
+certbot = unlessExistsCmd "certbot-auto" $ do
+  run_ "wget" ["-O /usr/local/bin/certbot-auto https://dl.eff.org/certbot-auto"]
+  run_ "chmod" ["+x /usr/local/bin/certbot-auto"]
+  run_ "certbot-auto" ["register --email dampf@diffusionkinetics.com --agree-tos --noninteractive"]
+  bash_ "" ["(crontab -l 2>/dev/null ; echo \"42 */12 * * * certbot renew --allow-subset-of-names\") | crontab"]
 ------------------------------------------------------
 --             TOOLS
 ------------------------------------------------------
