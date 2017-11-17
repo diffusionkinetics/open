@@ -20,7 +20,7 @@ data ProvisionType =
 
 goProvision :: (MonadIO m, MonadThrow m) => ProvisionType -> m ()
 goProvision Test = shelly $ test
-goProvision _ = shelly $ core >> docker >> nginx >> postgresql
+goProvision _ = shelly $ core >> ufw >> docker >> nginx >> postgresql
 
 test :: Sh ()
 test = do
@@ -49,6 +49,16 @@ postgresql = unlessExistsCmd "psql" $ do
   aptUpdate
   aptInstall ["postgresql-10"]
 
+
+ufw :: Sh ()
+ufw = unlessExistsCmd "ufw" $ do
+  aptInstall ["ufw"]
+  bash_ "ufw" ["default deny incoming"]
+  bash_ "ufw" ["default allow outgoing"]
+  bash_ "ufw" ["allow ssh"]
+  bash_ "ufw" ["allow 80"]
+  bash_ "ufw" ["allow 443"]
+  bash_ "ufw" ["enable"]
 ------------------------------------------------------
 --             TOOLS
 ------------------------------------------------------
