@@ -46,18 +46,18 @@ postgresql = unlessExistsCmd "psql" $ do
 ufw :: Sh ()
 ufw = unlessExistsCmd "ufw" $ do
   aptInstall ["ufw"]
-  run_ "ufw" ["default deny incoming"]
-  run_ "ufw" ["default allow outgoing"]
-  run_ "ufw" ["allow ssh"]
-  run_ "ufw" ["allow 80"]
-  run_ "ufw" ["allow 443"]
+  run_ "ufw" ["default","deny","incoming"]
+  run_ "ufw" ["default","allow","outgoing"]
+  run_ "ufw" ["allow","ssh"]
+  run_ "ufw" ["allow","80"]
+  run_ "ufw" ["allow","443"]
   run_ "ufw" ["enable"]
 
 certbot :: Sh ()
 certbot = unlessExistsCmd "certbot-auto" $ do
-  run_ "wget" ["-O /usr/local/bin/certbot-auto https://dl.eff.org/certbot-auto"]
-  run_ "chmod" ["+x /usr/local/bin/certbot-auto"]
-  run_ "certbot-auto" ["register --email dampf@diffusionkinetics.com --agree-tos --noninteractive"]
+  run_ "wget" ["-O","/usr/local/bin/certbot-auto","https://dl.eff.org/certbot-auto"]
+  run_ "chmod" ["+x","/usr/local/bin/certbot-auto"]
+  run_ "certbot-auto" ["register","--email","dampf@diffusionkinetics.com","--agree-tos","--noninteractive"]
   bash_ "" ["(crontab -l 2>/dev/null ; echo \"42 */12 * * * certbot renew --allow-subset-of-names\") | crontab"]
 ------------------------------------------------------
 --             TOOLS
