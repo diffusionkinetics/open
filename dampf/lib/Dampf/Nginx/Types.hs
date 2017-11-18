@@ -20,6 +20,8 @@ data ServerDecl
     | Include FilePath
     | SSLCertificate FilePath
     | SSLCertificateKey FilePath
+    | SSLTrustedCertificate FilePath
+
 
 
 pShowServer :: Server -> String
@@ -49,6 +51,10 @@ pprServerDecl (Include p)           = text "include"
 
 pprServerDecl (SSLCertificate p)    = text "ssl_certificate"
     <+> text p <> semi
+
+pprServerDecl (SSLTrustedCertificate p)    = text "ssl_trusted_certificate"
+    <+> text p <> semi
+
 
 pprServerDecl (SSLCertificateKey p) = text "ssl_certificate_key"
     <+> text p <> semi
