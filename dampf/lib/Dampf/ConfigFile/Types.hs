@@ -42,8 +42,7 @@ instance FromJSON PostgresConfig where
 
 
 data DampfConfig = DC
-    { _liveCertificate  :: Maybe FilePath
-    , _postgres         :: Maybe PostgresConfig
+    { _postgres         :: Maybe PostgresConfig
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DampfConfig

@@ -193,8 +193,6 @@ This file should *not* be checked into version control as it contains secrets th
 Syntax:
 
 ```
-liveCertificate: {part to Let's encrypt certificate file}
-
 postgres:
     host: {host address or name}
     port: {port number}
@@ -241,6 +239,12 @@ Syntax: `dampf monitor {test name}`
 
 Run specified test (if non specified, run all tests except those only marked
 "AtBuild") against the live production environment.
+
+### `test` command
+
+Syntax: `dampf test {test name}`
+
+Run specified test (if non specified, run all tests) in a synthetic environment.
 
 Status: Not implemented
 

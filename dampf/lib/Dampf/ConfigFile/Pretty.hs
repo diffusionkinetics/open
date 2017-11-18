@@ -16,11 +16,9 @@ pShowDampfConfig = render . hang (text "Config File:") 4 . pprDampfConfig
 
 pprDampfConfig :: DampfConfig -> Doc
 pprDampfConfig cfg = vcat
-    [ pprLiveCertificate l
-    , pprDatabaseServer d
+    [ pprDatabaseServer d
     ]
   where
-    l = cfg ^. liveCertificate
     d = cfg ^. postgres
 
 
