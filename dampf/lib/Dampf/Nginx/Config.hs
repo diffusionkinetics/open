@@ -29,11 +29,15 @@ domainToServer name spec
 
 
 domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation name spec = maybe [] staticAttrs s ++ maybe [] proxyAttrs p
+domainToLocation name spec =
+    maybe [] staticAttrs s
+    ++ cdnAttrs cdn
+    ++ maybe [] proxyAttrs p
   where
     s :: Maybe Text
     s = const name <$> spec ^. static
     p = spec ^. proxyContainer
+    cdn = spec ^. isCDN
 
 
 sslDecls :: (MonadIO m) => Text -> DomainSpec -> DampfT m [ServerDecl]
@@ -53,6 +57,18 @@ httpDecls name spec =
     , ServerName [name, "www." `T.append` name]
     , Location "/" $ domainToLocation name spec
     ]
+
+cdnAttrs :: Maybe Bool -> [(Text, Text)]
+cdnAttrs (Just True) =
+    [ ("gzip_static","on")
+    , ("expires","max")
+    , ("log_not_found","off")
+    , ("access_log","off")
+    , ("add_header","Cache-Control public")
+    , ("add_header","'Access-Control-Allow-Origin' '*'")
+    , ("add_header","'Access-Control-Allow-Methods' 'GET, OPTIONS'")
+    ]
+cdnAttrs _ = []
 
 
 staticAttrs :: Text -> [(Text, Text)]

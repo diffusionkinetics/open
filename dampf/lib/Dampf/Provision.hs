@@ -26,7 +26,7 @@ core :: Sh ()
 core = do
   aptUpdate
   aptInstall ["git", "zile", "curl", "lsb-core",
-              "software-properties-common"]
+              "software-properties-common", "fail2ban"]
 
 docker :: Sh ()
 docker = unlessExistsCmd "docker" $
