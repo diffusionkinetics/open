@@ -24,34 +24,38 @@ import qualified Data.Map.Strict as Map
 type Tests = [Text]
 
 runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
-runMonitor = mapM_ runUnits <=< tests_to_run where 
+runMonitor = mapM_ runUnits <=< tests_to_run where
 
   runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
   runUnits (test_name, TestSpec units _) = do
-    report $ "running " <> show test_name
+    reportLn $ "running " <> show test_name<> ": "
     mapM_ go units
-    
+
 
   go :: (MonadIO m, MonadThrow m) => TestUnit -> DampfT m ()
-  go (TestRun img cmd) = do 
+  go (TestRun img cmd) = do
     report $ show cmd
     containers_to_run <- view $ app . containers . to (Map.filter (^. image . to (==img)))
     runDockerT $ mapM_ (run cmd) containers_to_run
-  
+
   go (TestGet uri mb_pattern) = liftIO (get . unpack $ uri) >>= \res ->
     let res_code = view (responseStatus . statusCode) res
 
-    in  report (show uri) *> 
-        if res_code /= 200 
-          then report ("failed. response code: " <> show res_code) *> liftIO exitFailure
+    in  report ("  " ++ unpack uri) *>
+        if res_code /= 200
+          then reportLn (" [FAIL] response code: " <> show res_code) *> liftIO exitFailure
           else case mb_pattern of
-            Nothing -> report "success"
+            Nothing -> reportLn " [OK]"
             Just pattern -> if view responseBody res =~ unpack pattern
-              then report "success"
-              else report ("pattern " <> show pattern <> " didn't match") *> liftIO exitFailure
+              then reportLn " [OK]"
+              else reportLn (" [FAIL] pattern " <> show pattern <> " didn't match") *> liftIO exitFailure
 
 report :: (MonadIO m) => String -> DampfT m ()
-report = liftIO . putStrLn
+report = liftIO . putStr
+
+reportLn :: (MonadIO m) => String -> DampfT m ()
+reportLn = liftIO . putStrLn
+
 
 tests_to_run :: Monad m => Tests -> DampfT m [(Text, TestSpec)]
 tests_to_run [] = all_tests <&> Map.toList
