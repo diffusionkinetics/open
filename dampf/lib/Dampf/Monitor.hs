@@ -43,12 +43,12 @@ runMonitor = mapM_ runUnits <=< tests_to_run where
 
     in  report ("  " ++ unpack uri) *>
         if res_code /= 200
-          then reportLn (" [FAIL] response code: " <> show res_code) *> liftIO exitFailure
+          then reportFail (" [FAIL] response code: " <> show res_code)
           else case mb_pattern of
-            Nothing -> reportLn " [OK]"
+            Nothing -> success
             Just pattern -> if view responseBody res =~ unpack pattern
-              then reportLn " [OK]"
-              else reportLn (" [FAIL] pattern " <> show pattern <> " didn't match") *> liftIO exitFailure
+              then success
+              else reportFail (" [FAIL] pattern " <> show pattern <> " didn't match")
 
 report :: (MonadIO m) => String -> DampfT m ()
 report = liftIO . putStr
@@ -56,6 +56,11 @@ report = liftIO . putStr
 reportLn :: (MonadIO m) => String -> DampfT m ()
 reportLn = liftIO . putStrLn
 
+success :: (MonadIO m) => DampfT m ()
+success = reportLn " [OK]"
+
+reportFail :: (MonadIO m) => String -> DampfT m ()
+reportFail s = reportLn s *> liftIO exitFailure
 
 tests_to_run :: Monad m => Tests -> DampfT m [(Text, TestSpec)]
 tests_to_run [] = all_tests <&> Map.toList
