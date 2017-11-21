@@ -8,6 +8,7 @@ import Dampf.Docker
 import Dampf.Nginx
 import Dampf.Postgres
 import Dampf.Types
+import Dampf.Monitor
 
 dump :: (MonadIO m) => DampfT m ()
 dump = do
@@ -31,3 +32,4 @@ goDeploy = do
     runMigrations Nothing
     deployDocker
     deployDomains
+    runMonitor []

@@ -69,5 +69,5 @@ interpStop c = do
 
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
 runDockerProcess args = do
-  liftIO $ putStrLn $ "$ docker "++unwords args
+  --liftIO $ putStrLn $ "$ docker "++unwords args
   void $ runProcess (proc "docker" args)
