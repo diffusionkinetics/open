@@ -28,30 +28,37 @@ deployDomains = do
     iforM_ ds $ \name spec -> do
         moveStaticItems name (spec ^. static)
 
-        ex <- domainExists name
+        ex <- domainSslExists name
         if ex
           then writeNginxConfigFile name spec >> reload
           else do
               writeNginxConfigFile name spec { _letsEncrypt = Just False}
               enableNewDomain name spec
-              writeNginxConfigFile name spec
+
               reload
 
 reload :: (MonadIO m) => DampfT m ()
-reload = do ExitSuccess <- liftIO $ system "service nginx reload"
+reload = do _ <- liftIO $ system "service nginx reload"
             return ()
 
 enableNewDomain :: (MonadIO m) => Text -> DomainSpec -> DampfT m ()
 enableNewDomain name spec = when (fromMaybe False $ _letsEncrypt spec) $ do
-    --certbot-auto certonly -q --webroot --expand -d example.com
-    shelly $ run_ "certbot-auto"
-      ["certonly","-q","--nginx","--expand","-d",name, "-d","www."`T.append` name]
-    return ()
+    excode <- shelly $ do
+                errExit False $ run_ "certbot-auto"
+                     ["certonly","-q","--nginx","--expand","-d",name, "-d","www."`T.append` name]
+                lastExitCode
+    if (excode ==0)
+      then writeNginxConfigFile name spec
+      else writeNginxConfigFile name spec { _letsEncrypt = Just False}
 
-
-domainExists :: (MonadIO m) => Text -> DampfT m Bool
-domainExists name
-  = liftIO $ doesFileExist ("/etc/nginx/sites-available" </> T.unpack name)
+domainSslExists :: (MonadIO m) => Text -> DampfT m Bool
+domainSslExists name = do
+    let fnm = ("/etc/nginx/sites-available" </> T.unpack name)
+    ex <- liftIO $ doesFileExist fnm
+    if not ex
+        then return False
+        else do fl <- liftIO $ T.readFile fnm
+                return $ "ssl_certificate" `T.isInfixOf` fl
 
 writeNginxConfigFile :: (MonadIO m) => Text -> DomainSpec -> DampfT m ()
 writeNginxConfigFile name spec = do
