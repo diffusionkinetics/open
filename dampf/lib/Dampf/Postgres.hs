@@ -17,6 +17,7 @@ import           Dampf.Postgres.Migrate
 import           Dampf.Postgres.Setup
 import           Dampf.Types
 import           System.Environment (getEnvironment)
+import           System.Exit
 
 
 runMigrations :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
@@ -94,7 +95,8 @@ envCmd cmd = do
   let (dbNm, dbSpec):_ = toList dbs
       envs = pgEnv dbNm dbSpec s ++ oldEnv
       shcmd  = setEnv envs $ shell $ T.unpack $ T.unwords cmd
-  runProcess_ shcmd
+  ec <- runProcess shcmd
+  liftIO $ exitWith ec
 
 
 
