@@ -44,6 +44,7 @@ run (Options af cf p cmd) = do
 
     runDampfT a c $ case cmd of
         Backup db           -> backupDB db
+        Restore fp mdb      -> restoreDB fp mdb
         Build               -> goBuild
         Deploy              -> goDeploy
         Dump                -> dump
@@ -67,6 +68,7 @@ data Options = Options
 
 data Command
     = Backup (Maybe Text)
+    | Restore FilePath (Maybe Text)
     | Build
     | Deploy
     | Run Text (Maybe Text)
@@ -110,6 +112,10 @@ parseCommand = O.subparser $
            (O.info
                (O.helper <*> parseBackup)
                (O.progDesc "Backup the specified databases"))
+    <> O.command "restore"
+            (O.info
+                (O.helper <*> parseRestore)
+                (O.progDesc "Restore database"))
 
     <> O.command "build"
             (O.info
@@ -167,6 +173,12 @@ parseProvision = Provision
 parseBackup :: Parser Command
 parseBackup = Backup
     <$> optional (O.argument readerText (O.metavar "DATABASE"))
+
+parseRestore :: Parser Command
+parseRestore = Restore
+        <$> O.argument O.readerAsk (O.metavar "FILE")
+        <*> optional (O.argument readerText (O.metavar "DATABASE"))
+
 
 parseRun :: Parser Command
 parseRun = Run

@@ -40,6 +40,21 @@ setupDB = do
     createDatabases
     createExtensions
 
+restoreDB :: (MonadIO m, MonadThrow m) => FilePath -> Maybe Text  -> DampfT m ()
+restoreDB fnm mdb = do
+    createUsers
+    createDatabases
+    ms <- view (config . postgres)
+    ds <- view (app . databases)
+
+    case ms of
+        Just s  -> iforM_ ds $ \name spec ->
+            when (maybe True (== name) mdb) $ do
+                let envs = pgEnv name (spec & user .~ "postgres")  s
+                runProcess_ $ setEnv envs $ shell
+                   $ "pg_restore -d "++T.unpack name++" "++fnm
+
+        Nothing -> throwM NoDatabaseServer
 
 backupDB :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
 backupDB mdb = do

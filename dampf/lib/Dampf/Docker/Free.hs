@@ -43,7 +43,6 @@ interpBuild t i = do
 interpRm :: (MonadIO m) => Text -> DampfT m Text
 interpRm c = do
     liftIO . putStrLn $ "Docker: Removing " ++ T.unpack c
-    liftIO $ putStrLn $ "$ docker rm "++T.unpack c
     (_, o, _) <- readProcess process
     return . TL.toStrict $ TL.decodeUtf8 o
   where
