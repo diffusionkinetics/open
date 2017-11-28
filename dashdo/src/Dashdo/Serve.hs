@@ -21,6 +21,7 @@ import qualified Data.ByteString.Lazy as BLS
 
 import Control.Monad (forM_, when)
 import Data.Monoid
+import qualified Data.Set as Set
 import Network.HTTP.Types.Status
 import Control.Exception
 import Data.Hashable
@@ -41,12 +42,14 @@ dashdoHandler r d = do
               <> show e<> "</pre></div>"
   return $ \ps -> do
       ff <- liftIO $ readIORef ffRef
+      let currentKeys = Set.fromList $ map fst ff
       let newval = parseForm (initial d) ff ps
       (thisHtml, theseFF, _)
           <- liftIO $ (r $ dashdoGenOut d newval ps)
                `catchAnyDeep ` (\e -> return (TL.pack (mkE e) <>iniHtml, [], []) )
-      when (length theseFF > length ff) $
-        liftIO $ writeIORef ffRef theseFF
+      let newFields = filter (\(k,_)->Set.notMember k currentKeys) theseFF
+      when (not $ null newFields) $
+        liftIO $ modifyIORef ffRef (++newFields)
       html thisHtml
 
 getRandomUUID :: IO Text
