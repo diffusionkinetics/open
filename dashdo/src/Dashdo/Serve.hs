@@ -19,7 +19,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.ByteString.Lazy as BLS
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.Monoid
 import Network.HTTP.Types.Status
 import Control.Exception
@@ -27,22 +27,27 @@ import Data.Hashable
 import Lucid
 import Control.DeepSeq
 import Control.Exception.Safe
+import Data.IORef
+
 
 type RunInIO m = forall a. m a -> IO a
 
 dashdoHandler :: Monad m => RunInIO m -> Dashdo m a -> IO ([Param] -> ActionM ())
 dashdoHandler r d = do
-  (iniHtml, ff, _) <- r $ dashdoGenOut d (initial d) []
+  (iniHtml, iniFFs, _) <- r $ dashdoGenOut d (initial d) []
+  ffRef <- newIORef iniFFs
   print $ hash iniHtml
+  let mkE e = "<div  class=\"alert alert-danger\" role=\"alert\"><pre>Error: "
+              <> show e<> "</pre></div>"
   return $ \ps -> do
-         let newval = parseForm (initial d) ff ps
-         (thisHtml, _, _) <- liftIO $ (r $ dashdoGenOut d newval ps) `catchAnyDeep ` (\e -> do
-          let es :: String
-              es = "<div  class=\"alert alert-danger\" role=\"alert\"><pre>Error: " <> show e<> "</pre></div>"
-
-              foo = TL.pack es <>iniHtml
-          return (foo, [], []) )
-         html thisHtml
+      ff <- liftIO $ readIORef ffRef
+      let newval = parseForm (initial d) ff ps
+      (thisHtml, theseFF, _)
+          <- liftIO $ (r $ dashdoGenOut d newval ps)
+               `catchAnyDeep ` (\e -> return (TL.pack (mkE e) <>iniHtml, [], []) )
+      when (length theseFF > length ff) $
+        liftIO $ writeIORef ffRef theseFF
+      html thisHtml
 
 getRandomUUID :: IO Text
 getRandomUUID = fromStrict . UUID.toText <$> randomIO
