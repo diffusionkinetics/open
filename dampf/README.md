@@ -219,6 +219,10 @@ postgres:
 
 Backup databases. If invoked with no arguments, this will backup all databases listed in the application file. If one or more arguments follow the `backup` command, only databases with names matching those arguments will be backed up.
 
+### `restore` command
+
+Restore a database from a given file
+
 ### `build` command
 
 Build all the docker images in the application.
@@ -232,6 +236,24 @@ Build all the docker images in the application, (re)start the containers, run mi
 Syntax: `dampf newmigration {migration name}`
 
 Create a new migration file in the migrations directory using the current time as the timestamp
+
+### `runmigrations` command
+
+Syntax: `dampf runmigrations`
+
+Apply any unapplied migrations in the migrations directory
+
+### `run` command
+
+Syntax: `dampf env image_name {command_name}`
+
+Run a command in an image, passing environment variables as listed below.
+
+### `env` command
+
+Syntax: `dampf env {command}`
+
+Run a command as a sub process in a modified environment where variables are set as listed below.
 
 ### `monitor` command
 
@@ -248,8 +270,28 @@ Run specified test (if non specified, run all tests) in a synthetic environment.
 
 Status: Not implemented
 
+### `provision` command
+
+Syntax: `dampf provision {role name}`
+
+Setup the local server (Ubuntu or Debian) to be able to fulfil a role in deploying dampf applications.
+
+Currently available roles are:
+
+`CI`: continuous integration server
+`SingleServer`: a deployment server which can satisfy all deployment functionalities: domains, containers and databases
+`Development`: a development environment.
+
 ## Environment variables and host names
 
 dampf will set environmental variables in your running containers. These can be used to connect to databases and other containers. You should use these because they will be set correctly during testing so your test containers will connect to a test database.
 
-TODO: list environment variables
+| Variable | meaning |
+|----------|---------|
+|PGHOST | the host address of the database |
+|PGPORT | the port of the database| 
+|PGDATABASE | the database name to connect to |
+|PGUSER | the database role username |
+|PGPASSWORD | password for the database role |
+
+These environment variables match the standard ones expected by PostgreSQL tools such as `psql`
