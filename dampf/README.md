@@ -278,9 +278,9 @@ Setup the local server (Ubuntu or Debian) to be able to fulfil a role in deployi
 
 Currently available roles are:
 
-`CI`: continuous integration server
-`SingleServer`: a deployment server which can satisfy all deployment functionalities: domains, containers and databases
-`Development`: a development environment.
+- `CI`: continuous integration server
+- `SingleServer`: a deployment server which can satisfy all deployment functionalities: domains, containers and databases
+- `Development`: a development environment.
 
 ## Environment variables and host names
 
