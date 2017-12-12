@@ -4,6 +4,7 @@
 module Youido.Serve where
 
 import Youido.Types
+import Youido.Authentication
 import Web.Scotty
 import Web.Scotty.Cookie
 import Network.Wai.Middleware.RequestLogger (logStdout)
@@ -17,12 +18,8 @@ import qualified Data.IntMap
 import Data.Text (Text, pack, unpack)
 import Data.Monoid
 import Control.Monad.State.Strict hiding (get)
-import Text.Read (readMaybe)
 
 import Control.Monad.Reader
-import System.Random
-
-type Session = ()
 
 --conn <-  createConn <$> readJSON "youido.json"
 
@@ -70,30 +67,6 @@ serve x y@(Youido _ _ _ users port') = do
       case msess of
         Nothing -> if null users then go "" else redirect "/login"
         Just (i,u) -> go u
-
-newSession :: TVar (Data.IntMap.IntMap a) -> a -> ActionM ()
-newSession tv email = do
-  n <- liftIO $ randomRIO (0,99999999999)
-  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n email)
-  setSimpleCookie "youisess" (pack $ show n)
-  return ()
-
-lookupSession :: TVar (Data.IntMap.IntMap a) -> ActionM (Maybe (Int, a))
-lookupSession tv = do
-  mi <- (>>=readMaybe) . fmap unpack <$> getCookie "youisess"
-  case mi of
-    Nothing -> return Nothing
-    Just i -> do
-      mp <- liftIO $ readTVarIO tv
-      return $ fmap (i,) $ Data.IntMap.lookup i mp
-
-
-
-deleteSession :: TVar (Data.IntMap.IntMap a) -> Int -> ActionM ()
-deleteSession tv n = do
-  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.delete n)
-  deleteCookie "youisess"
-  return ()
 
 
 dashdoCustomJS :: Html ()

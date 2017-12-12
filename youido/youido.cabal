@@ -25,6 +25,7 @@ library
                      Youido.Types
                      Youido.Serve
                      Youido.Dashdo
+                     Youido.Authentication
                      Youido.Example
   build-depends:       base >= 4.6 && < 5
                      , text
