@@ -26,7 +26,6 @@ library
                      Youido.Serve
                      Youido.Dashdo
                      Youido.Authentication
-                     Youido.Example
   build-depends:       base >= 4.6 && < 5
                      , text
                      , lucid
@@ -44,18 +43,8 @@ library
                      , http-types
                      , dashdo
                      , void
-                     , datasets
                      , microlens-platform
                      , stm
                      , containers
                      , random
                      , scotty-cookie
-
-executable test-youido
-  main-is: TestYouido.hs
-  default-language:  Haskell2010
-  build-depends:       base >=4.6 && <5
-                     , youido
-                     , wai
-                     , wai-extra
-                     , lucid
