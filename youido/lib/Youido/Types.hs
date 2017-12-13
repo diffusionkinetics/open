@@ -23,6 +23,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import Network.Wai.Parse
 import Lens.Micro.Platform
 import Control.Monad.Trans
+import Data.Map.Strict (Map)
 
 --------------------------------------------------------------------------
 ---                 RESPONSES
@@ -88,11 +89,15 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 ---                 REQUESTS
 --------------------------------------------------------------------------
 
-type Email = Text
+data User = User 
+  { userId :: Int
+  , email :: Text
+  , userInfo :: Map Text Value 
+  }
 
 -- types that can be parsed from a request, maybe
 class FromRequest a where
-  fromRequest :: (Request,[(TL.Text, TL.Text)], Email) -> Maybe a
+  fromRequest :: (Request,[(TL.Text, TL.Text)], Maybe User) -> Maybe a
 
 class ToURL a where
   toURL :: a -> Text
@@ -206,7 +211,7 @@ liftY mx = YouidoT (lift mx)
 -- | get a response from a request, given a list of handlers
 run :: Monad m
     => Youido m
-    -> (Request, [(TL.Text, TL.Text)],Email) -- ^ incoming request
+    -> (Request, [(TL.Text, TL.Text)], Maybe User) -- ^ incoming request
     -> m Response
 run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
 run (Youido (H f : hs) notFound wrapperf users p) rq = do

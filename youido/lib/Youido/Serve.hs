@@ -18,6 +18,7 @@ import qualified Data.IntMap
 import Data.Text (Text, pack, unpack)
 import Data.Monoid
 import Control.Monad.State.Strict hiding (get)
+import qualified Data.Map.Strict as Map
 
 import Control.Monad.Reader
 
@@ -52,7 +53,7 @@ serve x y@(Youido _ _ _ users port') = do
                 div_ [class_ "alert alert-danger"] "Incorrect user or password"
       case lookup femail users of
         Nothing -> html incorrect
-        Just passwd | passwd == fpasswd -> newSession sessions femail >> redirect "/"
+        Just passwd | passwd == fpasswd -> newSession sessions (User 0 femail Map.empty) >> redirect "/"
                     | otherwise -> html incorrect
     matchAny (regex "/*") $ do
       let go email = do
@@ -65,8 +66,8 @@ serve x y@(Youido _ _ _ users port') = do
             raw conts
       msess <- lookupSession sessions
       case msess of
-        Nothing -> if null users then go "" else redirect "/login"
-        Just (i,u) -> go u
+        Nothing -> if null users then go Nothing else redirect "/login"
+        Just (i,u) -> go $ Just u
 
 
 dashdoCustomJS :: Html ()

@@ -14,21 +14,6 @@ import System.Random
 import Text.Read (readMaybe)
 import Data.Proxy
 
---------------------------------------------------------------------------
---- TYPES
---------------------------------------------------------------------------
-  
-class Authenticate u where
-  notPresent :: Proxy u -> Text
-  
-data Auth u a = Auth u a
-{-
-instance (FromRequest a, Authenticate u) => FromRequest (Auth u a) where
-  fromRequest rqpars = case fromRequest rqpars of
-    (Just x, _) -> return $ Left x
-    (Nothing, Just y) -> return $ Right y
--}
-
 
 --------------------------------------------------------------------------
 --- SERVING
