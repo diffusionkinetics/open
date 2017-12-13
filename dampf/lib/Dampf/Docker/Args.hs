@@ -3,6 +3,7 @@ module Dampf.Docker.Args
   , RunArgs
   , HasRunArgs(..)
   , mkRunArgs
+  , mkRunArgsNonDaemon 
   ) where
 
 import           Dampf.Docker.Args.Class

@@ -30,7 +30,7 @@ runDockerT = iterT dockerIter
 dockerIter :: (MonadIO m, MonadThrow m) => DockerF (DampfT m a) -> DampfT m a
 dockerIter (Build t i next) = interpBuild t i >> next
 dockerIter (Rm c next)      = interpRm c >>= next
-dockerIter (Run c s next)   = interpRun c s >> next
+dockerIter (Run d c s next)   = interpRun d c s >> next
 dockerIter (Stop c next)    = interpStop c >> next
 
 
@@ -51,9 +51,9 @@ interpRm c = do
         $ -} proc "docker" ["rm", T.unpack c]
 
 
-interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m ()
-interpRun n spec = do
-    args <- mkRunArgs n spec
+interpRun :: (MonadIO m, MonadThrow m) => Bool -> Text -> ContainerSpec -> DampfT m ()
+interpRun daemonise n spec = do
+    args <- if daemonise then mkRunArgs n spec else mkRunArgsNonDaemon n spec 
     liftIO . putStrLn $ "Docker: Running "
         ++ T.unpack n ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
     runDockerProcess $ toArgs args

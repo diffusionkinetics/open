@@ -34,10 +34,10 @@ deployDocker = do
     runDockerT . iforM_ cs $ \n spec -> do
         stop n
         void (rm n)
-        run n spec
+        run True n spec
 
 runDocker :: (MonadIO m, MonadThrow m) => Text -> Maybe Text -> DampfT m ()
 runDocker imgNm mCmd = do
   dbs <- view (app . databases)
   let firstDb = safeHead $ keys dbs
-  runDockerT $ run ("run"<>imgNm) $ ContainerSpec imgNm Nothing mCmd firstDb
+  runDockerT $ run False ("run"<>imgNm) $ ContainerSpec imgNm Nothing mCmd firstDb

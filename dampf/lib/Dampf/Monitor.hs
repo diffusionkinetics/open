@@ -36,7 +36,7 @@ runMonitor = mapM_ runUnits <=< tests_to_run where
   go (TestRun img cmd) = do
     report $ show cmd
     containers_to_run <- view $ app . containers . to (Map.filter (^. image . to (==img)))
-    runDockerT $ mapM_ (run cmd) containers_to_run
+    runDockerT $ mapM_ (run False cmd) containers_to_run
 
   go (TestGet uri mb_pattern) = liftIO (get . unpack $ uri) >>= \res ->
     let res_code = view (responseStatus . statusCode) res

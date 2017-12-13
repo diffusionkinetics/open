@@ -26,7 +26,7 @@ type DockerT = FreeT DockerF
 data DockerF next
     = Build Text FilePath next
     | Rm Text (Text -> next)
-    | Run Text ContainerSpec next
+    | Run Bool Text ContainerSpec next
     | Stop Text next
     deriving (Functor)
 
@@ -41,8 +41,8 @@ rm :: (MonadIO m) => Text -> DockerT m Text
 rm c = liftF (Rm c id)
 
 
-run :: (MonadIO m) => Text -> ContainerSpec -> DockerT m ()
-run c s = liftF (Run c s ())
+run :: (MonadIO m) => Bool -> Text -> ContainerSpec -> DockerT m ()
+run d c s = liftF (Run d c s ())
 
 
 stop :: (MonadIO m) => Text -> DockerT m ()
