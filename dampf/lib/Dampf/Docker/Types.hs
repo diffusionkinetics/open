@@ -1,15 +1,17 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Dampf.Docker.Types
-  ( -- * Docker Monad
-    DockerT
-  , DockerF(..)
-    -- * Docker Combinators
-  , build
-  , rm
-  , run
-  , stop
-  ) where
+module Dampf.Docker.Types where
+--
+--
+--   ( -- * Docker Monad
+--     DockerT
+--   , DockerF(..)
+--     -- * Docker Combinators
+--   , build
+--   , rm
+--   , run
+--   , stop
+--   ) where
 
 import Control.Monad.IO.Class   (MonadIO)
 import Control.Monad.Trans.Free (FreeT, liftF)
@@ -27,8 +29,9 @@ data DockerF next
     = Build Text FilePath next
     | Rm Text (Text -> next)
     | Run Text ContainerSpec (Text -> next)
-    | RunWith RunArgs (Text -> next)
+    | RunWith (RunArgs -> RunArgs) Text ContainerSpec (Text -> next)
     | Stop Text next
+    | Pull Text next
     | NetworkCreate Text next
     | NetworkCreateWith CreateArgs next
     | NetworkConnect Text Text next
@@ -36,7 +39,9 @@ data DockerF next
     | NetworkDisconnect Text ContainerSpec next
     | NetworkLs (Text -> next)
     | NetworkRm [Text] (Text -> next)
-    | NetworkInspect [Text] (Text -> next)
+    | NetworkInspect Text [Text] (Text -> next)
+    | Inspect Text Text (Text -> next)
+    | ContainerLS (Text -> next)
     deriving (Functor)
 
 
@@ -53,10 +58,8 @@ rm c = liftF (Rm c id)
 run :: (MonadIO m) => Text -> ContainerSpec -> DockerT m Text
 run c s = liftF (Run c s id)
 
-
-runWith :: (MonadIO m) => RunArgs -> DockerT m Text
-runWith args = liftF (RunWith args id)
-
+runWith :: (MonadIO m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DockerT m Text
+runWith f n spec = liftF (RunWith f n spec id)
 
 stop :: (MonadIO m) => Text -> DockerT m ()
 stop c = liftF (Stop c ())
@@ -82,5 +85,14 @@ netLS = liftF (NetworkLs id)
 netRM :: (MonadIO m) => [Text] -> DockerT m Text
 netRM nets = liftF (NetworkRm nets id)
 
-netInspect :: (MonadIO m) => [Text] -> DockerT m Text
-netInspect nets = liftF (NetworkInspect nets id)
+netInspect :: (MonadIO m) => Text -> [Text] -> DockerT m Text
+netInspect format nets = liftF (NetworkInspect format nets id)
+
+inspect :: (MonadIO m) => Text -> Text -> DockerT m Text
+inspect format id' = liftF (Inspect format id' id)
+
+pull :: (MonadIO m) => Text -> DockerT m ()
+pull name = liftF (Pull name ())
+
+containerLS :: (MonadIO m) => DockerT m Text
+containerLS = liftF (ContainerLS id)

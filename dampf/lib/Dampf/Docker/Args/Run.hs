@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE ViewPatterns #-}
 
 
 module Dampf.Docker.Args.Run where
@@ -13,11 +14,14 @@ import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Text                  (Text)
+import           Data.Text.Strict.Lens (utf8, _Text)
 import           Data.Bool (bool)
 import qualified Data.Text as T
+import           Data.List (intercalate)
 
 import           Dampf.Docker.Args.Class
 import           Dampf.Types
+
 
 -- Argument Types for "docker run"
 
@@ -41,17 +45,19 @@ instance Show RestartPolicy where
     show Failure = "failure"
     show Always  = "always"
 
-
 data RunArgs = RunArgs
     { _name     :: Text
     , _detach   :: Detach
     , _restart  :: RestartPolicy
     , _net      :: Text
+    , _hosts    :: Map Text Text -- (domain, ip)
     , _publish  :: [Int]
     , _envs     :: Map Text Text
     , _rmArg    :: Bool
     , _img      :: Text
     , _cmd      :: Text
+    , _volumes  :: [(FilePath, FilePath)]
+    , _dns      :: Maybe Text
     } deriving (Eq, Show)
 
 makeClassy ''RunArgs
@@ -64,6 +70,10 @@ instance ToArgs RunArgs where
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
+        <> foldrOf (hosts .> itraversed . withIndex)
+            (\(k,v) xs -> T.unpack ("--add-host=" <> k <> ":" <> v) : xs) [] r
+        <> foldrOf (volumes . traversed)
+            (\(k,v) xs -> ("-v " <> k <> ":" <> v <> ":ro") : xs) [] r
         <> foldr portArg [] (r ^. publish)
         <> Map.foldrWithKey envArg [] (r ^. envs)
         <> [r ^. img . to T.unpack]
@@ -105,4 +115,7 @@ defaultRunArgs n spec = RunArgs
     , _envs     = Map.empty
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""
+    , _hosts    = Map.empty
+    , _volumes  = []
+    , _dns      = Nothing
     } 

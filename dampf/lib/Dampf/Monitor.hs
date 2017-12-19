@@ -1,64 +1,65 @@
-{-# language OverloadedStrings, TupleSections #-}
+{-# language LambdaCase, OverloadedStrings, TupleSections #-}
 module Dampf.Monitor where
 
 import Dampf.Docker.Free (runDockerT)
-import Dampf.Docker.Types (run)
+import Dampf.Docker.Types
 import Dampf.Types
+import Dampf.Docker.Args.Run
 
 import Control.Lens
-import Control.Monad            ((<=<))
+import Control.Monad            (void)
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
-import Control.Applicative      (pure, liftA2)
 
 import System.Exit (exitFailure)
-import Network.Wreq
-import Data.Text (Text, unpack)
+import Data.Text (Text)
+import Data.Foldable (find)
 import Data.Monoid ((<>))
-import Data.Maybe (catMaybes)
 import Data.Map.Strict (Map)
 
 import Text.Regex.Posix
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 
 type Tests = [Text]
 
 runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
-runMonitor = mapM_ runUnits <=< tests_to_run where 
+runMonitor = runTests id
 
-  runUnits :: (MonadIO m, MonadThrow m) => (Text, TestSpec) -> DampfT m ()
-  runUnits (test_name, TestSpec units _) = do
-    report $ "running " <> show test_name
-    mapM_ go units
-    
+runTests :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Tests -> DampfT m ()
+runTests argsTweak ls = tests_to_run ls >>= (imapM_ $ \n (TestSpec us _) -> do
+    report ("running test: " <> T.unpack n) 
+    mapM_ (runUnit argsTweak) us)
 
-  go :: (MonadIO m, MonadThrow m) => TestUnit -> DampfT m ()
-  go (TestRun img cmd) = do 
-    report $ show cmd
-    containers_to_run <- view $ app . containers . to (Map.filter (^. image . to (==img)))
-    runDockerT $ mapM_ (run cmd) containers_to_run
-  
-  go (TestGet uri mb_pattern) = liftIO (get . unpack $ uri) >>= \res ->
-    let res_code = view (responseStatus . statusCode) res
+runUnit :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> TestUnit -> DampfT m ()
+runUnit argsTweak = \case
+  TestRun iname icmd -> do
+    cs <- view (app . containers )
+    find (has $ image . only iname) cs & maybe 
+      (report $ "image " <> show iname <> " not found")
+      (void . runDockerT . runWith (set cmd icmd . argsTweak) iname)
 
-    in  report (show uri) *> 
-        if res_code /= 200 
-          then report ("failed. response code: " <> show res_code) *> liftIO exitFailure
-          else case mb_pattern of
-            Nothing -> report "success"
-            Just pattern -> if view responseBody res =~ unpack pattern
-              then report "success"
-              else report ("pattern " <> show pattern <> " didn't match") *> liftIO exitFailure
-
+  TestGet uri mb_pattern -> do
+    res <- fmap T.unpack . runDockerT . runWith argsTweak "curl" . curlSpec $ uri
+    case mb_pattern of
+      Nothing -> report res
+      Just p
+        | res =~ T.unpack p  -> report "matched the pattern"
+        | otherwise -> report res *> report "didn't match the pattern"
+        
 report :: (MonadIO m) => String -> DampfT m ()
 report = liftIO . putStrLn
 
-tests_to_run :: Monad m => Tests -> DampfT m [(Text, TestSpec)]
-tests_to_run [] = all_tests <&> Map.toList
-tests_to_run xs = all_tests <&> catMaybes . liftA2 (\k -> fmap (k,) . Map.lookup k) xs . pure
+tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
+tests_to_run [] = all_tests 
+tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
 
 all_tests :: Monad m => DampfT m (Map Text TestSpec)
 all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 
 isOnlyAtBuild :: TestSpec -> Bool
 isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
+
+curlSpec :: Text -> ContainerSpec
+curlSpec url = ContainerSpec 
+  "appropriate/curl" Nothing (Just $ "-sS '" <> url <> "'") Nothing

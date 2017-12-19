@@ -25,10 +25,12 @@ library
       , Dampf.Docker
       , Dampf.Docker.Free
       , Dampf.Docker.Types
+      , Dampf.Test
       , Dampf.Monitor
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
+      , Dampf.Nginx.Test
       , Dampf.Postgres
       , Dampf.Postgres.Migrate
       , Dampf.Postgres.Connect
@@ -57,7 +59,6 @@ library
 
     build-depends:
         base >= 4.7 && < 5
-      , wreq
       , aeson
       , containers
       , directory
@@ -79,6 +80,9 @@ library
       , regex-base
       , regex-posix
       , bytestring
+      , split
+      , random
+      , transformers
 
 executable dampf
     main-is: Main.hs

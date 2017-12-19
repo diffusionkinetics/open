@@ -37,8 +37,8 @@ makeClassy ''CreateArgs
 
 instance ToArgs CreateArgs where
   toArgs s = ["network", "create"]
-    <> s ^. driver . to show . to (namedArg "driver")
-    <> [s ^. createNet . to show]
+    <> s ^. driver . to (namedArg "driver")
+    <> [s ^. createNet . to T.unpack]
 
 
 instance ToArgs ConnectArgs where

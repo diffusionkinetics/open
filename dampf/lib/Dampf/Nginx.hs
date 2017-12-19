@@ -47,4 +47,3 @@ moveStaticItems s (Just src) = liftIO $ do
     dest = "/var/www" </> T.unpack s
 
 moveStaticItems _ Nothing    = return ()
-
