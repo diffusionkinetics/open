@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, KindSignatures, DataKinds, TypeApplications, GADTs,
-             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels,
+             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, CPP,
              TypeOperators, GeneralizedNewtypeDeriving, TemplateHaskell  #-}
 
 module Youido.Types where
@@ -89,10 +89,13 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 ---                 REQUESTS
 --------------------------------------------------------------------------
 
-data User = User 
+newtype HashPassword = HashPassword ByteString
+type Email = Text
+
+data User = User
   { userId :: Int
-  , email :: Text
-  , userInfo :: Map Text Value 
+  , email :: Email
+  , userInfo :: Map Text Value
   }
 
 -- types that can be parsed from a request, maybe
@@ -107,7 +110,11 @@ instance FromRequest Void where
 
 -- Key, Symbol  and :/ are for subcomponents
 instance (s ~ s') => IsLabel s (Key s') where --from bookkeeper
+#if MIN_VERSION_base(4,10,0)
+  fromLabel = Key
+#else
   fromLabel _ = Key
+#endif
 
 data Key (a :: Symbol) = Key
 
@@ -167,7 +174,7 @@ newtype FormFields = FormFields [(TL.Text, TL.Text)]
 
 instance FromRequest FormFields where
   fromRequest (_,pars,e) = Just $ FormFields pars
-  
+
 
 
 
@@ -191,6 +198,7 @@ data Youido m = Youido
   , _notFoundHtml :: Html () -- ^ default, if nothing found
   , _wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
   , _basicAuthUsers :: [(Text, Text)]
+  , _lookupUser:: Email-> HashPassword-> m (Maybe User)
   , _port :: Int
   }
 
@@ -213,9 +221,9 @@ run :: Monad m
     => Youido m
     -> (Request, [(TL.Text, TL.Text)], Maybe User) -- ^ incoming request
     -> m Response
-run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf users p) rq = do
+run (Youido [] notFound wrapperf _ _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf users lu p) rq = do
   case fromRequest rq of
-    Nothing -> run (Youido hs notFound wrapperf users p) rq
+    Nothing -> run (Youido hs notFound wrapperf users lu p) rq
     Just x -> toResponse . wrapHtml wrapperf <$> f x
 

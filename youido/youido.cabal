@@ -48,3 +48,4 @@ library
                      , containers
                      , random
                      , scotty-cookie
+                     , bcrypt

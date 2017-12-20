@@ -10,10 +10,17 @@ import Control.Concurrent.STM
 import qualified Data.IntMap
 import Control.Monad.IO.Class
 import Data.Text (Text, pack, unpack)
+import Data.Text.Encoding
 import System.Random
 import Text.Read (readMaybe)
 import Data.Proxy
+import Crypto.BCrypt
+import System.IO.Unsafe
 
+hashPassword :: Text-> HashPassword
+hashPassword t = unsafePerformIO $ do 
+  Just p <- hashPasswordUsingPolicy slowerBcryptHashingPolicy $ encodeUtf8 t
+  return $ HashPassword p
 
 --------------------------------------------------------------------------
 --- SERVING

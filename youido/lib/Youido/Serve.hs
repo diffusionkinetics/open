@@ -26,7 +26,7 @@ import Control.Monad.Reader
 
 serveY :: a -> YouidoT (ReaderT a IO) () -> IO ()
 serveY x (YouidoT sm) = do
-  y <- runReaderT (execStateT sm (Youido [] "Not found!" id [] 3000)) x
+  y <- runReaderT (execStateT sm (Youido [] "Not found!" id [] (const $const $return Nothing) 3000)) x
   serve x y
 
 loginPage :: Maybe (Html ()) -> Html ()
@@ -34,7 +34,7 @@ loginPage mwarn = stdHtmlPage (return ()) $ container_ $
    row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
 serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ users port') = do
+serve x y@(Youido _ _ _ users looku port') = do
   sessions <- newTVarIO (Data.IntMap.empty)
   scotty port' $ do
     middleware $ logStdout
