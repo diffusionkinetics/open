@@ -29,31 +29,29 @@ type ID = Text
 type Network = Text
 type Volumes = [(FilePath, FilePath)]
 
-test :: (MonadIO m, MonadThrow m) => [Text] -> DampfT m ()
-test r = do
-  ds <- view $ app . domains
-  iforM_ ds (\n s -> domainConfig n s >>= liftIO . putStrLn . T.unpack)
+test :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
+test ls = do
+  netName <- randomName
+  runDockerT $ netCreate netName
 
-{-test :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()-}
-{-test ls = do-}
-  {-netName <- randomName-}
-  {-runDockerT $ netCreate netName-}
-
-  {-pids <- runProxies netName-}
+  proxie_ids <- runProxies netName
 
   -- fix nginx config
   -- rename containers
   -- make cleanUp delete all the containers
   -- add database related opearitons to `test`
 
-  
-  {-(nid, nip) <- pretendToDeployDomains >>= runNginx netName-}
+  (nginx_id, nginx_ip) <- pretendToDeployDomains >>= runNginx netName
 
-  {-let argsTweak = set dns (Just nip)-}
-                {-. set net netName -}
+  liftIO . putStrLn . T.unpack $ nginx_ip
 
-  {-runTests argsTweak ls-}
-  {-cleanUp netName (nid : pids)-}
+  let argsTweak = set dns (Just nginx_ip)
+                . set net netName 
+
+  test_ids <- runTests argsTweak ls
+  cleanUp netName (nginx_id : (proxie_ids ++ test_ids))
+
+nginx_image_name = "dampf-nginx"
 
 xSpec :: ContainerSpec
 xSpec = ContainerSpec "nginx" Nothing Nothing Nothing
@@ -73,18 +71,16 @@ runProxies netName = do
 
   return (toListOf traverse id's)
 
-{-mkConfig :: _ -> DampfT m Text-}
-{-copyStatic :: _ -> DampfT m ()-}
-
 runNginx :: (MonadIO m, MonadThrow m) => Network -> Volumes -> DampfT m (ID, IP)
 runNginx netName vs = runDockerT $ 
-  runWith (set net netName . set volumes (Just vs)) "nginx" xSpec >>= 
-    (\id' -> (id',) <$> getIp id')
+  runWith (set net netName . set volumes vs) nginx_image_name xSpec >>= 
+    (\id' -> (T.take 12 id',) <$> getIp id')
     where getIp !id' = inspect "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" id'
 
-cleanUp :: (MonadIO m, MonadThrow m) => Network -> [ID] -> DampfT m ()
-cleanUp netName ids = void . runDockerT $ do
-  forM_ ids stop
+cleanUp :: (MonadIO m, MonadThrow m) => Network -> Names -> DampfT m ()
+cleanUp netName names = void . runDockerT $ do
+  stopMany names
+  {-rmMany names-}
   netRM [netName]
 
 randomName :: (MonadIO m, MonadThrow m) => DampfT m Network

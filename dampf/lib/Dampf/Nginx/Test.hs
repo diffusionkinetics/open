@@ -1,16 +1,17 @@
 {-# LANGUAGE OverloadedStrings, TupleSections  #-}
 
 module Dampf.Nginx.Test 
-  (pretendToDeployDomains)
   where
 
 import           Control.Lens
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
+import           Control.Monad                  (when)
 import           Data.Text                      (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Map.Strict as Map
 import           Data.Monoid ((<>))
+import           Data.Maybe (catMaybes)
 
 
 import           System.Directory
@@ -24,24 +25,50 @@ import           Dampf.Types
 
 pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]
 pretendToDeployDomains = do
-    crt <- view $ config . liveCertificate 
+    crt <- view $ config . liveCertificate . _Just
     ds  <- view $ app . domains
+
+    let go = (\n -> (n, "/var/www" <> n))
+        path = "/tmp/dampf/test-nginx"
     
-    vols <- iforM ds $ \name spec -> do
-        fl <- domainConfig name spec
-        liftIO $ do
-            let strName = T.unpack name
+    fl <- itraverse domainConfig ds <&> foldOf traverse
 
-            T.writeFile        (".dampf-test-nginx/sites-available" </> strName) fl
-            createSymbolicLink (".dampf-test-nginx/sites-available" </> strName)
-                               (".dampf-test-nginx/sites-enabled" </> strName)
-            
-        return $ 
-             spec ^.. static . _Just . to (\n -> (n, "/var/www" <> n))
+    liftIO $ do 
+      createDirectoryIfMissing True path
+      T.writeFile (path </> "nginx.conf") fl
 
-    return . foldMap snd . Map.toList $ vols
-          <> [(crt, crt)]
-          <> [(".dampf-test-nginx/", "/etc/nginx")]
+    return $ ds ^.. traverse . static . _Just . to go
+      <> [(crt, crt)]
+      <> [(path, "/etc/nginx")]
+
+{-pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]-}
+{-pretendToDeployDomains = do-}
+    {-crt <- view $ config . liveCertificate . _Just-}
+    {-ds  <- view $ app . domains-}
+
+    {-let go = (\n -> (n, "/var/www" <> n))-}
+        {-path = "/tmp/dampf/test-nginx"-}
+    
+    {-iforM_ ds $ \name spec -> do-}
+        {-fl <- domainConfig name spec-}
+        {-liftIO $ do-}
+          {-let strName = T.unpack name-}
+              {-savail  = path </> "sites-availible"-}
+              {-senabl  = path </> "sites-enabled"  -}
+
+          {-createDirectoryIfMissing True savail-}
+          {-createDirectoryIfMissing True senabl-}
+
+          {-T.writeFile (savail </> strName) fl-}
+
+          {-exists <- fileExist (senabl </> strName)-}
+          {-when (not exists) $ createSymbolicLink -}
+            {-(savail </> strName) -}
+            {-(senabl </> strName)-}
+
+    {-return $ ds ^.. traverse . static . _Just . to go-}
+      {-<> [(crt, crt)]-}
+      {-<> [(path, "/etc/nginx")]-}
 
 domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
 domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
@@ -96,8 +123,8 @@ staticAttrs x =
 fakeProxyAttrs :: Text -> [(Text, Text)]
 fakeProxyAttrs x =
     [ ("proxy_pass", x)
-    , ("proxy_set_header", "Host $host")
-    , ("proxy_set_header", "X-Real-IP $remote_addr")
-    , ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")
-    , ("proxy_set_header", "X-Forwarded-Proto $scheme")
+    {-, ("proxy_set_header", "Host $host")-}
+    {-, ("proxy_set_header", "X-Real-IP $remote_addr")-}
+    {-, ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")-}
+    {-, ("proxy_set_header", "X-Forwarded-Proto $scheme")-}
     ]

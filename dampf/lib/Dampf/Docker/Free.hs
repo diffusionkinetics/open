@@ -30,8 +30,10 @@ dockerIter :: (MonadIO m, MonadThrow m) => DockerF (DampfT m a) -> DampfT m a
 dockerIter = \case
   Build t i next -> interpBuild t i >> next
   Rm c next      -> interpRm c >>= next
+  RmMany cs next -> interpRmMany cs >>= next
   Run c s next   -> interpRun c s >>= next
   Stop c next    -> interpStop c >> next
+  StopMany cs next -> interpStopMany cs >> next
   Pull n next    -> interpPull n >> next
   RunWith f n spec next         -> interpRunWith f n spec >>= next
   NetworkCreate net next        -> interp (defCreateArg net) >> next
@@ -53,11 +55,13 @@ interpBuild t i = do
 
 
 interpRm :: (MonadIO m) => Text -> DampfT m Text
-interpRm c = do
-    liftIO . putStrLn $ "Docker: Removing " ++ T.unpack c
-    liftIO $ putStrLn $ "$ docker rm "++T.unpack c
-    readDockerProcess ["rm", T.unpack c]
+interpRm c = interpRmMany [c]
 
+interpRmMany :: (MonadIO m) => [Text] -> DampfT m Text
+interpRmMany cs = do
+    liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
+    readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
+  
 
 interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m Text
 interpRun = interpRunWith id
@@ -74,9 +78,12 @@ interpRunWith f n spec = do
 
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
-interpStop c = do
-    liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack c
-    runDockerProcess ["stop", T.unpack c]
+interpStop c = interpStopMany [c]
+
+interpStopMany :: (MonadIO m) => [Text] -> DampfT m ()
+interpStopMany cs = do
+    liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack (T.intercalate ", " cs)
+    runDockerProcess $ ["stop"] ++ fmap T.unpack cs
 
 
 readDockerProcess :: MonadIO m => [String] -> DampfT m Text

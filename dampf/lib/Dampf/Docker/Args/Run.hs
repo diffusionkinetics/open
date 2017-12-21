@@ -62,7 +62,6 @@ data RunArgs = RunArgs
 
 makeClassy ''RunArgs
 
-
 instance ToArgs RunArgs where
     toArgs r = ["run"]
         <> bool ["--rm"] [] (r ^. rmArg)
@@ -70,15 +69,17 @@ instance ToArgs RunArgs where
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
-        <> foldrOf (hosts .> itraversed . withIndex)
-            (\(k,v) xs -> T.unpack ("--add-host=" <> k <> ":" <> v) : xs) [] r
-        <> foldrOf (volumes . traversed)
-            (\(k,v) xs -> ("-v " <> k <> ":" <> v <> ":ro") : xs) [] r
+        <> foldMapOf (hosts .> itraversed . withIndex) hostArgs r
+        <> foldMapOf (volumes . traversed) volArgs r
         <> foldr portArg [] (r ^. publish)
         <> Map.foldrWithKey envArg [] (r ^. envs)
         <> [r ^. img . to T.unpack]
         <> r ^. cmd . to (words . T.unpack)
       where
+        volArgs ("",_) = []
+        volArgs (k, v) = ["-v", k <> ":" ++ v ++ ":ro"]
+
+        hostArgs (k,v) = [T.unpack $ "--add-host=" <> k <> ":" <> v]
         portArg p ps  = ps ++ ["-p", show p ++ ":" ++ show p]
         envArg n v es = es ++ ["-e", T.unpack n ++ "=" ++ T.unpack v]
 

@@ -28,9 +28,11 @@ type DockerT = FreeT DockerF
 data DockerF next
     = Build Text FilePath next
     | Rm Text (Text -> next)
+    | RmMany [Text] (Text -> next)
     | Run Text ContainerSpec (Text -> next)
     | RunWith (RunArgs -> RunArgs) Text ContainerSpec (Text -> next)
     | Stop Text next
+    | StopMany [Text] next
     | Pull Text next
     | NetworkCreate Text next
     | NetworkCreateWith CreateArgs next
@@ -54,6 +56,8 @@ build t i = liftF (Build t i ())
 rm :: (MonadIO m) => Text -> DockerT m Text
 rm c = liftF (Rm c id)
 
+rmMany :: (MonadIO m) => [Text] -> DockerT m Text
+rmMany cs = liftF (RmMany cs id)
 
 run :: (MonadIO m) => Text -> ContainerSpec -> DockerT m Text
 run c s = liftF (Run c s id)
@@ -63,6 +67,9 @@ runWith f n spec = liftF (RunWith f n spec id)
 
 stop :: (MonadIO m) => Text -> DockerT m ()
 stop c = liftF (Stop c ())
+
+stopMany :: (MonadIO m) => [Text] -> DockerT m ()
+stopMany cs = liftF (StopMany cs ())
 
 netCreate :: (MonadIO m) => Text -> DockerT m ()
 netCreate net = liftF (NetworkCreate net ())
