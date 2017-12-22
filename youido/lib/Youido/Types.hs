@@ -100,7 +100,7 @@ data User = User
 
 -- types that can be parsed from a request, maybe
 class FromRequest a where
-  fromRequest :: (Request,[(TL.Text, TL.Text)], Maybe User) -> Maybe a
+  fromRequest :: (Request,[(TL.Text, TL.Text)], User) -> Maybe a
 
 class ToURL a where
   toURL :: a -> Text
@@ -197,7 +197,6 @@ data Youido m = Youido
   { _handlers :: [Handler m] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
   , _wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
-  , _basicAuthUsers :: [(Text, Text)]
   , _lookupUser:: Email-> HashPassword-> m (Maybe User)
   , _port :: Int
   }
@@ -210,20 +209,17 @@ newtype YouidoT m a = YouidoT {unYouidoT :: StateT (Youido m) m a}
 handle :: (FromRequest a, ToResponse b, Monad m) => (a -> m b) -> YouidoT m ()
 handle f = handlers %= ((H f):)
 
-user :: Monad m => Text -> Text -> YouidoT m ()
-user u p =  basicAuthUsers %= ((u,p):)
-
 liftY :: Monad m => m a -> YouidoT m a
 liftY mx = YouidoT (lift mx)
 
 -- | get a response from a request, given a list of handlers
 run :: Monad m
     => Youido m
-    -> (Request, [(TL.Text, TL.Text)], Maybe User) -- ^ incoming request
+    -> (Request, [(TL.Text, TL.Text)], User) -- ^ incoming request
     -> m Response
-run (Youido [] notFound wrapperf _ _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf users lu p) rq = do
+run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf lu p) rq = do
   case fromRequest rq of
-    Nothing -> run (Youido hs notFound wrapperf users lu p) rq
+    Nothing -> run (Youido hs notFound wrapperf lu p) rq
     Just x -> toResponse . wrapHtml wrapperf <$> f x
 
