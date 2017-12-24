@@ -60,6 +60,7 @@ library
     build-depends:
         base >= 4.7 && < 5
       , aeson
+      , attoparsec
       , containers
       , directory
       , exceptions
@@ -83,6 +84,7 @@ library
       , split
       , random
       , transformers
+      , scientific
 
 executable dampf
     main-is: Main.hs

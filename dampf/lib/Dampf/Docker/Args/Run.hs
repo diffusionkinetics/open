@@ -18,8 +18,10 @@ import           Data.Text.Strict.Lens (utf8, _Text)
 import           Data.Bool (bool)
 import qualified Data.Text as T
 import           Data.List (intercalate)
+import           Data.Scientific
 
 import           Dampf.Docker.Args.Class
+import           Dampf.AppFile.Types (Port (..))
 import           Dampf.Types
 
 
@@ -51,7 +53,7 @@ data RunArgs = RunArgs
     , _restart  :: RestartPolicy
     , _net      :: Text
     , _hosts    :: Map Text Text -- (domain, ip)
-    , _publish  :: [Int]
+    , _publish  :: [Port]
     , _envs     :: Map Text Text
     , _rmArg    :: Bool
     , _img      :: Text
@@ -70,6 +72,7 @@ instance ToArgs RunArgs where
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
         <> foldMapOf (hosts .> itraversed . withIndex) hostArgs r
+        <> maybe [] (\ip -> ["--dns", T.unpack ip]) (r^.dns)
         <> foldMapOf (volumes . traversed) volArgs r
         <> foldr portArg [] (r ^. publish)
         <> Map.foldrWithKey envArg [] (r ^. envs)
@@ -79,8 +82,8 @@ instance ToArgs RunArgs where
         volArgs ("",_) = []
         volArgs (k, v) = ["-v", k <> ":" ++ v ++ ":ro"]
 
-        hostArgs (k,v) = [T.unpack $ "--add-host=" <> k <> ":" <> v]
-        portArg p ps  = ps ++ ["-p", show p ++ ":" ++ show p]
+        hostArgs (k,v) = ["--add-host", T.unpack $ k <> ":" <> v]
+        portArg p ps  = ps ++ ["-p", show p]
         envArg n v es = es ++ ["-e", T.unpack n ++ "=" ++ T.unpack v]
 
 

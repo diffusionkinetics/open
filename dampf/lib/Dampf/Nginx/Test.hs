@@ -22,7 +22,6 @@ import           System.Process
 import           Dampf.Nginx.Types
 import           Dampf.Types
 
-
 pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]
 pretendToDeployDomains = do
     crt <- view $ config . liveCertificate . _Just
@@ -41,37 +40,8 @@ pretendToDeployDomains = do
       <> [(crt, crt)]
       <> [(path, "/etc/nginx")]
 
-{-pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]-}
-{-pretendToDeployDomains = do-}
-    {-crt <- view $ config . liveCertificate . _Just-}
-    {-ds  <- view $ app . domains-}
-
-    {-let go = (\n -> (n, "/var/www" <> n))-}
-        {-path = "/tmp/dampf/test-nginx"-}
-    
-    {-iforM_ ds $ \name spec -> do-}
-        {-fl <- domainConfig name spec-}
-        {-liftIO $ do-}
-          {-let strName = T.unpack name-}
-              {-savail  = path </> "sites-availible"-}
-              {-senabl  = path </> "sites-enabled"  -}
-
-          {-createDirectoryIfMissing True savail-}
-          {-createDirectoryIfMissing True senabl-}
-
-          {-T.writeFile (savail </> strName) fl-}
-
-          {-exists <- fileExist (senabl </> strName)-}
-          {-when (not exists) $ createSymbolicLink -}
-            {-(savail </> strName) -}
-            {-(senabl </> strName)-}
-
-    {-return $ ds ^.. traverse . static . _Just . to go-}
-      {-<> [(crt, crt)]-}
-      {-<> [(path, "/etc/nginx")]-}
-
 domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
-domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
+domainConfig name spec = T.pack . pShowFakeServer <$> domainToServer name spec
 
 
 domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
@@ -122,9 +92,10 @@ staticAttrs x =
 
 fakeProxyAttrs :: Text -> [(Text, Text)]
 fakeProxyAttrs x =
-    [ ("proxy_pass", x)
-    {-, ("proxy_set_header", "Host $host")-}
-    {-, ("proxy_set_header", "X-Real-IP $remote_addr")-}
-    {-, ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")-}
-    {-, ("proxy_set_header", "X-Forwarded-Proto $scheme")-}
+    [ ("resolver", "127.0.0.11")
+    , ("proxy_pass", "http://pyping:8080")
+    , ("proxy_set_header", "Host $host")
+    , ("proxy_set_header", "X-Real-IP $remote_addr")
+    , ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")
+    , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]

@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DuplicateRecordFields   #-}
 {-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE ViewPatterns    #-}
 
 module Dampf.AppFile.Types
   ( -- * Application Type
@@ -21,10 +22,12 @@ module Dampf.AppFile.Types
   , TestWhen(..)
   , TestUnit(..)
   , HasTestSpec(..)
+  , Port (..)
   ) where
 
 import           Control.Lens
 import           Control.Monad
+import           Control.Applicative
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.HashMap.Lazy as HM
@@ -33,6 +36,8 @@ import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           GHC.Generics
 import           Data.Char (toLower)
+import           Data.Attoparsec.Text 
+import           Data.Scientific
 
 import           Dampf.Internal.Yaml
 
@@ -44,16 +49,27 @@ data ImageSpec = ImageSpec
     { _dockerFile :: FilePath
     } deriving (Eq, Show, Generic)
 
-makeClassy ''ImageSpec
-
+makeClassy ''ImageSpec 
 
 instance FromJSON ImageSpec where
     parseJSON = gDecode
 
+data Port = Port Int | Map Int Int deriving (Eq, Generic)
+instance Show Port 
+  where show (Port p) = show p
+        show (Map p p') = show p ++ ":" ++ show p
+
+instance FromJSON Port where
+  parseJSON (String s) = go s where
+    go = either (const empty) pure . parseOnly parseMap
+    parseMap = Map <$> (decimal <* char ':') <*> decimal
+  
+  parseJSON (Number n) = either (const empty) (pure . Port) . floatingOrInteger $ n
+  parseJSON _ = empty
 
 data ContainerSpec = ContainerSpec
     { _image        :: ImageName
-    , _expose       :: Maybe [Int]
+    , _expose       :: Maybe [Port]
     , _command      :: Maybe Command
     , _useDatabase  :: Maybe Text
     } deriving (Eq, Show, Generic)

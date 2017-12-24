@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Dampf.Nginx.Types
   ( Server(..)
   , ServerDecl(..)
   , pShowServer
+  , pShowFakeServer
   ) where
 
 import           Data.Text          (Text)
@@ -9,9 +11,10 @@ import qualified Data.Text as T
 import           Text.PrettyPrint
 
 
-newtype Server
-    = Server [ServerDecl]
+newtype Server = Server [ServerDecl] 
 
+addDecl :: ServerDecl -> Server -> Server
+addDecl d (Server ds) = Server (d : ds)
 
 data ServerDecl
     = Listen Int [String]
@@ -21,16 +24,25 @@ data ServerDecl
     | SSLCertificate FilePath
     | SSLCertificateKey FilePath
 
-
 pShowServer :: Server -> String
 pShowServer = render . pprServer
 
+pShowFakeServer :: Server -> String
+pShowFakeServer = render . addMoreThings 
+  where addMoreThings doc = 
+              text "events" <+> lbrace
+          $+$ nest 4 (text "worker_connections 512;") 
+          $+$ rbrace
+          $+$ text "http" <+> lbrace
+          $+$ nest 4 (pprServer doc)
+          $+$ rbrace
+
 
 pprServer :: Server -> Doc
-pprServer (Server ds) = text "server" <+> lbrace
-    $+$ nest 4 (vcat $ fmap pprServerDecl ds)
-    $+$ rbrace
-
+pprServer (Server ds) = 
+      text "server" <+> lbrace
+  $+$ nest 4 (vcat $ fmap pprServerDecl ds)
+  $+$ rbrace
 
 pprServerDecl :: ServerDecl -> Doc
 pprServerDecl (Listen p ss)         = text "listen"
@@ -53,7 +65,5 @@ pprServerDecl (SSLCertificate p)    = text "ssl_certificate"
 pprServerDecl (SSLCertificateKey p) = text "ssl_certificate_key"
     <+> text p <> semi
 
-
 ppMap :: (Text, Text) -> Doc
 ppMap (k, v) = text (T.unpack k) <+> text (T.unpack v) <> semi
-

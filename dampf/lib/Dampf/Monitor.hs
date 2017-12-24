@@ -1,7 +1,7 @@
 {-# language LambdaCase, OverloadedStrings, TupleSections #-}
 module Dampf.Monitor where
 
-import Dampf.Docker.Free (runDockerT)
+import Dampf.Docker.Free (report, runDockerT)
 import Dampf.Docker.Types
 import Dampf.Types
 import Dampf.Docker.Args.Run
@@ -12,6 +12,7 @@ import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import System.Exit (exitFailure)
+import Data.Function (on)
 import Data.Text (Text)
 import Data.Foldable (find)
 import Data.Monoid ((<>))
@@ -23,7 +24,6 @@ import qualified Data.Text as T
 
 type Tests = [Text]
 type Names = [Text]
-
 
 runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
 runMonitor = void . runTests id
@@ -37,23 +37,20 @@ runUnit :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> TestUnit -> Damp
 runUnit argsTweak = \case
   TestRun iname icmd -> do
     cs  <- view (app . containers )
-    id' <- find (has $ image . only iname) cs & maybe 
+    find (has $ image . only iname) cs & maybe 
       (liftIO exitFailure)
       (runDockerT . runWith (set cmd icmd . argsTweak) iname)
-    return . T.take 12 $ id'
+    return iname
 
   TestGet uri mb_pattern -> do
-    (id' : res) <- fmap (lines . T.unpack) . runDockerT . runWith argsTweak curl_image_name . curlSpec $ uri
+    (res) <- runDockerT . runWith argsTweak curl_container_name . curlSpec $ uri
     case mb_pattern of
-      Nothing -> report (unlines res)
+      Nothing -> report (T.unpack res)
       Just p 
-        | unlines res =~ T.unpack p -> report "matched the pattern"
-        | otherwise -> report "didn't match the pattern"
-    return . T.take 12 . T.pack $ id'
+        | ((=~) `on` T.unpack) res p -> report "matched the pattern"
+        | otherwise -> report "didn't match the pattern" *> report (T.unpack res)
+    return curl_container_name
         
-report :: (MonadIO m) => String -> DampfT m ()
-report = liftIO . putStrLn
-
 tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
 tests_to_run [] = all_tests 
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
@@ -64,7 +61,7 @@ all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 isOnlyAtBuild :: TestSpec -> Bool
 isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
 
-curl_image_name = "dampf-curl"
+curl_container_name = "dampf-curl"
 
 curlSpec :: Text -> ContainerSpec
 curlSpec url = ContainerSpec 
