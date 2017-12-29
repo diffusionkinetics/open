@@ -46,9 +46,7 @@ import Data.ByteString.Lazy.Search (replace)
 -- |Load a dataset, using the system temporary directory as a cache
 getDataset :: Dataset a -> IO [a]
 getDataset ds = do
-  dir <- case temporaryDirectory ds of
-           Nothing -> getTemporaryDirectory
-           Just tdir -> return tdir
+  dir <- tempDirForDataset ds
   bs <- fmap (fromMaybe id $ preProcess ds) $ getFileFromSource dir $ source ds
   return $ readDataset (readAs ds) bs
 
@@ -66,6 +64,12 @@ readDataset (CSVNamedRecord opts) bs =
   case decodeByNameWith opts bs of
     Right (_,theData) -> V.toList theData
     Left err -> error err
+
+tempDirForDataset :: Dataset a -> IO FilePath
+tempDirForDataset ds =
+  case temporaryDirectory ds of
+    Nothing -> getTemporaryDirectory
+    Just tdir -> return tdir
 
 data Source = URL String
             | File FilePath

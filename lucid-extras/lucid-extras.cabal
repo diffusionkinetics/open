@@ -29,8 +29,10 @@ Library
                  , Lucid.PreEscaped
                  , Lucid.DataTables
                  , Lucid.Rdash
+                 , Lucid.Leaflet
    Build-depends:
                  base                    >= 4.6 && < 5
+               , aeson
                , lucid
                , text
                , blaze-builder

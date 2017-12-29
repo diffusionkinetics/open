@@ -57,8 +57,9 @@ bubblesDD gapM = do
   h2_ "hello world"
   BubblesDD y <- getValue
   p_ (toHtml $ show $ y)
-  clickAttrs <- onClickDo $ \dd ->
+  clickAttrs <- onClickDo $ \dd -> do
     liftIO $ putStrLn $ "current state: "++show dd
+    return Reset
   button_ (clickAttrs) "Print state"
 
 

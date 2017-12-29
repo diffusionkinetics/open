@@ -13,7 +13,7 @@ dashdoGenOut :: Monad m
              => Dashdo m a
              -> a
              -> [(TL.Text, TL.Text)]
-             -> m (TL.Text, FormFields a, [(Text, a -> m ())] )
+             -> m (TL.Text, FormFields a, [(Text, a -> m ActionResult)] )
 dashdoGenOut (Dashdo _ r) x pars = runSHtml x r pars
 
 

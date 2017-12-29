@@ -29,7 +29,7 @@ data DockerF next
     = Build Text FilePath next
     | Rm Text (Text -> next)
     | RmMany [Text] (Text -> next)
-    | Run Text ContainerSpec (Text -> next)
+    | Run Bool Text ContainerSpec (Text -> next)
     | RunWith (RunArgs -> RunArgs) Text ContainerSpec (Text -> next)
     | Stop Text next
     | StopMany [Text] next
@@ -59,8 +59,8 @@ rm c = liftF (Rm c id)
 rmMany :: (MonadIO m) => [Text] -> DockerT m Text
 rmMany cs = liftF (RmMany cs id)
 
-run :: (MonadIO m) => Text -> ContainerSpec -> DockerT m Text
-run c s = liftF (Run c s id)
+run :: (MonadIO m) => Bool -> Text -> ContainerSpec -> DockerT m Text
+run d c s = liftF (Run d c s id)
 
 runWith :: (MonadIO m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DockerT m Text
 runWith f n spec = liftF (RunWith f n spec id)

@@ -28,3 +28,4 @@ library
                      , postgresql-simple
                      , aeson
                      , bytestring
+                     , text

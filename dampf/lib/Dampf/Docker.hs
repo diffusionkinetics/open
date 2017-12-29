@@ -1,13 +1,18 @@
+{-# LANGUAGE OverloadedStrings  #-}
 module Dampf.Docker
   ( -- * Actions
     buildDocker
   , deployDocker
+  , runDocker
   ) where
 
 import Control.Lens
 import Control.Monad            (void)
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO)
+import Data.Text (Text)
+import Data.Monoid
+import           Data.Map.Strict            (keys)
 
 import Dampf.Docker.Free
 import Dampf.Docker.Types
@@ -29,5 +34,10 @@ deployDocker = do
     runDockerT . iforM_ cs $ \n spec -> do
         stop n
         void (rm n)
-        run n spec
+        run True n spec
 
+runDocker :: (MonadIO m, MonadThrow m) => Text -> Maybe Text -> DampfT m ()
+runDocker imgNm mCmd = do
+  dbs <- view (app . databases)
+  let firstDb = safeHead $ keys dbs
+  runDockerT $ void . run False ("run"<>imgNm) $ ContainerSpec imgNm Nothing mCmd firstDb

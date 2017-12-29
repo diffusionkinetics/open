@@ -33,7 +33,7 @@ dockerIter = \case
   Build t i next -> interpBuild t i >> next
   Rm c next      -> interpRm c >>= next
   RmMany cs next -> interpRmMany cs >>= next
-  Run c s next   -> interpRun c s >>= next
+  Run d c s next -> interpRun d c s >>= next
   Stop c next    -> interpStop c >> next
   StopMany cs next -> interpStopMany cs >> next
   Pull n next    -> interpPull n >> next
@@ -49,9 +49,6 @@ dockerIter = \case
   Inspect format id' next       -> interpInspect format id' >>= next
   ContainerLS next              -> interpContainerLS >>= next
 
-report :: (MonadIO m) => String -> DampfT m ()
-report = liftIO . putStrLn
-
 interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
 interpBuild t i = do
     liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
@@ -65,19 +62,19 @@ interpRmMany cs = do
     liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
     readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
   
-
-interpRun :: (MonadIO m, MonadThrow m) => Text -> ContainerSpec -> DampfT m Text
-interpRun = interpRunWith id
-
+interpRun :: (MonadIO m, MonadThrow m) => Bool -> Text -> ContainerSpec -> DampfT m Text
+interpRun True  = interpRunWith id
+interpRun False = interpRunWith unDaemonize
 
 interpRunWith :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DampfT m Text
 interpRunWith f n spec = do
     args <- mkRunArgs n spec <&> f
-    {-liftIO . print . toArgs $ args-}
+    liftIO . print . toArgs $ args
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
-    readDockerProcess . toArgs $ args
-
+    res <- readDockerProcess . toArgs $ args
+    liftIO . T.putStrLn $ res
+    return res
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = interpStopMany [c]

@@ -19,7 +19,7 @@ domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
 domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
 domainToServer name spec
     | isSSL     = do
-        decls <- (http ++) <$> sslDecls
+        decls <- (http ++) <$> sslDecls name spec
         return (Server decls)
 
     | otherwise = return (Server http)
@@ -28,32 +28,47 @@ domainToServer name spec
     http  = httpDecls name spec
 
 
-domainToLocation :: DomainSpec -> [(Text, Text)]
-domainToLocation spec = maybe [] staticAttrs s ++ maybe [] proxyAttrs p
+domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
+domainToLocation name spec =
+    maybe [] staticAttrs s
+    ++ cdnAttrs cdn
+    ++ maybe [] proxyAttrs p
   where
-    s = T.pack <$> spec ^. static
+    s :: Maybe Text
+    s = const name <$> spec ^. static
     p = spec ^. proxyContainer
+    cdn = spec ^. isCDN
 
 
-sslDecls :: (MonadIO m) => DampfT m [ServerDecl]
-sslDecls = do
-    live <- view (config . liveCertificate)
-    return (maybe [] f live)
+sslDecls :: (MonadIO m) => Text -> DomainSpec -> DampfT m [ServerDecl]
+sslDecls name spec = do
+    return $ f $ "/etc/letsencrypt/live/"++ T.unpack name
   where
     f live =
         [ Listen 443 ["ssl"]
         , SSLCertificate $ live </> "fullchain.pem"
         , SSLCertificateKey $ live </> "privkey.pem"
-        , Include "/etc/letsencrypt/options-ssl-nginx.conf"
+        , SSLTrustedCertificate $ live </> "chain.pem"
         ]
-
 
 httpDecls :: Text -> DomainSpec -> [ServerDecl]
 httpDecls name spec =
     [ Listen 80 []
     , ServerName [name, "www." `T.append` name]
-    , Location "/" $ domainToLocation spec
+    , Location "/" $ domainToLocation name spec
     ]
+
+cdnAttrs :: Maybe Bool -> [(Text, Text)]
+cdnAttrs (Just True) =
+    [ ("gzip_static","on")
+    , ("expires","max")
+    , ("log_not_found","off")
+    , ("access_log","off")
+    , ("add_header","Cache-Control public")
+    , ("add_header","'Access-Control-Allow-Origin' '*'")
+    , ("add_header","'Access-Control-Allow-Methods' 'GET, OPTIONS'")
+    ]
+cdnAttrs _ = []
 
 
 staticAttrs :: Text -> [(Text, Text)]

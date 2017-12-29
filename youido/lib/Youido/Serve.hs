@@ -1,68 +1,93 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables,
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections,
              DeriveGeneric, ExtendedDefaultRules, FlexibleContexts#-}
 
 module Youido.Serve where
 
 import Youido.Types
+import Youido.Authentication
 import Web.Scotty
+import Web.Scotty.Cookie
 import Network.Wai.Middleware.RequestLogger (logStdout)
-import Network.Wai.Middleware.HttpAuth
 
 import Lucid
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
-
-import Data.Text (Text)
+import Control.Concurrent.STM
+import qualified Data.IntMap
+import Data.Text (Text, pack, unpack)
 import Data.Monoid
-import Control.Monad.State.Strict
+import Control.Monad.State.Strict hiding (get)
+import qualified Data.Map.Strict as Map
 
-
-import Control.Monad.IO.Class
 import Control.Monad.Reader
-
-type Session = ()
 
 --conn <-  createConn <$> readJSON "youido.json"
 
 serveY :: a -> YouidoT (ReaderT a IO) () -> IO ()
 serveY x (YouidoT sm) = do
-  y <- runReaderT (execStateT sm (Youido [] "Not found!" id [] 3000)) x
+  y <- runReaderT (execStateT sm (Youido [] "Not found!" id (const $const $return Nothing) 3000)) x
   serve x y
 
+loginPage :: Maybe (Html ()) -> Html ()
+loginPage mwarn = stdHtmlPage (return ()) $ container_ $
+   row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
+
 serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ users port) = do
-  scotty port $ do
-   middleware $ logStdout
-   when (not $ null users) $
-     middleware $ basicAuth (\u p -> case lookup u users of
-                                       Nothing -> return False
-                                       Just passwd -> return $ p == passwd)
-        "Youidoapp"
-   matchAny (regex "/*") $ do
-     rq <- request
-     pars <- params
-     --liftIO $ print ("got request", rq)
-     Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars)) x
-     status stat
-     mapM_ (uncurry setHeader) hdrs
-     raw conts
+serve x y@(Youido _ _ _ looku port') = do
+  sessions <- newTVarIO (Data.IntMap.empty)
+  scotty port' $ do
+    middleware $ logStdout
+    get "/login" $ do
+      html $ renderText $ loginPage Nothing
+    get "/logout" $ do
+      msess <- lookupSession sessions
+      case msess of
+        Nothing -> return ()
+        Just (i,_) -> deleteSession sessions i
+      html $ renderText $ loginPage $ Just $ div_ [class_ "alert alert-info"] "Goodbye!"
+    post "/login" $ do
+      femail <- param "inputEmail"
+      fpasswd <- param "inputPassword"
+      let incorrect = renderText $ loginPage $ Just $
+                div_ [class_ "alert alert-danger"] "Incorrect user or password"
+      mu <- liftIO $ flip runReaderT x $ looku femail (hashPassword fpasswd)
+      case mu of
+        Nothing -> html incorrect
+        Just u -> newSession sessions u >> redirect "/"
+
+    matchAny (regex "/*") $ do
+      let go email = do
+            rq <- request
+            pars <- params
+            --liftIO $ print ("got request", rq)
+            Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars,email)) x
+            status stat
+            mapM_ (uncurry setHeader) hdrs
+            raw conts
+      msess <- lookupSession sessions
+      case msess of
+        Nothing -> redirect "/login"
+        Just (i,u) -> go u
+
 
 dashdoCustomJS :: Html ()
 dashdoCustomJS =
   script_ "$(function(){$('#dashdoform').dashdo({uuidInterval:-1})})"
 
-
-stdWrapper :: Html () -> Html () -> Html () -> Html ()
-stdWrapper hdrMore sidebar h = doctypehtml_ $ do
+stdHtmlPage :: Html () -> Html () -> Html ()
+stdHtmlPage hdrMore tbody = doctypehtml_ $ do
   head_ $ do
     meta_ [charset_ "utf-8"]
     cdnCSS
     cdnThemeCSS
     cdnJqueryJS
     hdrMore
+  body_ tbody
 
-  body_ $ do
+stdWrapper :: Html () -> Html () -> Html () -> Html ()
+stdWrapper hdrMore sidebar h =
+  stdHtmlPage hdrMore $ do
     container_ $ row_ $ do
       mkCol [(XS, 1)] $ sidebar
       mkCol [(XS, 11)] $ h

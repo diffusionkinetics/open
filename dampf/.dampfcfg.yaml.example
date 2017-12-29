@@ -1,12 +1,10 @@
 # a file such as the below should me placed in $HOME/.dampfcfg.yaml
 
-liveCertificate: /etc/letsencrypt/live/mydomain.com/
-
 postgres:
     host: localhost
     port: 5432
 
     users:
         postgres: pgpassword
-        user: password
+        user: userspassword
 

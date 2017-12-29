@@ -1,7 +1,7 @@
 {-# language LambdaCase, OverloadedStrings, TupleSections #-}
 module Dampf.Monitor where
 
-import Dampf.Docker.Free (report, runDockerT)
+import Dampf.Docker.Free (runDockerT)
 import Dampf.Docker.Types
 import Dampf.Types
 import Dampf.Docker.Args.Run
@@ -47,13 +47,25 @@ runUnit argsTweak = \case
     case mb_pattern of
       Nothing -> report (T.unpack res)
       Just p 
-        | ((=~) `on` T.unpack) res p -> report "matched the pattern"
-        | otherwise -> report "didn't match the pattern" *> report (T.unpack res)
+        | ((=~) `on` T.unpack) res p -> success
+        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") *> report (T.unpack res)
     return curl_container_name
         
 tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
 tests_to_run [] = all_tests 
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
+
+report :: (MonadIO m) => String -> DampfT m ()
+report = liftIO . putStr
+
+reportLn :: (MonadIO m) => String -> DampfT m ()
+reportLn = liftIO . putStrLn
+
+success :: (MonadIO m) => DampfT m ()
+success = reportLn " [OK]"
+
+reportFail :: (MonadIO m) => String -> DampfT m ()
+reportFail s = reportLn s *> liftIO exitFailure
 
 all_tests :: Monad m => DampfT m (Map Text TestSpec)
 all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)

@@ -16,6 +16,7 @@ import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
 import Data.Aeson
+import Data.Text (Text)
 
 class HasFieldNames a where
   getFieldNames :: Proxy a -> [String]
@@ -49,6 +50,16 @@ insertAll conn  val = do
              val
   return ()
 
+  --insert all fields
+insertAllOrDoNothing :: forall r. (ToRow r, HasTable r) => Connection  -> r -> IO ()
+insertAllOrDoNothing conn  val = do
+  let fnms = getFieldNames $ (Proxy :: Proxy r)
+  _ <- execute conn ("INSERT INTO " <> fromString (tableName (Proxy :: Proxy r)) <> " (" <>
+                     (fromString $ intercalate "," fnms ) <>
+                     ") VALUES (" <>
+                     (fromString $ intercalate "," $ map (const "?") fnms) <> ") ON CONFLICT DO NOTHING")
+             val
+  return ()
 
 
 class KeyField a where
@@ -60,7 +71,7 @@ class KeyField a where
    autoIncrementing _ = False
 
 instance KeyField Int
---instance KeyField Text
+instance KeyField Text
 instance KeyField String
 instance (KeyField a, KeyField b) => KeyField (a,b) where
   toFields (x,y) = toFields x ++ toFields y
@@ -87,6 +98,26 @@ insert conn val = do
                fields = mconcat $ intersperse "," $ fldNmsNoKey
                qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
                q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") returning "<>kName
+           res <- query conn q qArgs
+           case res of
+             [] -> fail $ "no key returned from "++show tblName
+             Only k : _ -> return k
+
+insertOrDoNothing :: forall a . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a)) => Connection -> a -> IO (Key a)
+insertOrDoNothing conn val = do
+  if autoIncrementing (undefined :: Proxy (Key a))
+     then ginsertSerial
+     else do insertAll conn val
+             return $ getKey val
+   where ginsertSerial = do
+           let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+               tblName = fromString $ tableName (Proxy :: Proxy a)
+               fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
+               fldNmsNoKey = filter (/=kName) fldNms
+               qmarks = mconcat $ intersperse "," $ map (const "?") fldNms
+               fields = mconcat $ intersperse "," $ fldNmsNoKey
+               qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
+               q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") ON CONFLICT DO NOTHING returning "<>kName
            res <- query conn q qArgs
            case res of
              [] -> fail $ "no key returned from "++show tblName

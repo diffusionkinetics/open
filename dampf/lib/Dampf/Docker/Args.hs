@@ -7,6 +7,7 @@ module Dampf.Docker.Args
   , defConnectArg
   , ConnectArgs
   , CreateArgs
+  , unDaemonize
   ) where
 
 import           Dampf.Docker.Args.Class

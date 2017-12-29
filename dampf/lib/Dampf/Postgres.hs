@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Dampf.Postgres where
 
@@ -9,11 +10,14 @@ import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
 import           System.Process.Typed
+import           Data.Map.Strict            (toList)
 
 import           Dampf.Postgres.Connect
 import           Dampf.Postgres.Migrate
 import           Dampf.Postgres.Setup
 import           Dampf.Types
+import           System.Environment (getEnvironment)
+import           System.Exit
 
 
 runMigrations :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
@@ -37,6 +41,21 @@ setupDB = do
     createDatabases
     createExtensions
 
+restoreDB :: (MonadIO m, MonadThrow m) => FilePath -> Maybe Text  -> DampfT m ()
+restoreDB fnm mdb = do
+    createUsers
+    createDatabases
+    ms <- view (config . postgres)
+    ds <- view (app . databases)
+
+    case ms of
+        Just s  -> iforM_ ds $ \name spec ->
+            when (maybe True (== name) mdb) $ do
+                let envs = pgEnv name (spec & user .~ "postgres")  s
+                runProcess_ $ setEnv envs $ shell
+                   $ "pg_restore -d "++T.unpack name++" "++fnm
+
+        Nothing -> throwM NoDatabaseServer
 
 backupDB :: (MonadIO m, MonadThrow m) => Maybe Text -> DampfT m ()
 backupDB mdb = do
@@ -58,6 +77,28 @@ backupDB mdb = do
                 runProcess_ cmd
 
         Nothing -> throwM NoDatabaseServer
-            
+
+pgEnv :: Text -> DatabaseSpec -> PostgresConfig -> [(String,String)]
+pgEnv dbNm d s =
+    [ ("PGHOST", T.unpack $ s ^. host)
+    , ("PGPORT", T.unpack $ s ^. port . to (T.pack . show))
+    , ("PGDATABASE", T.unpack $ dbNm)
+    , ("PGUSER", T.unpack $ d ^. user)
+    , ("PGPASSWORD", T.unpack $ s ^. users . at (d ^. user) . non "")
+    ]
+
+envCmd :: (MonadIO m, MonadThrow m) =>  [Text] -> DampfT m ()
+envCmd cmd = do
+  oldEnv <- liftIO $ getEnvironment
+  dbs <- view (app . databases)
+  Just s <- view (config . postgres)
+  let (dbNm, dbSpec):_ = toList dbs
+      envs = pgEnv dbNm dbSpec s ++ oldEnv
+      shcmd  = setEnv envs $ shell $ T.unpack $ T.unwords cmd
+  ec <- runProcess shcmd
+  liftIO $ exitWith ec
+
+
+
 --PGPASSWORD=mypassword pg_dump -Fc -U myuser filocore >../db_dump
 

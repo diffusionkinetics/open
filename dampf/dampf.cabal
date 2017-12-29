@@ -44,6 +44,7 @@ library
       , Dampf.Docker.Args.Class
       , Dampf.Docker.Args.Run
       , Dampf.Docker.Args.Network
+      , Dampf.Provision
 
     other-modules:
         Dampf.Internal.Env
@@ -85,14 +86,15 @@ library
       , random
       , transformers
       , scientific
+      , shelly
 
 executable dampf
     main-is: Main.hs
-
     build-depends:
         base >=4.7 && <5
       , dampf
       , lens
       , optparse-applicative
+      , optparse-generic
       , text
 

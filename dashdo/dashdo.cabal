@@ -54,3 +54,4 @@ Library
                , plotlyhs
                , deepseq
                , safe-exceptions
+               , containers

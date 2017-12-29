@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.5
+resolver: lts-9.6
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,6 +37,8 @@ resolver: lts-8.5
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- ../datasets
+- ../../streaming-cassava
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

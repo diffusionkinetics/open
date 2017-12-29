@@ -28,6 +28,7 @@ Library
 
    Exposed-modules:
                    Beetle.Base
+                   Beetle.Datasets.Streaming
                    Beetle.UK.PropertyData
    Build-depends:
                    base                    >= 4.6 && < 5
@@ -42,3 +43,9 @@ Library
                  , vector
                  , wreq
                  , higher-leveldb
+                 , datasets
+                 , streaming
+                 , streaming-bytestring
+                 , streaming-cassava
+                 , cassava
+                 , mtl

@@ -20,6 +20,7 @@ module Dampf.Types
     -- * Configuration Files
   , module ConfigFile
   , loadConfigFile
+  , safeHead
   ) where
 
 import Control.Lens
@@ -95,6 +96,10 @@ runDampfT a c = flip runReaderT context . unDampfT
   where
     context = DampfContext a c
 
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead [] = Nothing
 
 -- Loading YAML Files
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dashdo.Rdash (rdash, charts, controls) where
+module Dashdo.Rdash (rdash, charts, controls, defaultSidebar, Sidebar(..)) where
 
 import Dashdo.Types
 import Lucid
@@ -12,10 +12,11 @@ import Data.Text hiding (map, intersperse, length)
 import Data.Monoid
 import Control.Applicative ((<$>))
 
-sidebarMain, sidebarTitle :: (Monad m) => HtmlT m ()
-sidebarTitle = span_ "Dashboards"
-sidebarMain  = a_ [href_ "#"] $ do
-  "Dashdo"
+sidebarMain, sidebarTitle :: Sidebar -> Html ()
+sidebarTitle sb = span_ $ toHtml $ subTitle sb
+
+sidebarMain sb = a_ [href_ "#"] $ do
+  toHtml $ title sb
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
 sidebarList :: [RDashdo m] -> [Html ()]
@@ -25,14 +26,21 @@ sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-side
       a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
         (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
 
--- TODO: remove? (seems like never used)
-{-dashdo :: RDashdo -> IO (String, TL.Text)
-dashdo (RDashdo fid _ d) = do
-  t <- fst <$> dashdoGenOut d (initial d)
-  return (fid, t) -}
+data Sidebar = Sidebar
+  {  title:: T.Text
+  ,  subTitle:: T.Text
+  ,  footer:: Html () 
+  }
 
-rdash :: [RDashdo m] -> Html () -> TL.Text
-rdash rdashdos headExtra = do
+defaultSidebar :: Sidebar
+defaultSidebar = Sidebar "Dashdo" "Dashboards" $ rowEven XS
+              [ a_ [href_ "https://github.com/diffusionkinetics/open/dashdo"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
+              , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
+              ]
+            
+
+rdash :: [RDashdo m] -> Html () -> Sidebar -> TL.Text
+rdash rdashdos headExtra sb = do
   renderText $ doctypehtml_ $ do
       head_ $ do
         meta_ [charset_ "utf-8"]
@@ -50,12 +58,9 @@ rdash rdashdos headExtra = do
         cdnJqueryJS
         headExtra
       body_ $ do
-        let sb  = do RD.mkSidebar sidebarMain sidebarTitle $ sidebarList rdashdos
-            sbf = RD.mkSidebarFooter (rowEven XS
-              [ a_ [href_ "https://github.com/diffusionkinetics/open/dashdo"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
-              , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
-              ])
-            sbw = RD.mkSidebarWrapper sb sbf
+        let sb'  = do RD.mkSidebar (sidebarMain sb) (sidebarTitle sb) $ sidebarList rdashdos
+            sbf = RD.mkSidebarFooter $ footer sb
+            sbw = RD.mkSidebarWrapper sb' sbf
             cw  = RD.mkPageContent $ do
               RD.mkHeaderBar [RD.mkMetaBox [RD.mkMetaTitle (span_ [id_ "dashdo-title"] mempty)]]
               div_ [id_ "dashdo-main"] mempty

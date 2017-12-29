@@ -8,7 +8,7 @@ import Dashdo.Types
 import Dashdo.Serve
 import Dashdo.Elements
 import Dashdo.FlexibleInput
-import Dashdo.Rdash (rdash, charts, controls)
+import Dashdo.Rdash
 import Control.Arrow ((&&&), second)
 import Control.Monad.State.Strict
 import Control.Concurrent (forkIO, threadDelay)
@@ -131,5 +131,5 @@ statView = do
   forkIO (statGrab stats)
   let dashdos = [ RDashdo "load" "System Load" $ loadDashdo stats
                 , RDashdo "process" "Processes" psDashdo ]
-      html = rdash dashdos plotlyCDN
+      html = rdash dashdos plotlyCDN defaultSidebar
   runRDashdo id html dashdos

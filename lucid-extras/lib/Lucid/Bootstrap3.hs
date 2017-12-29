@@ -71,13 +71,16 @@ navBar attrs brand items = do
       ul_ [class_ "nav navbar-nav navbar-right"] $ do
         mapM_ li_ items
 
-loginForm :: Monad m => HtmlT m ()
-loginForm = form_ [class_ "form-signin"] $ do
+loginForm :: Monad m => T.Text -> Maybe (HtmlT m ()) -> HtmlT m ()
+loginForm url mwarn = form_ [class_ "form-signin", method_ "post", action_ url] $ do
   h2_ [class_ "form-signin-heading"] $ "Please sign in"
+  case mwarn of
+    Nothing -> return ()
+    Just warn -> warn
   label_ [for_ "inputEmail", class_ "sr-only"] "Email address"
-  input_ [type_ "email", id_ "inputEmail", class_ "form-control", placeholder_ "Email address", required_ "", autofocus_]
+  input_ [type_ "email", id_ "inputEmail", name_ "inputEmail", class_ "form-control", placeholder_ "Email address", required_ "", autofocus_]
   label_ [for_ "inputPassword", class_ "sr-only"] "Password"
-  input_ [type_ "password", id_ "inputPassword", class_ "form-control", placeholder_ "Password", required_ ""]
+  input_ [type_ "password", id_ "inputPassword", name_ "inputPassword", class_ "form-control", placeholder_ "Password", required_ ""]
   div_ [class_ "checkbox"] $
     label_ $ do
       input_ [type_ "checkbox", value_ "remember-me"]

@@ -34,6 +34,14 @@ newtype Detach = Detach Bool
 instance Show Detach where
     show (Detach b) = if b then "-d" else ""
 
+newtype Rm = Rm Bool
+    deriving (Eq)
+
+
+instance Show Rm where
+    show (Rm b) = if b then "--rm" else ""
+
+
 
 data RestartPolicy
     = No
@@ -50,6 +58,7 @@ instance Show RestartPolicy where
 data RunArgs = RunArgs
     { _name     :: Text
     , _detach   :: Detach
+    , _rm       :: Rm
     , _restart  :: RestartPolicy
     , _net      :: Text
     , _hosts    :: Map Text Text -- (domain, ip)
@@ -68,6 +77,7 @@ instance ToArgs RunArgs where
     toArgs r = ["run"]
         <> bool ["--rm"] [] (r ^. rmArg)
         <> flagArg (r ^. detach)
+        <> flagArg (r ^. rm)
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
@@ -80,12 +90,20 @@ instance ToArgs RunArgs where
         <> r ^. cmd . to (words . T.unpack)
       where
         volArgs ("",_) = []
+        volArgs (_,"") = []
         volArgs (k, v) = ["-v", k <> ":" ++ v ++ ":ro"]
 
+        hostArgs ("",_) = []
+        hostArgs (_,"") = []
         hostArgs (k,v) = ["--add-host", T.unpack $ k <> ":" <> v]
         portArg p ps  = ps ++ ["-p", show p]
         envArg n v es = es ++ ["-e", T.unpack n ++ "=" ++ T.unpack v]
 
+unDaemonize :: RunArgs -> RunArgs
+unDaemonize = 
+    set rm (Rm True)
+  . set detach (Detach False)
+  . set restart No
 
 mkRunArgs :: (MonadIO m, MonadThrow m)
     => Text -> ContainerSpec -> DampfT m RunArgs
@@ -107,11 +125,33 @@ mkRunArgs n spec = do
         , ("PGUSER", d ^. user)
         , ("PGPASSWORD", s ^. users . at (d ^. user) . non "")
         ]
+        
+{-mkRunArgsNonDaemon :: (MonadIO m, MonadThrow m)-}
+    {-=> Text -> ContainerSpec -> DampfT m RunArgs-}
+{-mkRunArgsNonDaemon n spec = do-}
+    {-ms <- view (config . postgres)-}
+    {-md <- view (app . databases . at (spec ^. useDatabase . non ""))-}
+
+    {-case (ms, md) of-}
+        {-(Just s, Just d)  -> return $ args { _envs = es s d }-}
+        {-(Just _, Nothing) -> return args-}
+        {-_                 -> throwM NoDatabaseServer-}
+  {-where-}
+    {-args   = (defaultRunArgs n spec) { _rm = Rm True, _detach = Detach False, _restart = No }-}
+
+    {-es s d = Map.fromList-}
+        {-[ ("PGHOST", s ^. host)-}
+        {-, ("PGPORT", s ^. port . to (T.pack . show))-}
+        {-, ("PGDATABASE", spec ^. useDatabase . non "")-}
+        {-, ("PGUSER", d ^. user)-}
+        {-, ("PGPASSWORD", s ^. users . at (d ^. user) . non "")-}
+        {-]-}
 
 defaultRunArgs :: Text -> ContainerSpec -> RunArgs
 defaultRunArgs n spec = RunArgs
     { _name     = n
     , _detach   = Detach True
+    , _rm       = Rm False
     , _restart  = Always
     , _net      = "host"
     , _publish  = spec ^. expose . non []

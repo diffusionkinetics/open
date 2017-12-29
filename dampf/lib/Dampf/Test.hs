@@ -40,6 +40,7 @@ test ls = do
   proxie_names <- runProxies netName
 
   nginx_ip <- pretendToDeployDomains >>= runNginx netName
+  liftIO $ print nginx_ip
 
   fakeHosts <- set mapped nginx_ip <$> view (app . domains)
 
@@ -76,7 +77,8 @@ runNginx netName vs = runDockerT $
 
       xargs = set net netName 
             . set volumes vs 
-            . set publish [Port 80] 
+            . set publish [Port 433, Port 80] 
+            {-. set detach (Detach False)-}
 
       xSpec = ContainerSpec "nginx" Nothing Nothing Nothing
 

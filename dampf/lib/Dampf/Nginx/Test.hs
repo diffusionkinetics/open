@@ -24,7 +24,6 @@ import           Dampf.Types
 
 pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]
 pretendToDeployDomains = do
-    crt <- view $ config . liveCertificate . _Just
     ds  <- view $ app . domains
 
     let go = (\n -> (n, "/var/www" <> n))
@@ -37,17 +36,16 @@ pretendToDeployDomains = do
       T.writeFile (path </> "nginx.conf") fl
 
     return $ ds ^.. traverse . static . _Just . to go
-      <> [(crt, crt)]
       <> [(path, "/etc/nginx")]
+      <> let crt = "/etc/letsencrypt/live/" in [(crt,crt)]
 
 domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
-domainConfig name spec = T.pack . pShowFakeServer <$> domainToServer name spec
-
+domainConfig name spec = T.pack . pShowFakeServer <$> domainToServer name spec { _letsEncrypt = Just False }
 
 domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
 domainToServer name spec
     | isSSL     = do
-        decls <- (http ++) <$> sslDecls
+        decls <- (http ++) <$> sslDecls name spec
         return (Server decls)
 
     | otherwise = return (Server http)
@@ -55,34 +53,46 @@ domainToServer name spec
     isSSL = spec ^. letsEncrypt . non False
     http  = httpDecls name spec
 
-
-domainToLocation :: DomainSpec -> [(Text, Text)]
-domainToLocation spec = maybe [] staticAttrs s ++ maybe [] fakeProxyAttrs p
+domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
+domainToLocation name spec =
+    maybe [] staticAttrs s
+    ++ cdnAttrs cdn
+    ++ maybe [] fakeProxyAttrs p
   where
-    s = T.pack <$> spec ^. static
+    s :: Maybe Text
+    s = const name <$> spec ^. static
     p = spec ^. proxyContainer
+    cdn = spec ^. isCDN
 
-
-sslDecls :: (MonadIO m) => DampfT m [ServerDecl]
-sslDecls = do
-    live <- view (config . liveCertificate)
-    return (maybe [] f live)
+sslDecls :: (MonadIO m) => Text -> DomainSpec -> DampfT m [ServerDecl]
+sslDecls name spec = do
+    return . f $ "/etc/letsencrypt/live/" ++ T.unpack name
   where
     f live =
         [ Listen 443 ["ssl"]
         , SSLCertificate $ live </> "fullchain.pem"
         , SSLCertificateKey $ live </> "privkey.pem"
-        , Include "/etc/letsencrypt/options-ssl-nginx.conf"
+        , SSLTrustedCertificate $ live </> "chain.pem"
         ]
 
+cdnAttrs :: Maybe Bool -> [(Text, Text)]
+cdnAttrs (Just True) =
+    [ ("gzip_static","on")
+    , ("expires","max")
+    , ("log_not_found","off")
+    , ("access_log","off")
+    , ("add_header","Cache-Control public")
+    , ("add_header","'Access-Control-Allow-Origin' '*'")
+    , ("add_header","'Access-Control-Allow-Methods' 'GET, OPTIONS'")
+    ]
 
+cdnAttrs _ = []
 httpDecls :: Text -> DomainSpec -> [ServerDecl]
 httpDecls name spec =
     [ Listen 80 []
     , ServerName [name, "www." `T.append` name]
-    , Location "/" $ domainToLocation spec
+    , Location "/" $ domainToLocation name spec
     ]
-
 
 staticAttrs :: Text -> [(Text, Text)]
 staticAttrs x =
@@ -93,7 +103,7 @@ staticAttrs x =
 fakeProxyAttrs :: Text -> [(Text, Text)]
 fakeProxyAttrs x =
     [ ("resolver", "127.0.0.11")
-    , ("proxy_pass", "http://pyping:8080")
+    , ("proxy_pass", "http://" <> x)
     , ("proxy_set_header", "Host $host")
     , ("proxy_set_header", "X-Real-IP $remote_addr")
     , ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")
