@@ -32,13 +32,19 @@ initialSimplex :: Monad m => (Vector Double -> m Double)
                           -> Vector Double
                           -> RVarT m Simplex
 initialSimplex f vinit vbox = do
-  let n = VS.length vinit + 1
+  let gen mid box = uniformT (mid - box) (mid+box)
+  initialSimplex' f $ VS.zipWithM gen vinit vbox
+
+initialSimplex' :: Monad m => (Vector Double -> m Double)
+                          -> RVarT m (Vector Double)
+                          -> RVarT m Simplex
+initialSimplex' f vgen = do
+  v0 <- vgen
+  let n = VS.length v0 + 1
   fmap sortSimplex $ replicateM n $ do
-    let gen mid box = uniformT (mid - box) (mid+box)
-    v <- VS.zipWithM gen vinit vbox
+    v <- vgen
     y <- lift $ f v
     return (v, y)
-
 
 solveNm :: Monad m => (Vector Double -> m Double)
                    -> Simplex
