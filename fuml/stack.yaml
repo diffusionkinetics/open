@@ -17,9 +17,7 @@ packages:
   - random-fu
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
-extra-deps:
-- kmeans-vector-0.3.2
-- probable-0.1.2
+extra-deps: []
 
 # Override default flag values for local packages and extra-deps
 flags: {}

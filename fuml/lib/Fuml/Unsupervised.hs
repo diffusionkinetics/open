@@ -6,7 +6,6 @@ import Fuml.Core
 import qualified Fuml.Base.PCA as PCA
 import Fuml.Base.KNN (euclideanDistance)
 import Numeric.LinearAlgebra
-import qualified Math.KMeans as KM
 import qualified Data.Vector.Storable as VS
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector as V
@@ -38,7 +37,7 @@ centroid vs =
       n = realToFrac $ length vs
   in VS.map (/n) $ foldl1' vadd vs
 
-kmeans :: Int -> Unsupervisor Identity [Vector Double] Int
+{-kmeans :: Int -> Unsupervisor Identity [Vector Double] Int
 kmeans nclus
   =  Supervisor $ \_ theData ->
         let clus = KM.kmeans (VU.convert) KM.euclidSq nclus (map fst theData)
@@ -53,4 +52,4 @@ cluster xs f unsup =
       withCluss = map withClus xs
       cluss = nub $ map snd withCluss
       getElems clus = map fst $ filter ((==clus) . snd) withCluss
-  in map getElems cluss
+  in map getElems cluss -}

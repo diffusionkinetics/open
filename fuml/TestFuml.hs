@@ -31,7 +31,7 @@ main = do
   print (i1, softMax $ predict l (irisVec i1))
   print (i2, softMax $ predict l (irisVec i2))
 
-  let clusters = cluster iris irisVec (kmeans 3)
+  --let clusters = cluster iris irisVec (kmeans 3)
   --forM_ clusters $ \is -> print $ map irisClass is
   --testGradients
   testSGD

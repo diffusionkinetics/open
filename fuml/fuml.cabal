@@ -42,7 +42,6 @@ library
                      , hmatrix
                      , random-fu
                      , data-default
-                     , kmeans-vector
                      , microlens
                      , mtl
                      , random-fu
