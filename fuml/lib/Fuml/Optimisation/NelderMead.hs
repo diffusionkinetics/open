@@ -52,7 +52,10 @@ solveNm :: Monad m => (Vector Double -> m Double)
                    -> Int
                    -> m ([Double], Simplex)
 solveNm f s0 tol maxiter = go [] s0 0 where
-  go path sim iter | iter > maxiter = return (path,sim)
+  go path sim iter | iter > maxiter
+                     || (iter > maxiter `div` 5
+                         && abs ((snd $ head sim) - (snd $ last sim)) < tol)
+                          = return (path,sim)
                    | otherwise = do
                         snext <- nmStep f sim
                         go (snd (head snext):path) (sortSimplex snext) (iter+1)
