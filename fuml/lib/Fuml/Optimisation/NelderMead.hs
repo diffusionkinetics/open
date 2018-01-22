@@ -1,24 +1,39 @@
 {-# LANGUAGE ScopedTypeVariables, RecordWildCards, FlexibleContexts #-}
 
-
-module Fuml.Optimisation.NelderMead where
+module Fuml.Optimisation.NelderMead
+  ( centroid
+  , initialSimplex
+  , initialSimplex'
+  , solveNm
+  ) where
 
 import qualified Data.Vector.Storable as VS
 import Data.Vector.Storable (Vector)
-import Data.List (foldl1', sortBy)
+import qualified Data.Vector.Storable.Mutable as MVS (unsafeModify)
+import Data.List (sortBy)
 import Data.Ord (comparing)
+import Data.STRef
 import Data.Random
-import Control.Monad (replicateM, forM)
+import Control.Monad (replicateM, forM, forM_)
+import Control.Monad.ST
 import Control.Monad.Trans (lift)
 
 type Simplex = [(Vector Double, Double)]
 
 centroid :: Simplex -> Vector Double
-centroid  points = VS.map (/n) $ sumVs $ map fst points
-    where n = realToFrac $ length points
-
-sumVs :: [Vector Double] -> Vector Double
-sumVs = foldl1' vadd
+centroid [] = error "Fuml.Optimisation.NelderMead.centroid: empty Simplex input"
+centroid ((p, _) : ps) = runST $ do
+  vec <- VS.thaw p
+  lenRef <- newSTRef 1
+  let plen = VS.length p
+  forM_ ps $ \(v, _) ->
+    let vlen = min plen (VS.length v)
+        go n | n >= vlen = pure ()
+             | otherwise = do
+                 MVS.unsafeModify vec (+ v VS.! n) n
+                 go (n + 1)
+    in go 0
+  VS.unsafeFreeze vec
 
 vadd, vsub :: Vector Double -> Vector Double -> Vector Double
 vadd = VS.zipWith (+)
