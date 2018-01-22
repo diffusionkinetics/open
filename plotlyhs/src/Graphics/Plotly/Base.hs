@@ -60,7 +60,7 @@ instance {-# OVERLAPS #-} ToJSON [Mode] where
   toJSON = toJSON . intercalate "+" . map (map toLower . dropInitial "Mode" . show)
 
 -- | What kind of plot type are we building - scatter (inluding line plots) or bars?
-data TraceType = Scatter | Scatter3D | Bar | Mesh3D | Pie deriving Show
+data TraceType = Scatter | Scatter3D | Bar | Mesh3D | Pie | Contour deriving Show
 
 instance ToJSON TraceType where
   toJSON = toJSON . map toLower . show
@@ -247,6 +247,10 @@ bars = mkTrace Bar
 -- |an empty 3D mesh plot
 mesh3d :: Trace
 mesh3d = mkTrace Mesh3D
+
+-- |an empty 3D mesh plot
+contour :: Trace
+contour = mkTrace Contour
 
 -- | an empty pie chart
 pie :: Trace
