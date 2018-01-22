@@ -94,7 +94,7 @@ insert conn val = do
                tblName = fromString $ tableName (Proxy :: Proxy a)
                fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
                fldNmsNoKey = filter (/=kName) fldNms
-               qmarks = mconcat $ intersperse "," $ map (const "?") fldNms
+               qmarks = mconcat $ intersperse "," $ map (const "?") fldNmsNoKey
                fields = mconcat $ intersperse "," $ fldNmsNoKey
                qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
                q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") returning "<>kName

@@ -89,7 +89,7 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 ---                 REQUESTS
 --------------------------------------------------------------------------
 
-newtype HashPassword = HashPassword ByteString
+newtype HashPassword = HashPassword { unHashPassword :: ByteString }
 type Email = Text
 
 data User = User
