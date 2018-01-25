@@ -5,6 +5,7 @@ module Fuml.Optimisation.NelderMead
   , initialSimplex
   , initialSimplex'
   , solveNm
+  , Simplex
   ) where
 
 import qualified Data.Vector.Storable as VS
