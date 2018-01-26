@@ -23,8 +23,24 @@ w3m url = ("dampf-w3m", spec url) where
     (Just url')
     Nothing
 
-browse :: (MonadIO m, MonadThrow m) => URL -> DampfT m ()
-browse = browse' . w3m
+chrome_vnc :: Browser
+chrome_vnc = ("dampf-chrome-vnc-server", spec) where
+  spec = ContainerSpec
+    "siomiz/chrome"
+    Nothing
+    Nothing
+    Nothing
+
+runVNC :: (MonadIO m, MonadThrow m) => DampfT m ()
+runVNC = do
+  (argsTweak, container_names, netName) <- fakeHostsArgs
+  void . runDockerT $ uncurry (runWith argsTweak) chrome_vnc
+  cleanUp netName (fst chrome_vnc : container_names)
+
+-- browse :: (MonadIO m, MonadThrow m) => URL -> DampfT m ()
+-- browse = browse' . w3m
+
+browse _ = runVNC
 
 browse' :: (MonadIO m, MonadThrow m) => Browser -> DampfT m ()
 browse' (name, spec) = do
