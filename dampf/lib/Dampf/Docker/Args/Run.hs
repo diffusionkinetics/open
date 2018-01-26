@@ -31,15 +31,6 @@ newtype Detach = Detach Bool
 instance Show Detach where
     show (Detach b) = if b then "-d" else ""
 
-newtype Rm = Rm Bool
-    deriving (Eq)
-
-
-instance Show Rm where
-    show (Rm b) = if b then "--rm" else ""
-
-
-
 data RestartPolicy
     = No
     | Failure
@@ -55,14 +46,13 @@ instance Show RestartPolicy where
 data RunArgs = RunArgs
     { _name     :: Text
     , _detach   :: Detach
-    , _rm       :: Rm
+    , _rm       :: Bool
     , _restart  :: RestartPolicy
     , _interactive :: Bool
     , _net      :: Text
     , _hosts    :: Map Text Text -- (domain, ip)
     , _publish  :: [Port]
     , _envs     :: Map Text Text
-    , _rmArg    :: Bool
     , _img      :: Text
     , _cmd      :: Text
     , _volumes  :: [(FilePath, FilePath)]
@@ -73,8 +63,8 @@ makeClassy ''RunArgs
 
 instance ToArgs RunArgs where
     toArgs r = ["run"]
-        <> bool ["--rm"] [] (r ^. rmArg)
-        <> bool ["-it"] [] (r ^. interactive)
+        <> bool [] ["--rm"] (r ^. rm)
+        <> bool [] ["-it"] (r ^. interactive)
         <> flagArg (r ^. detach)
         <> flagArg (r ^. rm)
         <> namedTextArg "name" (r ^. name)
@@ -100,7 +90,7 @@ instance ToArgs RunArgs where
 
 unDaemonize :: RunArgs -> RunArgs
 unDaemonize =
-    set rm (Rm True)
+    set rm True
   . set detach (Detach False)
   . set interactive True
   . set restart No
@@ -151,12 +141,11 @@ defaultRunArgs :: Text -> ContainerSpec -> RunArgs
 defaultRunArgs n spec = RunArgs
     { _name     = n
     , _detach   = Detach True
-    , _rm       = Rm False
+    , _rm       = False
     , _restart  = Always
     , _interactive = False
     , _net      = "host"
     , _publish  = spec ^. expose . non []
-    , _rmArg    = True
     , _envs     = Map.empty
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""

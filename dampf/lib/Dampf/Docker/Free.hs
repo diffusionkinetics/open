@@ -39,7 +39,7 @@ dockerIter = \case
   Pull n next    -> interpPull n >> next
   RunWith f n spec next         -> interpRunWith f n spec >>= next
   NetworkCreate net next        -> interp (defCreateArg net) >> next
-  NetworkCreateWith args next   -> interp args >> next 
+  NetworkCreateWith args next   -> interp args >> next
   NetworkConnect net cont next  -> interp (defConnectArg net cont) >> next
   NetworkConnectWith args next  -> interp args >> next
   NetworkDisconnect n s next    -> interpNetworkDisconnect n s >> next
@@ -61,7 +61,7 @@ interpRmMany :: (MonadIO m) => [Text] -> DampfT m Text
 interpRmMany cs = do
     liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
     readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
-  
+
 interpRun :: (MonadIO m, MonadThrow m) => Bool -> Text -> ContainerSpec -> DampfT m Text
 interpRun True  = interpRunWith id
 interpRun False = interpRunWith unDaemonize
@@ -93,7 +93,7 @@ readDockerProcess = (go' <=< readProcess_) . proc "docker"
         go' (o, e) = return . de $ o
 
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
-runDockerProcess = runProcess_ . proc "docker" 
+runDockerProcess = runProcess_ . proc "docker"
 
 interp :: (MonadIO m, MonadThrow m, ToArgs arg) => arg -> DampfT m ()
 interp = runDockerProcess . toArgs
@@ -103,9 +103,9 @@ interpPull name = do
   liftIO . putStrLn $ "Docker: Pulling " ++ T.unpack name
   runDockerProcess ["pull", T.unpack name]
 
-interpNetworkDisconnect :: (MonadIO m, MonadThrow m) => 
-     Text 
-  -> ContainerSpec 
+interpNetworkDisconnect :: (MonadIO m, MonadThrow m) =>
+     Text
+  -> ContainerSpec
   -> DampfT m ()
 interpNetworkDisconnect netName spec = do
   liftIO . putStrLn $ "Docker: Diconnecting " ++ spec ^. image . _Text
