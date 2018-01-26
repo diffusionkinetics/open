@@ -14,11 +14,8 @@ import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Text                  (Text)
-import           Data.Text.Strict.Lens (utf8, _Text)
 import           Data.Bool (bool)
 import qualified Data.Text as T
-import           Data.List (intercalate)
-import           Data.Scientific
 
 import           Dampf.Docker.Args.Class
 import           Dampf.AppFile.Types (Port (..))
@@ -60,6 +57,7 @@ data RunArgs = RunArgs
     , _detach   :: Detach
     , _rm       :: Rm
     , _restart  :: RestartPolicy
+    , _interactive :: Bool
     , _net      :: Text
     , _hosts    :: Map Text Text -- (domain, ip)
     , _publish  :: [Port]
@@ -76,6 +74,7 @@ makeClassy ''RunArgs
 instance ToArgs RunArgs where
     toArgs r = ["run"]
         <> bool ["--rm"] [] (r ^. rmArg)
+        <> bool ["-it"] [] (r ^. interactive)
         <> flagArg (r ^. detach)
         <> flagArg (r ^. rm)
         <> namedTextArg "name" (r ^. name)
@@ -100,9 +99,10 @@ instance ToArgs RunArgs where
         envArg n v es = es ++ ["-e", T.unpack n ++ "=" ++ T.unpack v]
 
 unDaemonize :: RunArgs -> RunArgs
-unDaemonize = 
+unDaemonize =
     set rm (Rm True)
   . set detach (Detach False)
+  . set interactive True
   . set restart No
 
 mkRunArgs :: (MonadIO m, MonadThrow m)
@@ -125,7 +125,7 @@ mkRunArgs n spec = do
         , ("PGUSER", d ^. user)
         , ("PGPASSWORD", s ^. users . at (d ^. user) . non "")
         ]
-        
+
 {-mkRunArgsNonDaemon :: (MonadIO m, MonadThrow m)-}
     {-=> Text -> ContainerSpec -> DampfT m RunArgs-}
 {-mkRunArgsNonDaemon n spec = do-}
@@ -153,6 +153,7 @@ defaultRunArgs n spec = RunArgs
     , _detach   = Detach True
     , _rm       = Rm False
     , _restart  = Always
+    , _interactive = False
     , _net      = "host"
     , _publish  = spec ^. expose . non []
     , _rmArg    = True
@@ -162,4 +163,4 @@ defaultRunArgs n spec = RunArgs
     , _hosts    = Map.empty
     , _volumes  = []
     , _dns      = Nothing
-    } 
+    }
