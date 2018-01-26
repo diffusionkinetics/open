@@ -72,9 +72,14 @@ interpRunWith f n spec = do
     liftIO . print . toArgs $ args
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
-    res <- readDockerProcess . toArgs $ args
-    liftIO . T.putStrLn $ res
-    return res
+    if args ^. interactive
+      then do
+        runDockerProcess . toArgs $ args
+        return ""
+      else do
+        res <- readDockerProcess . toArgs $ args
+        liftIO . T.putStrLn $ res
+        return res
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = interpStopMany [c]

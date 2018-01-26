@@ -66,7 +66,6 @@ instance ToArgs RunArgs where
         <> bool [] ["--rm"] (r ^. rm)
         <> bool [] ["-it"] (r ^. interactive)
         <> flagArg (r ^. detach)
-        <> flagArg (r ^. rm)
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
