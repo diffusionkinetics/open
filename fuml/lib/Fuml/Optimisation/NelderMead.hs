@@ -25,7 +25,6 @@ centroid :: Simplex -> Vector Double
 centroid [] = error "Fuml.Optimisation.NelderMead.centroid: empty Simplex input"
 centroid ((p, _) : ps) = runST $ do
   vec <- VS.thaw p
-  lenRef <- newSTRef 1
   let plen = VS.length p
   forM_ ps $ \(v, _) ->
     let vlen = min plen (VS.length v)
@@ -34,7 +33,8 @@ centroid ((p, _) : ps) = runST $ do
                  MVS.unsafeModify vec (+ v VS.! n) n
                  go (n + 1)
     in go 0
-  VS.unsafeFreeze vec
+  let len = realToFrac $ length ps +1
+  VS.map (/len) <$> VS.unsafeFreeze vec
 
 vadd, vsub :: Vector Double -> Vector Double -> Vector Double
 vadd = VS.zipWith (+)
