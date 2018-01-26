@@ -13,7 +13,6 @@ import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVS (unsafeModify)
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import Data.STRef
 import Data.Random
 import Control.Monad (replicateM, forM, forM_)
 import Control.Monad.ST

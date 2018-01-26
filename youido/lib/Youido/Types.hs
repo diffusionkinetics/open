@@ -196,8 +196,8 @@ instance Monad m => Monoid (Handler m) where
 data Youido m = Youido
   { _handlers :: [Handler m] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
-  , _wrapper :: (Html () -> Html ()) -- ^ wrapper for Html
-  , _lookupUser:: Email-> HashPassword-> m (Maybe User)
+  , _wrapper :: User -> (Html () -> Html ()) -- ^ wrapper for Html
+  , _lookupUser:: Email-> ByteString-> m (Maybe User)
   , _port :: Int
   }
 
@@ -217,9 +217,10 @@ run :: Monad m
     => Youido m
     -> (Request, [(TL.Text, TL.Text)], User) -- ^ incoming request
     -> m Response
-run (Youido [] notFound wrapperf _ _) _ = return $ (toResponse $ wrapHtml wrapperf notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf lu p) rq = do
+run (Youido [] notFound wrapperf _ _) rq@(_,_,u) =
+  return $ (toResponse $ wrapHtml (wrapperf u) notFound) { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf lu p) rq@(_,_,u) = do
   case fromRequest rq of
     Nothing -> run (Youido hs notFound wrapperf lu p) rq
-    Just x -> toResponse . wrapHtml wrapperf <$> f x
+    Just x -> toResponse . wrapHtml (wrapperf u) <$> f x
 

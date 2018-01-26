@@ -15,17 +15,19 @@ import System.Random
 import Text.Read (readMaybe)
 import Data.Proxy
 import Crypto.BCrypt
-import System.IO.Unsafe
+import Data.ByteString(ByteString)
 
-hashPassword :: Text-> HashPassword
-hashPassword t = unsafePerformIO $ do 
+hashPassword :: Text-> IO HashPassword
+hashPassword t = do
   Just p <- hashPasswordUsingPolicy slowerBcryptHashingPolicy $ encodeUtf8 t
   return $ HashPassword p
 
+validatePass :: HashPassword -> ByteString -> Bool
+validatePass (HashPassword bs1) bs2 = validatePassword bs1 bs2
 --------------------------------------------------------------------------
 --- SERVING
 --------------------------------------------------------------------------
-  
+
 
 newSession :: TVar (Data.IntMap.IntMap a) -> a -> ActionM ()
 newSession tv email = do

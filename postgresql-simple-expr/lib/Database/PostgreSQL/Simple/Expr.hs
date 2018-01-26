@@ -16,8 +16,8 @@ import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
 import Data.Aeson
-import Data.Text (Text)
-
+import Data.Text (Text, pack)
+import qualified Data.Text as T
 class HasFieldNames a where
   getFieldNames :: Proxy a -> [String]
 
@@ -64,10 +64,14 @@ insertAllOrDoNothing conn  val = do
 
 class KeyField a where
    toFields :: a -> [Action]
+   toText :: a -> Text
    autoIncrementing :: Proxy a -> Bool
 
    default toFields :: ToField a => a -> [Action]
    toFields = (:[]) . toField
+   default toText :: Show a => a -> Text
+   toText = pack . show
+
    autoIncrementing _ = False
 
 instance KeyField Int
@@ -75,6 +79,7 @@ instance KeyField Text
 instance KeyField String
 instance (KeyField a, KeyField b) => KeyField (a,b) where
   toFields (x,y) = toFields x ++ toFields y
+  toText (x,y) = T.concat [toText x, ",", toText y]
   autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
                        && autoIncrementing (undefined :: Proxy b)
 
@@ -148,6 +153,7 @@ newtype Serial a = Serial { unSerial :: a }
 
 instance (ToField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
+  toText (Serial x) = toText x
   autoIncrementing _ = True
 
 instance ToJSON a => ToJSON (Serial a) where
