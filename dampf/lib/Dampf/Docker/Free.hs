@@ -69,7 +69,7 @@ interpRun False = interpRunWith unDaemonize
 interpRunWith :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DampfT m Text
 interpRunWith f n spec = do
     args <- mkRunArgs n spec <&> f
-    liftIO . print . toArgs $ args
+    -- liftIO . print . toArgs $ args
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
     res <- readDockerProcess . toArgs $ args
@@ -90,7 +90,7 @@ readDockerProcess = (go' <=< readProcess_) . proc "docker"
         out o = liftIO (T.putStrLn $ "stdout: " <> de o) *> return (de o)
         err e = liftIO (T.putStrLn $ "stderr: " <> de e) *> return (de e)
         go  (o, e) = out o <* err e
-        go' (o, e) = return . de $ o
+        go' (o, _) = return . de $ o
 
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
 runDockerProcess = runProcess_ . proc "docker" 
@@ -99,9 +99,9 @@ interp :: (MonadIO m, MonadThrow m, ToArgs arg) => arg -> DampfT m ()
 interp = runDockerProcess . toArgs
 
 interpPull :: (MonadIO m, MonadThrow m) => Text -> DampfT m ()
-interpPull name = do
-  liftIO . putStrLn $ "Docker: Pulling " ++ T.unpack name
-  runDockerProcess ["pull", T.unpack name]
+interpPull image_name = do
+  liftIO . putStrLn $ "Docker: Pulling " ++ T.unpack image_name
+  runDockerProcess ["pull", T.unpack image_name]
 
 interpNetworkDisconnect :: (MonadIO m, MonadThrow m) => 
      Text 

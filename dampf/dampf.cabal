@@ -27,6 +27,7 @@ library
       , Dampf.Docker.Types
       , Dampf.Test
       , Dampf.Monitor
+      , Dampf.Browse
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
