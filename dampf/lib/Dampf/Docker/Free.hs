@@ -69,7 +69,7 @@ interpRun False = interpRunWith unDaemonize
 interpRunWith :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DampfT m Text
 interpRunWith f n spec = do
     args <- mkRunArgs n spec <&> f
-    liftIO . print . toArgs $ args
+    --liftIO . print . toArgs $ args
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
     if args ^. interactive
