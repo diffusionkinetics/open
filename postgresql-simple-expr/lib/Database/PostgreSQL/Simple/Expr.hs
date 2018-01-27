@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric, DefaultSignatures,
              PolyKinds, TypeOperators, ScopedTypeVariables, FlexibleContexts,
-             FlexibleInstances, UndecidableInstances, OverloadedStrings    #-}
+             FlexibleInstances, UndecidableInstances, OverloadedStrings, TypeApplications    #-}
 
 module Database.PostgreSQL.Simple.Expr where
 
@@ -119,7 +119,7 @@ insertOrDoNothing conn val = do
                tblName = fromString $ tableName (Proxy :: Proxy a)
                fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
                fldNmsNoKey = filter (/=kName) fldNms
-               qmarks = mconcat $ intersperse "," $ map (const "?") fldNms
+               qmarks = mconcat $ intersperse "," $ map (const "?") fldNmsNoKey
                fields = mconcat $ intersperse "," $ fldNmsNoKey
                qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
                q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") ON CONFLICT DO NOTHING returning "<>kName
@@ -128,9 +128,26 @@ insertOrDoNothing conn val = do
              [] -> fail $ "no key returned from "++show tblName
              Only k : _ -> return k
 
+update
+  :: forall a . (HasKey a, KeyField (Key a), ToRow a)
+  => Connection -> a -> IO ()
+update conn val = do
+  let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+      kval = getKey val
+      tblName = fromString $ tableName (Proxy :: Proxy a)
+      fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
+      fldNmsNoKey = filter (/=kName) fldNms
+      qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
+      fieldQ = mconcat $ intersperse ", " $ map (\f-> f <>" = ?") fldNmsNoKey
+      (keyQ, keyA) = keyRestrict (Proxy @a) kval
+      q = "update "<>tblName<>" set "<>fieldQ<>" where "<>keyQ
+  execute conn q $ qArgs ++ keyA
+  return ()
+
 conjunction :: [Query] -> Query
 conjunction [] = "true"
-conjunction (q1:q2:[]) = "("<>q1<>") and ("<>q2<>")"
+conjunction (q1:[]) = q1
+--conjunction (q1:q2:[]) = "("<>q1<>") and ("<>q2<>")" --needed?
 conjunction (q1:qs) = "("<>q1<>") and "<>conjunction qs
 
 keyRestrict :: (HasKey a, KeyField (Key a)) => Proxy a -> Key a -> (Query, [Action])

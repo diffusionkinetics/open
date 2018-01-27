@@ -16,6 +16,8 @@ import Lucid
 import Data.Aeson
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
+import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.ToField
 import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
@@ -24,7 +26,7 @@ import Network.Wai.Parse
 import Lens.Micro.Platform
 import Control.Monad.Trans
 import Data.Map.Strict (Map)
-
+import GHC.Generics
 --------------------------------------------------------------------------
 ---                 RESPONSES
 --------------------------------------------------------------------------
@@ -90,6 +92,7 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 --------------------------------------------------------------------------
 
 newtype HashPassword = HashPassword { unHashPassword :: ByteString }
+  deriving (FromField, ToField, Show, Read, Eq, Generic)
 type Email = Text
 
 data User = User
