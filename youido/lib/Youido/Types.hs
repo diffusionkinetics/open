@@ -21,12 +21,11 @@ import Database.PostgreSQL.Simple.ToField
 import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
-import System.IO.Unsafe (unsafePerformIO)
-import Network.Wai.Parse
 import Lens.Micro.Platform
-import Control.Monad.Trans
 import Data.Map.Strict (Map)
 import GHC.Generics
+import Control.Monad.Reader
+
 --------------------------------------------------------------------------
 ---                 RESPONSES
 --------------------------------------------------------------------------
@@ -91,19 +90,9 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
 ---                 REQUESTS
 --------------------------------------------------------------------------
 
-newtype HashPassword = HashPassword { unHashPassword :: ByteString }
-  deriving (FromField, ToField, Show, Read, Eq, Generic)
-type Email = Text
-
-data User = User
-  { userId :: Int
-  , email :: Email
-  , userInfo :: Map Text Value
-  }
-
 -- types that can be parsed from a request, maybe
 class FromRequest a where
-  fromRequest :: (Request,[(TL.Text, TL.Text)], User) -> Maybe a
+  fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
 class ToURL a where
   toURL :: a -> Text
@@ -130,18 +119,18 @@ instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
   toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
 
 instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
-  fromRequest (rq,pars,e) = case pathInfo rq of
+  fromRequest (rq,pars) = case pathInfo rq of
       p:ps -> let sv = symbolVal (Proxy::Proxy s) in
               if p ==  pack sv
                 then let newrq = rq {pathInfo = ps}
-                     in fmap (Key :/) $ fromRequest (newrq,pars,e)
+                     in fmap (Key :/) $ fromRequest (newrq,pars)
                 else Nothing
       [] -> Nothing
 
 instance ToURL () where toURL _ = "/"
 
 instance FromRequest () where
-  fromRequest (rq,_,_) = case pathInfo rq of
+  fromRequest (rq,_) = case pathInfo rq of
     [] -> Just ()
     [""] -> Just ()
     _ -> Nothing
@@ -150,9 +139,9 @@ instance FromRequest () where
 data Name a = Name Text a
 
 instance FromRequest a => FromRequest (Name a) where
-  fromRequest (rq,pars,e) = case pathInfo rq of
+  fromRequest (rq,pars) = case pathInfo rq of
       p:ps -> let newrq = rq {pathInfo = ps}
-              in fmap (Name p) $ fromRequest (newrq,pars,e)
+              in fmap (Name p) $ fromRequest (newrq,pars)
 
       [] -> Nothing
 
@@ -163,9 +152,9 @@ instance ToURL a=> ToURL (Name a)
 data GetOrPost a b = Get a | Post b
 
 instance (FromRequest a, FromRequest b) => FromRequest (GetOrPost a b) where
-  fromRequest (rq,pars,e) = case requestMethod rq of
-    "GET" -> fmap Get $ fromRequest (rq,pars,e)
-    "POST" -> fmap Post $ fromRequest (rq,pars,e)
+  fromRequest (rq,pars) = case requestMethod rq of
+    "GET" -> fmap Get $ fromRequest (rq,pars)
+    "POST" -> fmap Post $ fromRequest (rq,pars)
 
 instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
   fromRequest rqpars = case (fromRequest rqpars, fromRequest rqpars) of
@@ -176,7 +165,7 @@ instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
 newtype FormFields = FormFields [(TL.Text, TL.Text)]
 
 instance FromRequest FormFields where
-  fromRequest (_,pars,e) = Just $ FormFields pars
+  fromRequest (_,pars) = Just $ FormFields pars
 
 
 
@@ -184,6 +173,8 @@ instance FromRequest FormFields where
 --------------------------------------------------------------------------
 ---                 HANDLERS
 --------------------------------------------------------------------------
+
+type Email = Text
 
 -- | handler box, parametrised on a monad
 data Handler m where
@@ -196,34 +187,38 @@ instance Monad m => Monoid (Handler m) where
     Left x -> fmap Left $ f1 x
     Right y -> fmap Right $ f2 y
 
-data Youido m = Youido
-  { _handlers :: [Handler m] -- ^ list of handlers
+data Youido auth m = Youido
+  { _handlers :: [Handler (ReaderT auth m)] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
-  , _wrapper :: User -> (Html () -> Html ()) -- ^ wrapper for Html
-  , _lookupUser:: Email-> ByteString-> m (Maybe User)
+  , _wrapper :: auth -> (Html () -> Html ()) -- ^ wrapper for Html
+  , _lookupUser:: Email-> ByteString-> m (Maybe auth)
   , _port :: Int
   }
 
 makeLenses ''Youido
 
-newtype YouidoT m a = YouidoT {unYouidoT :: StateT (Youido m) m a}
-   deriving (Functor, Applicative, Monad, MonadIO, MonadState (Youido m))
+newtype YouidoT auth m a = YouidoT {unYouidoT :: StateT (Youido auth m) m a}
+   deriving (Functor, Applicative, Monad, MonadIO, MonadState (Youido auth m))
 
-handle :: (FromRequest a, ToResponse b, Monad m) => (a -> m b) -> YouidoT m ()
+handle :: (FromRequest a, ToResponse b, Monad m)
+       => (a -> (ReaderT auth m) b) -> YouidoT auth m ()
 handle f = handlers %= ((H f):)
 
-liftY :: Monad m => m a -> YouidoT m a
+liftY :: Monad m => m a -> YouidoT auth m a
 liftY mx = YouidoT (lift mx)
 
 -- | get a response from a request, given a list of handlers
 run :: Monad m
-    => Youido m
-    -> (Request, [(TL.Text, TL.Text)], User) -- ^ incoming request
+    => Youido auth m
+    -> auth
+    -> (Request, [(TL.Text, TL.Text)]) -- ^ incoming request
     -> m Response
-run (Youido [] notFound wrapperf _ _) rq@(_,_,u) =
-  return $ (toResponse $ wrapHtml (wrapperf u) notFound) { code = notFound404  }
-run (Youido (H f : hs) notFound wrapperf lu p) rq@(_,_,u) = do
+run (Youido [] notFound wrapperf _ _) u _ =
+  return $
+    (toResponse $ wrapHtml (wrapperf u) notFound)
+      { code = notFound404  }
+run (Youido (H f : hs) notFound wrapperf lu p) u rq = do
   case fromRequest rq of
-    Nothing -> run (Youido hs notFound wrapperf lu p) rq
-    Just x -> toResponse . wrapHtml (wrapperf u) <$> f x
+    Nothing -> run (Youido hs notFound wrapperf lu p) u rq
+    Just x -> toResponse . wrapHtml (wrapperf u) <$> runReaderT (f x) u
 
