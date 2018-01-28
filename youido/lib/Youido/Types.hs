@@ -156,6 +156,9 @@ instance (FromRequest a, FromRequest b) => FromRequest (GetOrPost a b) where
     "GET" -> fmap Get $ fromRequest (rq,pars)
     "POST" -> fmap Post $ fromRequest (rq,pars)
 
+onlyPOST :: Request -> Maybe a -> Maybe a
+onlyPOST rq mv = if requestMethod rq == "POST" then mv else Nothing
+
 instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
   fromRequest rqpars = case (fromRequest rqpars, fromRequest rqpars) of
     (Just x, _) -> return $ Left x
