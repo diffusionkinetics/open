@@ -144,6 +144,26 @@ update conn val = do
   execute conn q $ qArgs ++ keyA
   return ()
 
+delete
+  :: forall a . (HasKey a, KeyField (Key a), ToField (Key a))
+  => Connection -> a -> IO ()
+delete conn x = do
+  let tblName = fromString $ tableName (Proxy :: Proxy a)
+      [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+      q = "delete from "<> tblName<>" where "<>kName<>" = ?"
+  execute conn q (Only $ getKey x)
+  return ()
+
+deleteByKey
+  :: forall a . (HasKey a, KeyField (Key a))
+  => Connection -> Proxy a -> Key a -> IO ()
+deleteByKey conn px k = do
+  let tblName = fromString $ tableName px
+      (keyQ, keyA) = keyRestrict (Proxy @a) k
+      q = "delete from "<> tblName<>" where "<>keyQ
+  execute conn q keyA
+  return ()
+
 conjunction :: [Query] -> Query
 conjunction [] = "true"
 conjunction (q1:[]) = q1
