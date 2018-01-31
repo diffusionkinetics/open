@@ -32,12 +32,15 @@ selectFrom conn q1 args = do
 class HasFieldNames a => HasTable a where
   tableName :: Proxy a -> String
 
-selectWhere :: forall r q. (ToRow q, FromRow r, HasTable r) => Connection -> Query -> q -> IO [r]
+selectWhere :: forall r q. (ToRow q, FromRow r, HasTable r)
+            => Connection -> Query -> q -> IO [r]
 selectWhere conn q1 args = do
   let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) )
                         <> " from " <> fromString (tableName (Proxy :: Proxy r))
                         <> " where " <> q1
   query conn fullq args
+
+
 
 --insert all fields
 insertAll :: forall r. (ToRow r, HasTable r) => Connection  -> r -> IO ()
