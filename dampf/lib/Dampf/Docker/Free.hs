@@ -87,7 +87,7 @@ interpStop c = interpStopMany [c]
 interpStopMany :: (MonadIO m) => [Text] -> DampfT m ()
 interpStopMany cs = do
     liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack (T.intercalate ", " cs)
-    runDockerProcess $ ["stop"] ++ fmap T.unpack cs
+    runDockerProcess $ ["stop"] ++ fmap T.unpack cs ++ ["-t", "1"]
 
 readDockerProcess :: MonadIO m => [String] -> DampfT m Text
 readDockerProcess = (go' <=< readProcess_) . proc "docker"
