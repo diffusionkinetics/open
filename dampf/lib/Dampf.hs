@@ -32,4 +32,4 @@ goDeploy = do
     runMigrations Nothing
     deployDocker
     deployDomains
-    --runMonitor []
+    runMonitor []
