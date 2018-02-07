@@ -4,13 +4,15 @@
 module Dampf.Postgres where
 
 import           Control.Lens
-import           Control.Monad              (when)
+import           Control.Monad              (when, forM_)
 import           Control.Monad.Catch        (MonadThrow, throwM)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.Text                  (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import           System.Process.Typed
 import           Data.Map.Strict            (toList)
+import           Data.Monoid ((<>))
 
 import           Dampf.Postgres.Connect
 import           Dampf.Postgres.Migrate
@@ -97,6 +99,17 @@ envCmd cmd = do
       shcmd  = setEnv envs $ shell $ T.unpack $ T.unwords cmd
   ec <- runProcess shcmd
   liftIO $ exitWith ec
+
+lsEnvCmd :: (MonadIO m, MonadThrow m) => DampfT m ()
+lsEnvCmd = do
+  oldEnv <- liftIO $ getEnvironment
+  dbs <- view (app . databases)
+  Just s <- view (config . postgres)
+  let (dbNm, dbSpec):_ = toList dbs
+      envs = pgEnv dbNm dbSpec s
+  forM_ envs $ \(k,v) -> do
+    liftIO $ putStrLn $ k<>"="<>v
+
 
 
 

@@ -57,6 +57,7 @@ run (Options af cf p cmd) = do
         Test tests          -> test tests
         Provision pt        -> goProvision pt
         Env cmds            -> envCmd cmds
+        LsEnv               -> lsEnvCmd
 
 -- Command Line Options
 
@@ -78,6 +79,7 @@ data Command
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
     | Env [Text]
+    | LsEnv
     | SetupDatabase
     | Monitor [Text]
     | Test [Text]
@@ -161,6 +163,10 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseEnv)
                 (O.progDesc "Run command locally in an environment that can access database"))
+    <> O.command "lsenv"
+            (O.info
+                (O.helper <*> pure LsEnv)
+                (O.progDesc "list variables for an environment that can access database"))
     <> O.command "provision"
             (O.info
                 (O.helper <*> parseProvision)
