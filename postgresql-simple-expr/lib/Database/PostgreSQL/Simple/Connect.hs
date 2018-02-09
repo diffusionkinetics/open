@@ -39,16 +39,17 @@ createConn config = do
                                     threadDelay $ 10 * 1000 * 1000
                                     createConn' config)
 
-
-createConn' :: DatabaseConfig -> IO Connection
-createConn' config = do
-  connect ConnectInfo
+dbCfgToConnectInfo :: DatabaseConfig -> ConnectInfo
+dbCfgToConnectInfo config = ConnectInfo
     { connectHost     = host     config
     , connectUser     = user     config
     , connectPassword = password config
     , connectDatabase = dbname   config
     , connectPort     = fromInteger $ port config
     }
+
+createConn' :: DatabaseConfig -> IO Connection
+createConn' = connect . dbCfgToConnectInfo 
 
 {-getPool :: DatabaseConfig -> PoolOrConn Connection
 getPool dbconfig=

@@ -40,6 +40,12 @@ selectWhere conn q1 args = do
                         <> " where " <> q1
   query conn fullq args
 
+countFrom :: ToRow q => Connection -> Query -> q -> IO Int
+countFrom conn q1 args = do
+  let fullq = "select count(*) from "<>q1
+      unOnly (Only x) = x
+  n :: [Only Int] <- query conn fullq args
+  return $ sum $ map unOnly n
 
 
 --insert all fields
