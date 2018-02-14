@@ -94,7 +94,7 @@ catColors xs =
   in List $ map (toJSON . ColIx . f) xs
 
 -- | Different types of markers
-data Symbol = Circle | Square | Diamond | Cross deriving (Show, Eq)
+data Symbol = Circle | Square | Diamond | Cross | CustomSymbol Text deriving (Show, Eq)
 
 instance ToJSON Symbol where
   toJSON = toJSON . map toLower . show
@@ -117,7 +117,7 @@ data Marker = Marker
   , _sizeMode :: Maybe Sizemode
   , _markercolor :: Maybe (ListOrElem Value)
   , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
-  , _symbol :: Maybe Symbol
+  , _symbol :: Maybe (ListOrElem Symbol)
   , _opacity :: Maybe Double
   } deriving (Generic, Eq)
 
