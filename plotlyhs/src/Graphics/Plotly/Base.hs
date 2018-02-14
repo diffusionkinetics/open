@@ -97,7 +97,8 @@ catColors xs =
 data Symbol = Circle | Square | Diamond | Cross | CustomSymbol Text deriving (Show, Eq)
 
 instance ToJSON Symbol where
-  toJSON = toJSON . map toLower . show
+  toJSON (CustomSymbol t) = toJSON t
+  toJSON s = toJSON . map toLower . show $ s
 
 data ListOrElem a = List [a] | All a deriving Eq
 
