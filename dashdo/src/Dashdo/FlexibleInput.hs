@@ -96,7 +96,7 @@ instance (Eq a) => FlexibleInput (Select a) where
                    Just x  -> lensSetter f s x
 
     putFormField (n, ft)
-    select_ [name_ n] $ do
+    select_ [class_ cs, name_ n] $ do
       forM_ opts $ \(optNm, optVal) ->
         if val ^. f == optVal
            then option_ [value_ optNm, selected_ ""] $ toHtml optNm
