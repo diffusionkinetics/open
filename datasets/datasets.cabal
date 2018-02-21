@@ -32,7 +32,7 @@ Author:              Tom Nielsen <tanielsen@gmail.com>
 Maintainer:          Tom Nielsen <tanielsen@gmail.com>
 build-type:          Simple
 Cabal-Version: 	     >= 1.10
-homepage:            https://github.com/diffusionkinetics/open/datasets
+homepage:            https://github.com/diffusionkinetics/open/tree/master/datasets
 bug-reports:         https://github.com/diffusionkinetics/open/issues
 category:            Statistics, Machine Learning, Data Mining, Data
 Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
