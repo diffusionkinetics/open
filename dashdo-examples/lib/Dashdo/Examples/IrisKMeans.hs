@@ -17,7 +17,6 @@ import Data.Monoid ((<>))
 import Data.Text (Text, unpack, pack)
 import Lens.Micro.Platform
 import Fuml.Core
-import Fuml.Unsupervised
 import qualified Data.Vector.Storable as VS
 
 import Graphics.Plotly hiding (xaxis, yaxis)
@@ -49,8 +48,8 @@ irisKMeans = runDashdoIO $ Dashdo ikm0 dashdo
 dashdo :: SHtml IO IKM ()
 dashdo = wrap plotlyCDN $ do
     ikm <- getValue
-    let ctrs :: [VS.Vector Double]
-        ctrs = model $ runIdentity $ runSupervisor (kmeans $ ikm ^. nclusters) Nothing irisData
+    --let ctrs :: [VS.Vector Double]
+    --    ctrs = model $ runIdentity $ runSupervisor (kmeans $ ikm ^. nclusters) Nothing irisData
 
     h2_ "Iris k-means clustering"
     row_ $ do
@@ -73,11 +72,11 @@ dashdo = wrap plotlyCDN $ do
                                     & y .~ (ikm ^. yaxis . tagVal . _2)
                                     & color ?~ (getCol. irisClass) )
                                 iris
-                traceCtrs
+                {-traceCtrs
                    = points (aes & x .~ (VS.! (ikm ^. xaxis . tagVal . _1))
                                  & y .~ (VS.! (ikm ^. yaxis . tagVal . _1)))
-                                ctrs
-            toHtml $ plotly "foo" [trace, traceCtrs]
+                                ctrs -}
+            toHtml $ plotly "foo" [trace {- ,traceCtrs-}]
                        & layout . margin ?~ thinMargins
 
 getCol :: IrisClass -> RGB Double
