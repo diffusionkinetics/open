@@ -314,6 +314,20 @@ thinMargins, titleMargins :: Margin
 thinMargins = Margin 50 25 30 10 4
 titleMargins = Margin 50 25 30 40 4
 
+-- | Options for Fonts.
+data Font = Font
+  { _fontfamily :: Maybe Text
+  , _fontsize   :: Maybe Double
+  , _fontcolor  :: Maybe Color
+  } deriving Generic
+
+makeLenses ''Font
+
+instance ToJSON Font where
+  toJSON = genericToJSON jsonOptions { fieldLabelModifier = dropInitial "font" . unLens}
+
+defFont :: Font
+defFont = Font Nothing Nothing Nothing
 
 -- |options for the layout of the whole plot
 data Layout = Layout
@@ -327,18 +341,20 @@ data Layout = Layout
   , _yaxis4 :: Maybe Axis
   , _zaxis  :: Maybe Axis
   , _title  :: Maybe Text
+  , _titlefont :: Maybe Font
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
   , _barmode :: Maybe Barmode
   , _margin :: Maybe Margin
+  , _font :: Maybe Font
   } deriving Generic
 
 makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
