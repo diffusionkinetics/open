@@ -19,17 +19,17 @@ sidebarMain sb = a_ [href_ "#"] $ do
   toHtml $ title sb
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
 
-sidebarList :: [RDashdo m] -> [Html ()]
-sidebarList rdashdos = (sidebarListItem <$> rdashdos) <> [div_ [id_ "dashdo-sidebar"] mempty ]
+sidebarList :: [RDashdo m] -> [RD.SidebarItem]
+sidebarList rdashdos = (sidebarListItem <$> rdashdos) -- <> [div_ [id_ "dashdo-sidebar"] mempty ]
   where
     sidebarListItem = \rd ->
-      a_ [href_ (pack $ rdFid rd), class_ "dashdo-link"] $
-        (toHtml . rdTitle) rd <> i_ [class_ "fa fa-tachometer menu-icon"] mempty
+      RD.SidebarLink (rdTitle rd) (pack $ rdFid rd) "tachometer"
+
 
 data Sidebar = Sidebar
   {  title:: T.Text
   ,  subTitle:: T.Text
-  ,  footer:: Html () 
+  ,  footer:: Html ()
   }
 
 defaultSidebar :: Sidebar
@@ -37,7 +37,7 @@ defaultSidebar = Sidebar "Dashdo" "Dashboards" $ rowEven XS
               [ a_ [href_ "https://github.com/diffusionkinetics/open/dashdo"] (i_ [class_ "fa fa-lg fa-github"] mempty <> "Github")
               , a_ [href_ "#"] $ i_ [id_ "spinner", class_ "fa fa-cog fa-2x"] mempty
               ]
-            
+
 
 rdash :: [RDashdo m] -> Html () -> Sidebar -> TL.Text
 rdash rdashdos headExtra sb = do
@@ -58,7 +58,7 @@ rdash rdashdos headExtra sb = do
         cdnJqueryJS
         headExtra
       body_ $ do
-        let sb'  = do RD.mkSidebar (sidebarMain sb) (sidebarTitle sb) $ sidebarList rdashdos
+        let sb'  = (RD.mkSidebar (sidebarMain sb) $ sidebarList rdashdos) <> div_ [id_ "dashdo-sidebar"] mempty
             sbf = RD.mkSidebarFooter $ footer sb
             sbw = RD.mkSidebarWrapper sb' sbf
             cw  = RD.mkPageContent $ do

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 module Lucid.Rdash (
     indexPage
@@ -13,7 +13,6 @@ module Lucid.Rdash (
   , mkPageWrapperOpen
   , mkSidebar
   , mkSidebarFooter
-  , mkSidebarItem
   , mkSidebarWrapper
   , mkWidget
   , mkWidgets
@@ -25,6 +24,7 @@ module Lucid.Rdash (
   , widgetBody_
   , spacer_
   , rdashCSS
+  , SidebarItem(..)
   ) where
 
 import qualified Data.Text as T
@@ -36,6 +36,7 @@ import Lucid.Bootstrap3
 
 import Lucid hiding (toHtml)
 import qualified Lucid (toHtml)
+import Data.Monoid ((<>))
 
 toHtml :: Monad m => T.Text -> HtmlT m ()
 toHtml = Lucid.toHtml
@@ -67,18 +68,26 @@ mkPageWrapperOpen sbw cw = div_ [id_ "page-wrapper", class_ "open"] $ sbw >> cw
 mkSidebarWrapper :: (Monad m) => HtmlT m () -> HtmlT m () -> HtmlT m ()
 mkSidebarWrapper sb sbf = div_ [id_ "sidebar-wrapper"] $ sb >> sbf
 
-mkSidebar :: (Monad m) => HtmlT m () -> HtmlT m () -> [HtmlT m ()] -> HtmlT m ()
-mkSidebar sbm sbt sbl = ul_ [class_ "sidebar"] $ do
+data SidebarItem = SidebarTitle T.Text
+                 | SidebarLink
+                    { itemText :: T.Text
+                    , linkUrl ::  T.Text
+                    , iconName :: T.Text
+                    }
+
+mkSidebar :: forall m. (Monad m) => HtmlT m () -> [SidebarItem] -> HtmlT m ()
+mkSidebar sbm sbl = ul_ [class_ "sidebar"] $ do
   li_ [class_ "sidebar-main",
        id_ "toggle-sidebar",
        onclick_ "$('#page-wrapper').toggleClass('open');"] sbm
-  li_ [class_ "sidebar-title"] sbt
-  forM_ sbl $ \l -> do
-    li_ [class_ "sidebar-list"] l
-
-mkSidebarItem :: (Monad m) => HtmlT m () -> T.Text -> HtmlT m ()
-mkSidebarItem s icon = a_ [href_ "#"] $ s >> do
-  span_ [class_ $ T.append icon " menu-icon"] (return ())
+  let render :: SidebarItem -> HtmlT m ()
+      render (SidebarTitle sbt)
+        = li_ [class_ "sidebar-title"] $ span_ $ toHtml sbt
+      render (SidebarLink t dest fa)
+        = li_ [class_ "sidebar-list"]
+          $ a_ [href_ dest]
+          $ toHtml t <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
+  mapM_ render sbl
 
 mkSidebarFooter :: (Monad m) => HtmlT m () -> HtmlT m ()
 mkSidebarFooter footerItems = div_ [class_ "sidebar-footer"] footerItems
@@ -184,9 +193,9 @@ indexPage = do
   where
 
     -- SIDEBAR
-    dashboardSI = mkSidebarItem (toHtml "Dashboard") "fa fa-tachometer"
-    tablesSI    = mkSidebarItem (toHtml "Tables") "fa fa-table"
-    sb = mkSidebar sidebarMain sidebarTitle [dashboardSI, tablesSI]
+    dashboardSI = SidebarLink ("Dashboard") "#" "tachometer"
+    tablesSI    = SidebarLink ("Tables") "#" "table"
+    sb = mkSidebar sidebarMain [SidebarTitle "NAVIGATION", dashboardSI, tablesSI]
     footerContent =
       rowEven XS
       [ a_ [href_ "https://github.com/rdash/rdash-barebones", target_ "blank_"] "Github"

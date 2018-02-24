@@ -22,8 +22,6 @@ import qualified Data.Map.Strict as Map
 
 import Control.Monad.Reader
 
---conn <-  createConn <$> readJSON "youido.json"
-
 serveY :: a -> YouidoT auth (ReaderT a IO) () -> IO ()
 serveY x (YouidoT sm) = do
   y <- runReaderT (execStateT sm (Youido [] "Not found!" (const id) (const $const $return Nothing) 3000)) x
@@ -115,25 +113,24 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     dashdoCustomJS
 
-rdashSidebar :: Text -> [((Text, Text), Text)] -> Html ()
+rdashSidebar :: Text -> [RD.SidebarItem] -> Html ()
 rdashSidebar title links = do
   let mklink :: ((Text, Text),Text) -> Html ()
       mklink ((title, fa), dest) =
         a_ [href_ dest] $
           toHtml title <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
-      sidebar = map mklink links
       sidebarMain  = a_ [href_ "#"] $ do
           toHtml title
           span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
-      sb = RD.mkSidebar sidebarMain (span_ "Dashboards") $ sidebar
+      sb = RD.mkSidebar sidebarMain links
       sbfoot = ""
   RD.mkSidebarWrapper sb sbfoot
 
 
-mkSidebar :: [(Text, Text)] -> Html ()
+{-mkSidebar :: [(Text, Text)] -> Html ()
 mkSidebar links = ul_ $ mapM_ f links where
-  f (title, dest) = li_ $ a_ [href_ dest] $: title
+  f (title, dest) = li_ $ a_ [href_ dest] $: title-}
 
 infixl 0 *~
-(*~) :: ToURL a => b -> a -> (b, Text)
-t *~ x = (t, toURL x)
+(*~) :: ToURL a => (Text,Text) -> a -> RD.SidebarItem
+(t,ic) *~ x = RD.SidebarLink t (toURL x) ic
