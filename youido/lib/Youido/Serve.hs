@@ -113,8 +113,8 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     dashdoCustomJS
 
-rdashSidebar :: Text -> [RD.SidebarItem] -> Html ()
-rdashSidebar title links = do
+rdashSidebar :: Text ->  Html () -> [RD.SidebarItem] -> Html ()
+rdashSidebar title sbfoot links  = do
   let mklink :: ((Text, Text),Text) -> Html ()
       mklink ((title, fa), dest) =
         a_ [href_ dest] $
@@ -123,7 +123,6 @@ rdashSidebar title links = do
           toHtml title
           span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
       sb = RD.mkSidebar sidebarMain links
-      sbfoot = ""
   RD.mkSidebarWrapper sb sbfoot
 
 
