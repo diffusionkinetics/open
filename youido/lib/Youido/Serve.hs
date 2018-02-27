@@ -24,7 +24,7 @@ import Control.Monad.Reader
 
 serveY :: a -> YouidoT auth (ReaderT a IO) () -> IO ()
 serveY x (YouidoT sm) = do
-  y <- runReaderT (execStateT sm (Youido [] "Not found!" (const id) (const $const $return Nothing) 3000)) x
+  y <- runReaderT (execStateT sm (Youido [] "Not found!" (const id) (const $ const $const $return Nothing) 3000)) x
   serve x y
 
 loginPage :: Maybe (Html ()) -> Html ()
@@ -47,9 +47,10 @@ serve x y@(Youido _ _ _ looku port') = do
     post "/login" $ do
       femail <- param "inputEmail"
       fpasswd <- param "inputPassword"
+      rq <- request
       let incorrect = renderText $ loginPage $ Just $
                 div_ [class_ "alert alert-danger"] "Incorrect user or password"
-      mu <- liftIO $ flip runReaderT x $ looku femail fpasswd
+      mu <- liftIO $ flip runReaderT x $ looku rq femail fpasswd
       case mu of
         Nothing -> html incorrect
         Just u -> newSession sessions u >> redirect "/"

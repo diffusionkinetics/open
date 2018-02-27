@@ -194,7 +194,7 @@ data Youido auth m = Youido
   { _handlers :: [Handler (ReaderT auth m)] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
   , _wrapper :: auth -> (Html () -> Html ()) -- ^ wrapper for Html
-  , _lookupUser:: Email-> ByteString-> m (Maybe auth)
+  , _lookupUser:: Request -> Email-> ByteString-> m (Maybe auth)
   , _port :: Int
   }
 
