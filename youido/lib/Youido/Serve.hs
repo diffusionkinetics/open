@@ -123,7 +123,7 @@ rdashSidebar title sbfoot links  = do
           toHtml title
           span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
       sb = RD.mkSidebar sidebarMain links
-  RD.mkSidebarWrapper sb sbfoot
+  RD.mkSidebarWrapper sb $ RD.mkSidebarFooter sbfoot
 
 
 {-mkSidebar :: [(Text, Text)] -> Html ()
