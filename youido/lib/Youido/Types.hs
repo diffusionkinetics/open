@@ -207,6 +207,16 @@ handle :: (FromRequest a, ToResponse b, Monad m)
        => (a -> (ReaderT auth m) b) -> YouidoT auth m ()
 handle f = handlers %= ((H f):)
 
+hHtmlT :: (FromRequest a, Monad m)
+       => (a -> HtmlT (ReaderT auth m) ()) -> YouidoT auth m ()
+hHtmlT f = handlers %= ((H foo):) where
+  foo x = do t <- renderBST $ f x
+             return $ Response ok200
+                       [("Content-Type", "text/html; charset=utf-8")]
+                       t
+
+
+
 liftY :: Monad m => m a -> YouidoT auth m a
 liftY mx = YouidoT (lift mx)
 
