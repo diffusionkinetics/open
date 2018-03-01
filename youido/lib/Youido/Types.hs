@@ -25,6 +25,7 @@ import Lens.Micro.Platform
 import Data.Map.Strict (Map)
 import GHC.Generics
 import Control.Monad.Reader
+import Lucid.PreEscaped
 
 --------------------------------------------------------------------------
 ---                 RESPONSES
@@ -86,6 +87,14 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
   toResponse (Left x) = toResponse x
   toResponse (Right y) = toResponse y
 
+data AsHtml = AsHtml LBS.ByteString
+
+instance ToResponse AsHtml where
+  toResponse (AsHtml t)
+    = Response ok200
+         [("Content-Type", "text/html; charset=utf-8")]
+         $ t
+  wrapHtml wrapper (AsHtml x) = AsHtml $ renderBS $ wrapper $ preEscapedByteString x
 --------------------------------------------------------------------------
 ---                 REQUESTS
 --------------------------------------------------------------------------
@@ -210,11 +219,7 @@ handle f = handlers %= ((H f):)
 hHtmlT :: (FromRequest a, Monad m)
        => (a -> HtmlT (ReaderT auth m) ()) -> YouidoT auth m ()
 hHtmlT f = handlers %= ((H foo):) where
-  foo x = do t <- renderBST $ f x
-             return $ Response ok200
-                       [("Content-Type", "text/html; charset=utf-8")]
-                       t
-
+  foo x = fmap AsHtml $ renderBST $ f x
 
 
 liftY :: Monad m => m a -> YouidoT auth m a
