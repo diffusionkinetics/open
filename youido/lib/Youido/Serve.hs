@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections,
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections, RankNTypes,
              DeriveGeneric, ExtendedDefaultRules, FlexibleContexts#-}
 
 module Youido.Serve where
@@ -22,17 +22,19 @@ import qualified Data.Map.Strict as Map
 
 import Control.Monad.Reader
 
-serveY :: a -> YouidoT auth (ReaderT a IO) () -> IO ()
-serveY x (YouidoT sm) = do
-  y <- runReaderT (execStateT sm (Youido [] "Not found!" (const id) (const $ const $const $return Nothing) 3000)) x
-  serve x y
+
+serveY :: Monad m => (forall a. auth -> m a -> IO a)  -> YouidoT auth m () -> IO ()
+serveY runM (YouidoT sm) = do
+  let youidoDef = Youido [] "Not found!" (const id) (const $ const $const $return Nothing) 3000
+  y  <- execStateT sm youidoDef
+  serve runM y
 
 loginPage :: Maybe (Html ()) -> Html ()
 loginPage mwarn = stdHtmlPage (return ()) $ container_ $
    row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
-serve :: a -> Youido auth (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ looku port') = do
+serve :: Monad m => (forall a. auth -> m a -> IO a) -> Youido auth m -> IO ()
+serve runM y@(Youido _ _ _ looku port') = do
   sessions <- newTVarIO (Data.IntMap.empty)
   scotty port' $ do
     middleware $ logStdout
@@ -50,7 +52,7 @@ serve x y@(Youido _ _ _ looku port') = do
       rq <- request
       let incorrect = renderText $ loginPage $ Just $
                 div_ [class_ "alert alert-danger"] "Incorrect user or password"
-      mu <- liftIO $ flip runReaderT x $ looku rq femail fpasswd
+      mu <- liftIO $  looku rq femail fpasswd
       case mu of
         Nothing -> html incorrect
         Just u -> newSession sessions u >> redirect "/"
@@ -60,7 +62,7 @@ serve x y@(Youido _ _ _ looku port') = do
             rq <- request
             pars <- params
             --liftIO $ print ("got request", rq)
-            Response stat hdrs conts <- liftIO $ runReaderT (run y u (rq, pars)) x
+            Response stat hdrs conts <- liftIO $ runM u $ run y u (rq, pars)
             status stat
             mapM_ (uncurry setHeader) hdrs
             raw conts

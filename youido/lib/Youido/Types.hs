@@ -200,30 +200,26 @@ instance Monad m => Monoid (Handler m) where
     Right y -> fmap Right $ f2 y
 
 data Youido auth m = Youido
-  { _handlers :: [Handler (ReaderT auth m)] -- ^ list of handlers
+  { _handlers :: [Handler m] -- ^ list of handlers
   , _notFoundHtml :: Html () -- ^ default, if nothing found
   , _wrapper :: auth -> (Html () -> Html ()) -- ^ wrapper for Html
-  , _lookupUser:: Request -> Email-> ByteString-> m (Maybe auth)
+  , _lookupUser:: Request -> Email-> ByteString-> IO (Maybe auth)
   , _port :: Int
   }
 
 makeLenses ''Youido
 
-newtype YouidoT auth m a = YouidoT {unYouidoT :: StateT (Youido auth m) m a}
+newtype YouidoT auth m a = YouidoT {unYouidoT :: StateT (Youido auth m) IO a}
    deriving (Functor, Applicative, Monad, MonadIO, MonadState (Youido auth m))
 
 handle :: (FromRequest a, ToResponse b, Monad m)
-       => (a -> (ReaderT auth m) b) -> YouidoT auth m ()
+       => (a -> m b) -> YouidoT auth m ()
 handle f = handlers %= ((H f):)
 
 hHtmlT :: (FromRequest a, Monad m)
-       => (a -> HtmlT (ReaderT auth m) ()) -> YouidoT auth m ()
+       => (a -> HtmlT m ()) -> YouidoT auth m ()
 hHtmlT f = handlers %= ((H foo):) where
   foo x = fmap AsHtml $ renderBST $ f x
-
-
-liftY :: Monad m => m a -> YouidoT auth m a
-liftY mx = YouidoT (lift mx)
 
 -- | get a response from a request, given a list of handlers
 run :: Monad m
@@ -238,5 +234,5 @@ run (Youido [] notFound wrapperf _ _) u _ =
 run (Youido (H f : hs) notFound wrapperf lu p) u rq = do
   case fromRequest rq of
     Nothing -> run (Youido hs notFound wrapperf lu p) u rq
-    Just x -> toResponse . wrapHtml (wrapperf u) <$> runReaderT (f x) u
+    Just x -> toResponse . wrapHtml (wrapperf u) <$>  f x
 

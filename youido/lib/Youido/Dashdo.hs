@@ -5,23 +5,19 @@
 module Youido.Dashdo (dashdoGlobal, dashdo, DashdoReq (Initial, InitialWith)) where
 
 import Youido.Types
-import Youido.Serve
 import Dashdo.Types hiding (FormFields)
 import Dashdo.Serve
 import Dashdo
 import Dashdo.Files
 import Control.Monad.IO.Class
-import Network.Wai
 import Data.Text.Lazy (toStrict)
 import Data.Text (Text, unpack, pack, intercalate)
 import Data.Monoid
 import qualified Data.Text.Lazy as TL
 import Lucid
-import GHC.OverloadedLabels
 import GHC.TypeLits
 import Data.Proxy
 import Lucid.Bootstrap
-import Lucid.Bootstrap3
 import Lucid.PreEscaped
 import Lens.Micro.Platform
 import Control.Monad.Reader
@@ -30,9 +26,9 @@ import qualified Data.Set as Set
 
 
 -- | include this once to get global JS and app UUID routes
-dashdoGlobal' :: MonadIO m => m (Handler (ReaderT auth m))
+dashdoGlobal' :: Monad m => IO (Handler  m)
 dashdoGlobal' = do
-  uuid <- liftIO $ getRandomUUID
+  uuid <- getRandomUUID
   let h1 = H $ \(_ :: "uuid" :/ () ) -> return $ toStrict uuid
   let h2 = H $ \(_ :: "js" :/ "dashdo.js" :/ () ) -> return $ JS dashdoJS
   return $ h1 <> h2
@@ -65,12 +61,13 @@ instance ToURL DashdoReq where
     = "/with?"<>(intercalate "&" $ map (\(k,v)->k<>"="<>v) pars)
   toURL _ = "/"
 
+
 dashdoHandler' :: forall s m t auth. (KnownSymbol s, MonadIO m, Show t)
-               => Key s -> Dashdo (ReaderT auth m) t -> m (s :/ DashdoReq -> ReaderT auth m (MAjax (Html ())))
+               => Key s -> Dashdo m t -> IO (s :/ DashdoReq ->  m (MAjax (Html ())))
 dashdoHandler' _ d = do
   --(_, ff, acts) <- dashdoGenOut d (initial d) []
-  ffRef <- liftIO $ newIORef []
-  actRef <- liftIO $ newIORef []
+  ffRef <- newIORef []
+  actRef <- newIORef []
   let fst3 (x,_,_) = x
       incrRefs theseFF theseActs = do
         ff <- readIORef ffRef
@@ -124,11 +121,12 @@ dashdoHandler' _ d = do
 
 dashdoGlobal :: MonadIO m => YouidoT auth m ()
 dashdoGlobal = do
-  dgh <- liftY $ dashdoGlobal'
+  dgh <- liftIO $ dashdoGlobal'
   handlers %= (dgh:)
 
+
 dashdo :: (KnownSymbol s, MonadIO m, Show t)
-  => Key s -> Dashdo (ReaderT auth m) t -> YouidoT auth m ()
+  => Key s -> Dashdo m t -> YouidoT auth m ()
 dashdo k dd = do
-  dh <- liftY $ dashdoHandler' k dd
+  dh <- liftIO $ dashdoHandler' k dd
   handle dh
