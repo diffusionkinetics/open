@@ -87,7 +87,7 @@ instance (ToResponse a, ToResponse b) => ToResponse (Either a b) where
   toResponse (Left x) = toResponse x
   toResponse (Right y) = toResponse y
 
-data AsHtml = AsHtml LBS.ByteString
+newtype AsHtml = AsHtml LBS.ByteString
 
 instance ToResponse AsHtml where
   toResponse (AsHtml t)
@@ -216,11 +216,13 @@ handle :: (FromRequest a, ToResponse b, Monad m)
        => (a -> m b) -> YouidoT auth m ()
 handle f = handlers %= ((H f):)
 
+unHtmlT :: Monad m => (a -> HtmlT m ()) ->(a -> m AsHtml)
+unHtmlT f x = fmap AsHtml $ renderBST $ f x
+
 hHtmlT :: (FromRequest a, Monad m)
        => (a -> HtmlT m ()) -> YouidoT auth m ()
-hHtmlT f = handlers %= ((H foo):) where
-  foo x = fmap AsHtml $ renderBST $ f x
-
+hHtmlT f = handlers %= ((H $ unHtmlT f):) where
+ 
 -- | get a response from a request, given a list of handlers
 run :: Monad m
     => Youido auth m
