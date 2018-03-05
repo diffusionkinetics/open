@@ -11,6 +11,7 @@ import Database.PostgreSQL.Simple.ToRow
 
 import GHC.Generics
 import Data.Proxy
+import qualified GHC.Int
 import Data.String
 import Data.List (intercalate, intersperse)
 import Data.Monoid ((<>), mconcat)
@@ -18,41 +19,59 @@ import Data.Maybe (listToMaybe)
 import Data.Aeson
 import Data.Text (Text, pack)
 import qualified Data.Text as T
+import Control.Monad.Reader
+
+class MonadIO m => MonadConnection m where
+  getConnection :: m Connection
+
+instance MonadIO m => MonadConnection (ReaderT Connection m) where
+  getConnection = ask
+
+withConnection :: MonadConnection m => (Connection-> IO a) -> m a
+withConnection f = getConnection >>= \c -> liftIO $ f c
+
 class HasFieldNames a where
   getFieldNames :: Proxy a -> [String]
 
   default getFieldNames :: (Selectors (Rep a)) => Proxy a -> [String]
   getFieldNames proxy = selectors proxy
+  
+queryC  :: (MonadConnection m,ToRow q, FromRow r) => Query -> q -> m [r]
+queryC fullq args = withConnection $ \conn -> query conn fullq args
 
-selectFrom :: forall r q. (ToRow q, FromRow r, HasFieldNames r) => Connection -> Query -> q -> IO [r]
-selectFrom conn q1 args = do
+executeC  :: (MonadConnection m,ToRow q) => Query -> q -> m GHC.Int.Int64
+executeC fullq args = withConnection $ \conn -> execute conn fullq args
+
+
+selectFrom :: forall r q m. (ToRow q, FromRow r, HasFieldNames r,MonadConnection m) => Query -> q -> m [r]
+selectFrom q1 args = do
   let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) ) <> " from " <> q1
-  query conn fullq args
+  queryC fullq args
 
 class HasFieldNames a => HasTable a where
   tableName :: Proxy a -> String
 
-selectWhere :: forall r q. (ToRow q, FromRow r, HasTable r)
-            => Connection -> Query -> q -> IO [r]
-selectWhere conn q1 args = do
+selectWhere :: forall r q m. (ToRow q, FromRow r, HasTable r,MonadConnection m)
+            =>  Query -> q -> m [r]
+selectWhere q1 args = do
   let fullq = "select " <> (fromString $ intercalate "," $ getFieldNames $ (Proxy :: Proxy r) )
                         <> " from " <> fromString (tableName (Proxy :: Proxy r))
                         <> " where " <> q1
-  query conn fullq args
+  queryC fullq args
 
-countFrom :: ToRow q => Connection -> Query -> q -> IO Int
-countFrom conn q1 args = do
+countFrom :: (ToRow q,MonadConnection m) => Query -> q -> m Int
+countFrom q1 args = do
   let fullq = "select count(*) from "<>q1
       unOnly (Only x) = x
-  n :: [Only Int] <- query conn fullq args
+  n :: [Only Int] <- queryC fullq args
   return $ sum $ map unOnly n
 
 
 --insert all fields
-insertAll :: forall r. (ToRow r, HasTable r) => Connection  -> r -> IO ()
-insertAll conn  val = do
+insertAll :: forall r m. (ToRow r, HasTable r,MonadConnection m) =>  r -> m ()
+insertAll  val = do
   let fnms = getFieldNames $ (Proxy :: Proxy r)
-  _ <- execute conn ("INSERT INTO " <> fromString (tableName (Proxy :: Proxy r)) <> " (" <>
+  _ <- executeC ("INSERT INTO " <> fromString (tableName (Proxy :: Proxy r)) <> " (" <>
                      (fromString $ intercalate "," fnms ) <>
                      ") VALUES (" <>
                      (fromString $ intercalate "," $ map (const "?") fnms) <> ")")
@@ -60,10 +79,10 @@ insertAll conn  val = do
   return ()
 
   --insert all fields
-insertAllOrDoNothing :: forall r. (ToRow r, HasTable r) => Connection  -> r -> IO ()
-insertAllOrDoNothing conn  val = do
+insertAllOrDoNothing :: forall r m. (ToRow r, HasTable r,MonadConnection m) =>  r -> m ()
+insertAllOrDoNothing   val = do
   let fnms = getFieldNames $ (Proxy :: Proxy r)
-  _ <- execute conn ("INSERT INTO " <> fromString (tableName (Proxy :: Proxy r)) <> " (" <>
+  _ <- executeC ("INSERT INTO " <> fromString (tableName (Proxy :: Proxy r)) <> " (" <>
                      (fromString $ intercalate "," fnms ) <>
                      ") VALUES (" <>
                      (fromString $ intercalate "," $ map (const "?") fnms) <> ") ON CONFLICT DO NOTHING")
@@ -97,11 +116,11 @@ class HasTable a => HasKey a where
   getKey :: a -> Key a
   getKeyFieldNames :: Proxy a -> [String]
 
-insert :: forall a . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a)) => Connection -> a -> IO (Key a)
-insert conn val = do
+insert :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a),MonadConnection m) =>  a -> m (Key a)
+insert  val = do
   if autoIncrementing (undefined :: Proxy (Key a))
      then ginsertSerial
-     else do insertAll conn val
+     else do insertAll  val
              return $ getKey val
    where ginsertSerial = do
            let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
@@ -112,16 +131,16 @@ insert conn val = do
                fields = mconcat $ intersperse "," $ fldNmsNoKey
                qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
                q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") returning "<>kName
-           res <- query conn q qArgs
+           res <- queryC q qArgs
            case res of
              [] -> fail $ "no key returned from "++show tblName
              Only k : _ -> return k
 
-insertOrDoNothing :: forall a . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a)) => Connection -> a -> IO (Key a)
-insertOrDoNothing conn val = do
+insertOrDoNothing :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a),MonadConnection m) =>  a -> m (Key a)
+insertOrDoNothing  val = do
   if autoIncrementing (undefined :: Proxy (Key a))
      then ginsertSerial
-     else do insertAll conn val
+     else do insertAll  val
              return $ getKey val
    where ginsertSerial = do
            let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
@@ -132,15 +151,15 @@ insertOrDoNothing conn val = do
                fields = mconcat $ intersperse "," $ fldNmsNoKey
                qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
                q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") ON CONFLICT DO NOTHING returning "<>kName
-           res <- query conn q qArgs
+           res <- queryC q qArgs
            case res of
              [] -> fail $ "no key returned from "++show tblName
              Only k : _ -> return k
 
 update
-  :: forall a . (HasKey a, KeyField (Key a), ToRow a)
-  => Connection -> a -> IO ()
-update conn val = do
+  :: forall a m . (HasKey a, KeyField (Key a), ToRow a,MonadConnection m)
+  =>  a -> m ()
+update  val = do
   let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
       kval = getKey val
       tblName = fromString $ tableName (Proxy :: Proxy a)
@@ -150,27 +169,27 @@ update conn val = do
       fieldQ = mconcat $ intersperse ", " $ map (\f-> f <>" = ?") fldNmsNoKey
       (keyQ, keyA) = keyRestrict (Proxy @a) kval
       q = "update "<>tblName<>" set "<>fieldQ<>" where "<>keyQ
-  execute conn q $ qArgs ++ keyA
+  executeC q $ qArgs ++ keyA
   return ()
 
 delete
-  :: forall a . (HasKey a, KeyField (Key a), ToField (Key a))
-  => Connection -> a -> IO ()
-delete conn x = do
+  :: forall a  m. (HasKey a, KeyField (Key a), ToField (Key a),MonadConnection m)
+  =>  a -> m ()
+delete  x = do
   let tblName = fromString $ tableName (Proxy :: Proxy a)
       [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
       q = "delete from "<> tblName<>" where "<>kName<>" = ?"
-  execute conn q (Only $ getKey x)
+  executeC q (Only $ getKey x)
   return ()
 
 deleteByKey
-  :: forall a . (HasKey a, KeyField (Key a))
-  => Connection -> Proxy a -> Key a -> IO ()
-deleteByKey conn px k = do
+  :: forall a m . (HasKey a, KeyField (Key a),MonadConnection m)
+  =>  Proxy a -> Key a -> m ()
+deleteByKey  px k = do
   let tblName = fromString $ tableName px
       (keyQ, keyA) = keyRestrict (Proxy @a) k
       q = "delete from "<> tblName<>" where "<>keyQ
-  execute conn q keyA
+  executeC q keyA
   return ()
 
 conjunction :: [Query] -> Query
@@ -188,10 +207,10 @@ keyRestrict px key
 
 -- |Fetch a row by its primary key
 
-getByKey :: forall a . (HasKey a, KeyField (Key a), FromRow a) => Connection -> Key a -> IO (Maybe a)
-getByKey conn key = do
+getByKey :: forall a m . (HasKey a, KeyField (Key a), FromRow a,MonadConnection m) =>  Key a -> m (Maybe a)
+getByKey  key = do
   let (q, as) = keyRestrict (Proxy :: Proxy a) key
-  ress <- selectWhere conn q as
+  ress <- selectWhere  q as
   return $ listToMaybe ress
 
 newtype Serial a = Serial { unSerial :: a }
