@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, KindSignatures, DataKinds, TypeApplications, GADTs,
              FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, CPP,
              TypeOperators, GeneralizedNewtypeDeriving, TemplateHaskell  #-}
@@ -5,7 +7,9 @@
 module Youido.Types where
 
 import Network.Wai hiding (Response)
-import Data.Text (Text, pack)
+import Data.Text as T (null)
+import Data.Text (Text, pack, unpack)
+import Data.Text.Read(signed, decimal)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as T
 import Control.Monad.State.Strict
@@ -14,6 +18,9 @@ import GHC.TypeLits
 import Data.Proxy
 import Lucid
 import Data.Aeson
+import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
+import Data.Char (toLower, isUpper)
+import Data.List (intercalate)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
 import Database.PostgreSQL.Simple.FromField
@@ -21,11 +28,119 @@ import Database.PostgreSQL.Simple.ToField
 import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
-import Lens.Micro.Platform
+import Lens.Micro.Platform hiding (to)
 import Data.Map.Strict (Map)
 import GHC.Generics
 import Control.Monad.Reader
 import Lucid.PreEscaped
+
+import Control.Applicative((<|>))
+import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
+import Text.ParserCombinators.Parsec.Prim  (GenParser, getPosition, token, (<?>),
+                                            many)
+
+--------------------------------------------------------------------------
+---                 PATHINFO
+--- Code copied from the web-routes library
+--------------------------------------------------------------------------
+
+type URLParser a = GenParser Text () a
+
+pToken :: tok -> (Text -> Maybe a) -> URLParser a
+pToken msg f = do pos <- getPosition
+                  token unpack (const $ incSourceLine pos 1) f
+
+-- | match on a specific string
+segment :: Text -> URLParser Text
+segment x = (pToken (const x) (\y -> if x == y then Just x else Nothing)) <?> unpack x
+
+-- | match on any string
+anySegment :: URLParser Text
+anySegment = pToken (const "any string") Just
+
+hyphenate :: String -> Text
+hyphenate =
+    pack . intercalate "-" . map (map toLower) . split splitter
+  where
+    splitter = dropInitBlank . keepDelimsL . whenElt $ isUpper
+
+class GPathInfo f where
+  gtoPathSegments :: f url -> [Text]
+  gfromPathSegments :: URLParser (f url)
+
+instance GPathInfo U1 where
+  gtoPathSegments U1 = []
+  gfromPathSegments = pure U1
+
+instance GPathInfo a => GPathInfo (D1 c a) where
+  gtoPathSegments = gtoPathSegments . unM1
+  gfromPathSegments = M1 <$> gfromPathSegments
+
+instance GPathInfo a => GPathInfo (S1 c a) where
+  gtoPathSegments = gtoPathSegments . unM1
+  gfromPathSegments = M1 <$> gfromPathSegments
+
+instance forall c a. (GPathInfo a, Constructor c) => GPathInfo (C1 c a) where
+  gtoPathSegments m@(M1 x) = (hyphenate . conName) m : gtoPathSegments x
+  gfromPathSegments = M1 <$ segment (hyphenate . conName $ (undefined :: C1 c a r))
+                         <*> gfromPathSegments
+
+instance (GPathInfo a, GPathInfo b) => GPathInfo (a :*: b) where
+  gtoPathSegments (a :*: b) = gtoPathSegments a ++ gtoPathSegments b
+  gfromPathSegments = (:*:) <$> gfromPathSegments <*> gfromPathSegments
+
+instance (GPathInfo a, GPathInfo b) => GPathInfo (a :+: b) where
+  gtoPathSegments (L1 x) = gtoPathSegments x
+  gtoPathSegments (R1 x) = gtoPathSegments x
+  gfromPathSegments = L1 <$> gfromPathSegments
+                  <|> R1 <$> gfromPathSegments
+
+instance PathInfo a => GPathInfo (K1 i a) where
+  gtoPathSegments = toPathSegments . unK1
+  gfromPathSegments = K1 <$> fromPathSegments
+
+class PathInfo url where
+  toPathSegments :: url -> [Text]
+  fromPathSegments :: URLParser url
+
+  default toPathSegments :: (Generic url, GPathInfo (Rep url)) => url -> [Text]
+  toPathSegments = gtoPathSegments . from
+  default fromPathSegments :: (Generic url, GPathInfo (Rep url)) => URLParser url
+  fromPathSegments = to <$> gfromPathSegments
+
+-- it's instances all the way down
+
+instance PathInfo Text where
+  toPathSegments = (:[])
+  fromPathSegments = anySegment
+
+instance PathInfo [Text] where
+  toPathSegments = id
+  fromPathSegments = many anySegment
+
+instance PathInfo String where
+  toPathSegments = (:[]) . pack
+  fromPathSegments = unpack <$> anySegment
+
+instance PathInfo [String] where
+  toPathSegments = id . map pack
+  fromPathSegments = many (unpack <$> anySegment)
+
+instance PathInfo Int where
+  toPathSegments i = [pack $ show i]
+  fromPathSegments = pToken (const "Int") checkIntegral
+
+instance PathInfo Integer where
+  toPathSegments i = [pack $ show i]
+  fromPathSegments = pToken (const "Integer") checkIntegral
+
+checkIntegral :: Integral a => Text -> Maybe a
+checkIntegral txt =
+  case signed decimal txt of
+    (Left e) -> Nothing
+    (Right (n, r))
+       | T.null r -> Just n
+       | otherwise -> Nothing
 
 --------------------------------------------------------------------------
 ---                 RESPONSES
@@ -98,6 +213,7 @@ instance ToResponse AsHtml where
 --------------------------------------------------------------------------
 ---                 REQUESTS
 --------------------------------------------------------------------------
+
 
 -- types that can be parsed from a request, maybe
 class FromRequest a where
@@ -222,7 +338,7 @@ unHtmlT f x = fmap AsHtml $ renderBST $ f x
 hHtmlT :: (FromRequest a, Monad m)
        => (a -> HtmlT m ()) -> YouidoT auth m ()
 hHtmlT f = handlers %= ((H $ unHtmlT f):) where
- 
+
 -- | get a response from a request, given a list of handlers
 run :: Monad m
     => Youido auth m
