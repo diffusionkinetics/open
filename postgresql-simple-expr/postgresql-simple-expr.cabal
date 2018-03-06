@@ -30,3 +30,5 @@ library
                      , bytestring
                      , text
                      , mtl
+                     , resource-pool
+                     , time
