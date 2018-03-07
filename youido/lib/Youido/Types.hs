@@ -33,6 +33,7 @@ import Data.Map.Strict (Map)
 import GHC.Generics
 import Control.Monad.Reader
 import Lucid.PreEscaped
+import Text.Read (readMaybe)
 
 import Control.Applicative((<|>))
 import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
@@ -295,8 +296,39 @@ newtype FormFields = FormFields [(TL.Text, TL.Text)]
 instance FromRequest FormFields where
   fromRequest (_,pars) = Just $ FormFields pars
 
+--------------------------------------------------------------------------
+---                 FORM HANDLING
+--------------------------------------------------------------------------
 
+class FormField a where
+  fromFromField :: TL.Text -> Maybe a
+  
+instance FormField TL.Text where
+  fromFromField  = Just
+  
+instance FormField Text where
+  fromFromField  = Just . TL.toStrict
+  
+instance FormField String where
+  fromFromField  = Just . TL.unpack
 
+instance FormField Int where
+  fromFromField t = readMaybe =<< fromFromField t
+
+instance FormField Double where
+  fromFromField t = readMaybe =<< fromFromField t
+  
+ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
+ffLookup k pars = fromFromField =<< (lookup k pars)
+
+-- This should be derived generically
+class FromForm a where 
+  fromForm :: [(TL.Text, TL.Text)] -> Maybe a
+  
+-- when a field is wrapped in a Form type, switch to getting the 
+-- data using FromForm when deriving FromRequest
+
+data Form a = FormLink | Form a
 
 --------------------------------------------------------------------------
 ---                 HANDLERS
