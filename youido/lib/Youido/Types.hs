@@ -303,6 +303,10 @@ instance FromRequest FormFields where
 class FormField a where
   fromFromField :: TL.Text -> Maybe a
   
+  ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
+  ffLookup k pars = fromFromField =<< (lookup k pars)
+
+  
 instance FormField TL.Text where
   fromFromField  = Just
   
@@ -317,9 +321,12 @@ instance FormField Int where
 
 instance FormField Double where
   fromFromField t = readMaybe =<< fromFromField t
+
+-- We assume this comes from a checkbox
+instance FormField Bool where
+  fromFromField _ = Nothing
+  ffLookup k pars = Just $ k `elem` map fst pars
   
-ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
-ffLookup k pars = fromFromField =<< (lookup k pars)
 
 -- This should be derived generically
 class FromForm a where 
