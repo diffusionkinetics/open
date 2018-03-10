@@ -1,5 +1,7 @@
+{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, KindSignatures, DataKinds, TypeApplications, GADTs,
              FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, CPP,
              TypeOperators, GeneralizedNewtypeDeriving, TemplateHaskell  #-}
@@ -346,10 +348,30 @@ instance FormField Bool where
 class FromForm a where
   fromForm :: [(TL.Text, TL.Text)] -> Maybe a
 
+class GFromForm f where
+  gfromForm :: [(TL.Text, TL.Text)] -> Maybe (f a)
+
+instance (GFromForm a, GFromForm b) => GFromForm (a :*: b) where
+  gfromForm pars = (:*:) <$> (gfromForm pars) <*> (gfromForm pars)
+
+instance (Selector c, FormField a) => GFromForm (M1 S c (K1 i a)) where
+  gfromForm pars = M1 . K1 <$> (ffLookup (TL.pack (selName (undefined :: M1 S c (K1 i a) r))) pars)
+
 -- when a field is wrapped in a Form type, switch to getting the
 -- data using FromForm when deriving FromRequest
 
-data Form a = FormLink | Form a
+data Form a = FormLink | Form a deriving Show
+
+data Variable = Variable
+ { varname :: Text
+ , varvalue :: Maybe Double
+ } deriving (Generic, Show)
+
+data Variables = ListVariables | ShowVariable (Form Variable) deriving Generic
+
+
+
+-- instance FromRequest Variables
 
 --------------------------------------------------------------------------
 ---                 HANDLERS
