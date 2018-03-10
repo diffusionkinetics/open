@@ -100,6 +100,9 @@ instance PathInfo a => GPathInfo (K1 i a) where
   gtoPathSegments = toPathSegments . unK1
   gfromPathSegments = K1 <$> fromPathSegments
 
+-- TODO: We don't need this intermediate class between GPathInfo and
+-- FromRequest and ToURL. We can remove this without changing the API.
+-- We need it for the `instance PathInfo a => GPathInfo (K1 i a)` above
 class PathInfo url where
   toPathSegments :: url -> [Text]
   fromPathSegments :: URLParser url
