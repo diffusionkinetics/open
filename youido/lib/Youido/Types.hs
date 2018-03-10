@@ -7,7 +7,7 @@
 module Youido.Types where
 
 import Network.Wai hiding (Response)
-import Data.Text as T (null)
+import qualified Data.Text as T
 import Data.Text (Text, pack, unpack)
 import Data.Text.Read(signed, decimal)
 import qualified Data.Text.Lazy as TL
@@ -37,7 +37,7 @@ import Text.Read (readMaybe)
 
 import Control.Applicative((<|>))
 import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
-import Text.ParserCombinators.Parsec.Prim  (GenParser, getPosition, token, (<?>),
+import Text.ParserCombinators.Parsec.Prim  (runParser, GenParser, getPosition, token, (<?>),
                                             many)
 
 --------------------------------------------------------------------------
@@ -220,8 +220,19 @@ instance ToResponse AsHtml where
 class FromRequest a where
   fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
+  default fromRequest :: (Generic a, GPathInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
+  fromRequest (rq,_) = let parser = to <$> gfromPathSegments in
+    case (runParser parser () "" (pathInfo rq)) of
+      Left _ -> Nothing
+      Right t -> Just t
+
 class ToURL a where
   toURL :: a -> Text
+
+  default toURL :: (Generic a, GPathInfo(Rep a)) => a -> Text
+  toURL a = let pathSegments = gtoPathSegments (from a) in
+    T.intercalate "/" $ ("" : pathSegments)
+  -- Trick to get a leading "/"
 
 instance FromRequest Void where
   fromRequest _ = Nothing
@@ -302,17 +313,17 @@ instance FromRequest FormFields where
 
 class FormField a where
   fromFromField :: TL.Text -> Maybe a
-  
+
   ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
   ffLookup k pars = fromFromField =<< (lookup k pars)
 
-  
+
 instance FormField TL.Text where
   fromFromField  = Just
-  
+
 instance FormField Text where
   fromFromField  = Just . TL.toStrict
-  
+
 instance FormField String where
   fromFromField  = Just . TL.unpack
 
@@ -326,13 +337,13 @@ instance FormField Double where
 instance FormField Bool where
   fromFromField _ = Nothing
   ffLookup k pars = Just $ k `elem` map fst pars
-  
+
 
 -- This should be derived generically
-class FromForm a where 
+class FromForm a where
   fromForm :: [(TL.Text, TL.Text)] -> Maybe a
-  
--- when a field is wrapped in a Form type, switch to getting the 
+
+-- when a field is wrapped in a Form type, switch to getting the
 -- data using FromForm when deriving FromRequest
 
 data Form a = FormLink | Form a
@@ -392,4 +403,3 @@ run (Youido (H f : hs) notFound wrapperf lu p) u rq = do
   case fromRequest rq of
     Nothing -> run (Youido hs notFound wrapperf lu p) u rq
     Just x -> toResponse . wrapHtml (wrapperf u) <$>  f x
-
