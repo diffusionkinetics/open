@@ -67,52 +67,53 @@ hyphenate =
   where
     splitter = dropInitBlank . keepDelimsL . whenElt $ isUpper
 
-class GPathInfo f where
+class GRequestInfo f where
   gtoPathSegments :: f url -> [Text]
-  gfromPathSegments :: URLParser (f url)
+  gfromRequest :: ([Text], [(TL.Text, TL.Text)]) -> Maybe (f url)
 
-instance GPathInfo U1 where
+instance GRequestInfo U1 where
   gtoPathSegments U1 = []
-  gfromPathSegments = pure U1
+  gfromRequest _ = pure U1
 
-instance GPathInfo a => GPathInfo (D1 c a) where
+instance GRequestInfo a => GRequestInfo (D1 c a) where
   gtoPathSegments = gtoPathSegments . unM1
-  gfromPathSegments = M1 <$> gfromPathSegments
+  gfromRequest r = M1 <$> gfromRequest r
 
-instance GPathInfo a => GPathInfo (S1 c a) where
+instance GRequestInfo a => GRequestInfo (S1 c a) where
   gtoPathSegments = gtoPathSegments . unM1
-  gfromPathSegments = M1 <$> gfromPathSegments
+  gfromRequest r = M1 <$> gfromRequest r
 
-instance forall c a. (GPathInfo a, Constructor c) => GPathInfo (C1 c a) where
-  gtoPathSegments m@(M1 x) = (hyphenate . conName) m : gtoPathSegments x
-  gfromPathSegments = M1 <$ segment (hyphenate . conName $ (undefined :: C1 c a r))
-                         <*> gfromPathSegments
+instance forall c a. (GRequestInfo a, Constructor c) => GRequestInfo (C1 c a) where
+  gtoPathSegments m@(M1 x)  = (hyphenate . conName) m : gtoPathSegments x
+  gfromRequest ([], form) = M1 <$> Nothing
+  gfromRequest (p:paths, form) = let bb = hyphenate (conName (undefined :: C1 c a r)) in
+    if bb == p then M1 <$> gfromRequest (paths, form) else M1 <$> Nothing
 
-instance (GPathInfo a, GPathInfo b) => GPathInfo (a :*: b) where
+instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :*: b) where
   gtoPathSegments (a :*: b) = gtoPathSegments a ++ gtoPathSegments b
-  gfromPathSegments = (:*:) <$> gfromPathSegments <*> gfromPathSegments
+  gfromRequest = (:*:) <$> gfromRequest <*> gfromRequest
 
-instance (GPathInfo a, GPathInfo b) => GPathInfo (a :+: b) where
+instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :+: b) where
   gtoPathSegments (L1 x) = gtoPathSegments x
   gtoPathSegments (R1 x) = gtoPathSegments x
-  gfromPathSegments = L1 <$> gfromPathSegments
-                  <|> R1 <$> gfromPathSegments
+  gfromRequest = L1 <$> gfromRequest
+                  <|> R1 <$> gfromRequest
 
-instance PathInfo a => GPathInfo (K1 i a) where
+instance PathInfo a => GRequestInfo (K1 i a) where
   gtoPathSegments = toPathSegments . unK1
-  gfromPathSegments = K1 <$> fromPathSegments
+  gfromRequest = K1 <$> fromPathSegments
 
--- TODO: We don't need this intermediate class between GPathInfo and
+-- TODO: We don't need this intermediate class between GRequestInfo and
 -- FromRequest and ToURL. We can remove this without changing the API.
--- We need it for the `instance PathInfo a => GPathInfo (K1 i a)` above
+-- We need it for the `instance PathInfo a => GRequestInfo (K1 i a)` above
 class PathInfo url where
   toPathSegments :: url -> [Text]
   fromPathSegments :: URLParser url
 
-  default toPathSegments :: (Generic url, GPathInfo (Rep url)) => url -> [Text]
+  default toPathSegments :: (Generic url, GRequestInfo (Rep url)) => url -> [Text]
   toPathSegments = gtoPathSegments . from
-  default fromPathSegments :: (Generic url, GPathInfo (Rep url)) => URLParser url
-  fromPathSegments = to <$> gfromPathSegments
+  default fromPathSegments :: (Generic url, GRequestInfo (Rep url)) => URLParser url
+  fromPathSegments = to <$> gfromRequest
 
 -- it's instances all the way down
 
@@ -225,8 +226,8 @@ instance ToResponse AsHtml where
 class FromRequest a where
   fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
-  default fromRequest :: (Generic a, GPathInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
-  fromRequest (rq,_) = let parser = to <$> gfromPathSegments in
+  default fromRequest :: (Generic a, GRequestInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
+  fromRequest (rq,_) = let parser = to <$> gfromRequest in
     case (runParser parser () "" (pathInfo rq)) of
       Left _ -> Nothing
       Right t -> Just t
@@ -234,7 +235,7 @@ class FromRequest a where
 class ToURL a where
   toURL :: a -> Text
 
-  default toURL :: (Generic a, GPathInfo(Rep a)) => a -> Text
+  default toURL :: (Generic a, GRequestInfo(Rep a)) => a -> Text
   toURL a = let pathSegments = gtoPathSegments (from a) in
     T.intercalate "/" $ ("" : pathSegments)
   -- Trick to get a leading "/"
@@ -322,6 +323,8 @@ class FormField a where
   ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
   ffLookup k pars = fromFromField =<< (lookup k pars)
 
+instance FormField a => FormField (Maybe a) where
+  fromFromField = Just . fromFromField
 
 instance FormField TL.Text where
   fromFromField  = Just
@@ -348,6 +351,9 @@ instance FormField Bool where
 class FromForm a where
   fromForm :: [(TL.Text, TL.Text)] -> Maybe a
 
+  default fromForm :: (Generic a, GFromForm (Rep a)) => [(TL.Text, TL.Text)] -> Maybe a
+  fromForm pars = to <$> (gfromForm pars)
+
 class GFromForm f where
   gfromForm :: [(TL.Text, TL.Text)] -> Maybe (f a)
 
@@ -357,21 +363,30 @@ instance (GFromForm a, GFromForm b) => GFromForm (a :*: b) where
 instance (Selector c, FormField a) => GFromForm (M1 S c (K1 i a)) where
   gfromForm pars = M1 . K1 <$> (ffLookup (TL.pack (selName (undefined :: M1 S c (K1 i a) r))) pars)
 
+instance (Constructor c, GFromForm a) => GFromForm (C1 c a) where
+  gfromForm pars = M1 <$> gfromForm pars
+
+instance (GFromForm a) => GFromForm (D1 c a) where
+  gfromForm pars = M1 <$> gfromForm pars
+
 -- when a field is wrapped in a Form type, switch to getting the
 -- data using FromForm when deriving FromRequest
 
 data Form a = FormLink | Form a deriving Show
+
+instance FromForm a => FromRequest (Form a) where
+  fromRequest (rq, pars) = Form <$> fromForm pars
 
 data Variable = Variable
  { varname :: Text
  , varvalue :: Maybe Double
  } deriving (Generic, Show)
 
+instance FromForm Variable
+
 data Variables = ListVariables | ShowVariable (Form Variable) deriving Generic
 
-
-
--- instance FromRequest Variables
+instance FromRequest Variables
 
 --------------------------------------------------------------------------
 ---                 HANDLERS
