@@ -38,8 +38,9 @@ import Lucid.PreEscaped
 import Text.Read (readMaybe)
 
 import Control.Applicative((<|>))
+
 import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
-import Text.ParserCombinators.Parsec.Prim  (runParser, GenParser, getPosition, token, (<?>),
+import Text.ParserCombinators.Parsec.Prim  (unexpected, runParser, GenParser, getPosition, token, (<?>),
                                             many)
 
 --------------------------------------------------------------------------
@@ -68,40 +69,48 @@ hyphenate =
     splitter = dropInitBlank . keepDelimsL . whenElt $ isUpper
 
 class GRequestInfo f where
-  gtoPathSegments :: f url -> [Text]
-  gfromRequest :: ([Text], [(TL.Text, TL.Text)]) -> Maybe (f url)
+  gtoPathSegments   :: f url -> [Text]
+  gfromPathSegments :: URLParser (f url)
+
+  gfromPars         :: [(TL.Text, TL.Text)] -> Maybe (f url)
+  gfromPars _       =         Nothing
 
 instance GRequestInfo U1 where
   gtoPathSegments U1 = []
-  gfromRequest _ = pure U1
+  gfromPathSegments = pure U1
 
 instance GRequestInfo a => GRequestInfo (D1 c a) where
   gtoPathSegments = gtoPathSegments . unM1
-  gfromRequest r = M1 <$> gfromRequest r
+  gfromPathSegments = M1 <$> gfromPathSegments
 
 instance GRequestInfo a => GRequestInfo (S1 c a) where
   gtoPathSegments = gtoPathSegments . unM1
-  gfromRequest r = M1 <$> gfromRequest r
+  gfromPathSegments = M1 <$> gfromPathSegments
 
 instance forall c a. (GRequestInfo a, Constructor c) => GRequestInfo (C1 c a) where
-  gtoPathSegments m@(M1 x)  = (hyphenate . conName) m : gtoPathSegments x
-  gfromRequest ([], form) = M1 <$> Nothing
-  gfromRequest (p:paths, form) = let bb = hyphenate (conName (undefined :: C1 c a r)) in
-    if bb == p then M1 <$> gfromRequest (paths, form) else M1 <$> Nothing
+  gtoPathSegments m@(M1 x) = (hyphenate . conName) m : gtoPathSegments x
+  gfromPathSegments = M1 <$ segment (hyphenate . conName $ (undefined :: C1 c a r))
+                         <*> gfromPathSegments
 
 instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :*: b) where
   gtoPathSegments (a :*: b) = gtoPathSegments a ++ gtoPathSegments b
-  gfromRequest = (:*:) <$> gfromRequest <*> gfromRequest
+  gfromPathSegments = (:*:) <$> gfromPathSegments <*> gfromPathSegments
 
 instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :+: b) where
   gtoPathSegments (L1 x) = gtoPathSegments x
   gtoPathSegments (R1 x) = gtoPathSegments x
-  gfromRequest = L1 <$> gfromRequest
-                  <|> R1 <$> gfromRequest
+  gfromPathSegments = L1 <$> gfromPathSegments
+                  <|> R1 <$> gfromPathSegments
 
 instance PathInfo a => GRequestInfo (K1 i a) where
   gtoPathSegments = toPathSegments . unK1
-  gfromRequest = K1 <$> fromPathSegments
+  gfromPathSegments = K1 <$> fromPathSegments
+
+instance {-# OVERLAPPING #-} (FromForm a) => GRequestInfo (K1 i (Form a)) where
+  gtoPathSegments _ = []
+  gfromPathSegments = unexpected "Can't make form out of that"
+  gfromPars pars = K1 <$> Form <$> fromForm pars
+
 
 -- TODO: We don't need this intermediate class between GRequestInfo and
 -- FromRequest and ToURL. We can remove this without changing the API.
@@ -113,7 +122,7 @@ class PathInfo url where
   default toPathSegments :: (Generic url, GRequestInfo (Rep url)) => url -> [Text]
   toPathSegments = gtoPathSegments . from
   default fromPathSegments :: (Generic url, GRequestInfo (Rep url)) => URLParser url
-  fromPathSegments = to <$> gfromRequest
+  fromPathSegments = to <$> gfromPathSegments
 
 -- it's instances all the way down
 
@@ -227,7 +236,7 @@ class FromRequest a where
   fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
   default fromRequest :: (Generic a, GRequestInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
-  fromRequest (rq,_) = let parser = to <$> gfromRequest in
+  fromRequest (rq,_) = let parser = to <$> gfromPathSegments in
     case (runParser parser () "" (pathInfo rq)) of
       Left _ -> Nothing
       Right t -> Just t
@@ -374,9 +383,6 @@ instance (GFromForm a) => GFromForm (D1 c a) where
 
 data Form a = FormLink | Form a deriving Show
 
-instance FromForm a => FromRequest (Form a) where
-  fromRequest (rq, pars) = Form <$> fromForm pars
-
 data Variable = Variable
  { varname :: Text
  , varvalue :: Maybe Double
@@ -384,9 +390,10 @@ data Variable = Variable
 
 instance FromForm Variable
 
-data Variables = ListVariables | ShowVariable (Form Variable) deriving Generic
+data Variables = ListVariables | BlahVariable Text | ShowVariable (Form Variable) deriving Generic
 
 instance FromRequest Variables
+instance ToURL Variables
 
 --------------------------------------------------------------------------
 ---                 HANDLERS
