@@ -79,9 +79,8 @@ solveNm f s0 tol maxiter = go [] s0 0 where
 nmStep :: Monad m => (Vector Double -> m Double) -> Simplex -> m Simplex
 nmStep f  s0 = do
   let alpha = 1
-      gamma = 2
+      gammaPar = 2 :: Double
       rho = 0.5
-      sigma = 0.5
       x0 = centroid $ init s0
       xnp1 = fst (last s0)
       fxnp1 = snd (last s0)
@@ -92,7 +91,7 @@ nmStep f  s0 = do
   if fx1 <= fxr && fxr <= (snd $ penultimate s0)
     then return $ swapLast s0 (xr,fxr)
     else do
-        let xe = x0 `vadd` (gamma .* (x0 `vsub` xnp1))
+        let xe = x0 `vadd` (gammaPar .* (x0 `vsub` xnp1))
         fxe <- f xe
         if fxr < fx1
             then if fxe < fxr

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExtendedDefaultRules #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-|
 
@@ -27,7 +28,7 @@ import Data.Aeson
 
 -- |`script` tag to go in the header to import the plotly.js javascript from the official CDN
 plotlyCDN :: Monad m => HtmlT m ()
-plotlyCDN = script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] ""
+plotlyCDN = script_ [src_ "https://cdn.plot.ly/plotly-latest.min.js"] $ toHtml (""::String)
 
 -- |Activate a plot defined by a `Plotly` value
 plotlyJS :: Monad m => Plotly -> HtmlT m ()

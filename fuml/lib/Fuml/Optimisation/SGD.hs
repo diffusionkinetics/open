@@ -20,6 +20,6 @@ sgdEpoch opts grad pts' p' = do
           go p (batch:bs) = go (sgdBatch opts (grad batch) p) bs
 
 inGroupsOf :: Int -> [a] -> [[a]]
-inGroupsOf n [] = []
+inGroupsOf _ [] = []
 inGroupsOf n xs = let (these,those) = splitAt n xs
                   in these : inGroupsOf n those

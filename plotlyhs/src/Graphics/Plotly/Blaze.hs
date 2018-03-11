@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ExtendedDefaultRules #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-|
 

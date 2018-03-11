@@ -17,6 +17,7 @@ imported directly.
 -}
 
 {-# LANGUAGE OverloadedStrings, GADTs #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 module Numeric.Datasets where
 

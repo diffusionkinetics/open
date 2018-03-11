@@ -1,10 +1,12 @@
 {-# language OverloadedStrings, TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+
 {-|
 Netflix prize dataset
 
 From the README : The movie rating files contain over 100 million ratings from 480 thousand randomly-chosen, anonymous Netflix customers over 17 thousand movie titles.  The data were collected between October, 1998 and December, 2005 and reflect the distribution of all ratings received during this period.  The ratings are on a scale from 1 to 5 (integral) stars. To protect customer privacy, each customer id has been replaced with a randomly-assigned id.  The date of each rating and the title and year of release for each movie id are also provided.
 
-The competition ended on September, 2009, and the dataset was subsequently removed from the public domain by the company (see <http://netflixprize.com/>). 
+The competition ended on September, 2009, and the dataset was subsequently removed from the public domain by the company (see <http://netflixprize.com/>).
 
 We include in the repository a tiny subset of the original dataset for development purposes. Since we use `file-embed` to load the data, the directories are hardcoded (see the Datasets section below); users may either symlink or copy the full dataset in the given directories.
 
@@ -16,7 +18,7 @@ module Numeric.Datasets.Netflix (
   -- * Types
   RD(..),
   UserId, MovieId,
-  Train(..), Test(..), Movie(..), 
+  Train(..), Test(..), Movie(..),
   RatingDate(..),
   -- * Datasets
   trainingSet, testSet, movies
@@ -33,7 +35,7 @@ import Data.Time (Day, fromGregorian)
 -- import Control.Applicative
 import Data.Monoid (mconcat)
 import Data.Traversable (traverse)
-import qualified Data.Attoparsec.Internal.Types as PT (Parser) 
+import qualified Data.Attoparsec.Internal.Types as PT (Parser)
 import Data.Attoparsec.ByteString
 import Data.Attoparsec.ByteString.Char8 hiding (takeWhile, inClass)
 
@@ -139,7 +141,7 @@ parseTrainingSet' :: Num a => Either String [[(UserId, MovieId, RD a)]]
 parseTrainingSet' = do
   d <- traverse (parseOnly trainingSetParser . snd) trainingSet
   pure $ map toCoordsTrainCol d
-  
+
 
 -- | Parse the whole test set, convert to coordinate format and concatenate into a single list.
 parseTestSet :: Either String [(UserId, MovieId, Day)]
@@ -191,7 +193,7 @@ testSetParser = do
 -- - MovieID do not correspond to actual Netflix movie ids or IMDB movie ids.
 -- - YearOfRelease can range from 1890 to 2005 and may correspond to the release of
 --   corresponding DVD, not necessarily its theaterical release.
--- - Title is the Netflix movie title and may not correspond to 
+-- - Title is the Netflix movie title and may not correspond to
 --   titles used on other sites.  Titles are in English.
 moviesParser :: PT.Parser ByteString [Movie]
 moviesParser = parseRows moviesRow
@@ -208,7 +210,7 @@ trainRow = do
   d <- date
   let r = RatingDate (UserId uid) d
   return $ Train r rate
-  
+
 testRow :: PT.Parser ByteString Test
 testRow = do
   uid <- decc
@@ -223,7 +225,7 @@ moviesRow = do
   title <- takeWhile (inClass "-a-zA-Z0-9 :,&.")
   return $ Movie (MovieId mo) (fromGregorian (fromIntegral ye) 1 1) title
 
-  
+
 
 
 
@@ -232,7 +234,7 @@ moviesRow = do
 parseRows :: PT.Parser ByteString a -> PT.Parser ByteString [a]
 parseRows p = many1 (p <* endOfLine)
 
--- a "stanza" is a block of rows starting with the movie ID and a colon. 
+-- a "stanza" is a block of rows starting with the movie ID and a colon.
 stanza :: PT.Parser ByteString a -> PT.Parser ByteString (MovieId, [a])
 stanza p = do
   i <- ident <* endOfLine

@@ -9,7 +9,8 @@ import Streaming.Cassava
 import Numeric.Datasets
 import Control.Monad.IO.Class
 import Data.Maybe
-import Control.Monad.Error.Class
+import System.IO.Error (userError)
+import Control.Monad.Error.Class (throwError)
 
 unCsvException :: CsvParseException -> String
 unCsvException (CsvParseException s) = s
@@ -23,6 +24,7 @@ streamDataset ds = do
 readStreamDataset :: ReadAs a -> SBS.ByteString IO () -> Stream (Of (Either String a)) IO ()
 readStreamDataset (CSVRecord hhdr opts) sbs
   = fmap (const ()) $ S.map (either (Left . unCsvException) Right) $ decodeWithErrors opts hhdr sbs
+readStreamDataset _ _ = throwError $ userError "readStreamDataset: only CSVRecord implemented "
 
 foldDataset :: Dataset a -> b -> (b -> Either String a -> IO b) -> IO b
 foldDataset ds x0 accf  = do

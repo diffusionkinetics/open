@@ -103,7 +103,7 @@ bfgsWith :: BFGSOpts -> Fn -> GradFn -> Point -> Hessian -> Either String (Point
 bfgsWith opt@(BFGSOpts _ _ maxiters') f df p0 h0 =
   case (hasnan f0, hasnan g0) of
     (False, False) -> go 0 b0
-    errs -> Left $ nanMsg p0 (Just f0) (Just g0)
+    _errs -> Left $ nanMsg p0 (Just f0) (Just g0)
   where go iters b =
           if iters > maxiters'
           then Left "maximum iterations exceeded in bfgs"
@@ -245,13 +245,13 @@ absratio :: Double -> Double -> Double
 absratio n d = abs n / (abs d `max` 1)
 
 absratio' :: Double -> Double -> Double -> Double
-absratio' scale n d = abs n / (abs d `max` 1) / scale
+absratio' scal n d = abs n / (abs d `max` 1) / scal
 
 maxabsratio :: Vector Double -> Vector Double -> Double
 maxabsratio n d = maxElement $ zipVectorWith absratio n d
 
 maxabsratio' :: Double -> Vector Double -> Vector Double -> Double
-maxabsratio' scale n d = maxElement $ zipVectorWith (absratio' scale) n d
+maxabsratio' scal n d = maxElement $ zipVectorWith (absratio' scal) n d
 
 
 --------------------------------------------------------------------------------
