@@ -35,7 +35,7 @@ class HasFieldNames a where
 
   default getFieldNames :: (Selectors (Rep a)) => Proxy a -> [String]
   getFieldNames proxy = selectors proxy
-  
+
 queryC  :: (MonadConnection m,ToRow q, FromRow r) => Query -> q -> m [r]
 queryC fullq args = withConnection $ \conn -> query conn fullq args
 
@@ -169,7 +169,7 @@ update  val = do
       fieldQ = mconcat $ intersperse ", " $ map (\f-> f <>" = ?") fldNmsNoKey
       (keyQ, keyA) = keyRestrict (Proxy @a) kval
       q = "update "<>tblName<>" set "<>fieldQ<>" where "<>keyQ
-  executeC q $ qArgs ++ keyA
+  _ <- executeC q $ qArgs ++ keyA
   return ()
 
 delete
@@ -179,7 +179,7 @@ delete  x = do
   let tblName = fromString $ tableName (Proxy :: Proxy a)
       [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
       q = "delete from "<> tblName<>" where "<>kName<>" = ?"
-  executeC q (Only $ getKey x)
+  _ <- executeC q (Only $ getKey x)
   return ()
 
 deleteByKey
@@ -189,7 +189,7 @@ deleteByKey  px k = do
   let tblName = fromString $ tableName px
       (keyQ, keyA) = keyRestrict (Proxy @a) k
       q = "delete from "<> tblName<>" where "<>keyQ
-  executeC q keyA
+  _ <- executeC q keyA
   return ()
 
 conjunction :: [Query] -> Query

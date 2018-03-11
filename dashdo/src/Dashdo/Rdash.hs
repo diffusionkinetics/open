@@ -12,9 +12,7 @@ import Data.Text hiding (map, intersperse, length)
 import Data.Monoid
 import Control.Applicative ((<$>))
 
-sidebarMain, sidebarTitle :: Sidebar -> Html ()
-sidebarTitle sb = span_ $ toHtml $ subTitle sb
-
+sidebarMain :: Sidebar -> Html ()
 sidebarMain sb = a_ [href_ "#"] $ do
   toHtml $ title sb
   span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
@@ -86,10 +84,10 @@ charts cs = do
   div_ [class_ "row"] $ sequence_ widgets
   where
     widgets = map widget cs
-    widget = \(title, content) -> do
+    widget = \(titl, content) -> do
       mkCol [(XS, 12), (MD, 12 `div` length cs)] $
         div_ [class_ "widget"] $ do
-          div_ [class_ "widget-header"] (toHtml title)
+          div_ [class_ "widget-header"] (toHtml titl)
           div_ [class_ "widget-body no-padding"] $
             div_ [class_ "widget-content"] $
               content

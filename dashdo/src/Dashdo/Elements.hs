@@ -9,14 +9,13 @@ import Lucid.Base (makeAttribute)
 import Lucid.Bootstrap
 import Lucid.Bootstrap3
 import Graphics.Plotly (Plotly)
-import Graphics.Plotly.Lucid
+import Graphics.Plotly.Lucid ()
 import Data.Text (Text, unpack, pack)
 import qualified Data.Text.Lazy as TL
 import Data.Hashable
 import Data.List
 import Control.Monad.RWS.Strict
 import Control.Monad.State.Strict
-import Text.Read (readMaybe)
 import Lens.Micro
 import Lens.Micro.TH
 import Data.Monoid ((<>))
@@ -51,8 +50,8 @@ wrap hdr h =  doctypehtml_ $ do
     container_ $ form_ [action_ "/", method_ "post", id_ "dashdoform"] $ do
       h
     cdnBootstrapJS
-    script_ [src_ "/js/dashdo.js"] ""
-    script_ [src_ "/js/runners/base.js"] ""
+    script_ [src_ "/js/dashdo.js"] $ toHtml $ ("" :: Text)
+    script_ [src_ "/js/runners/base.js"] $ toHtml $ ("" :: Text)
 
 manualSubmit :: Monad m => SHtml m a ()
 manualSubmit = do
@@ -119,7 +118,7 @@ g #> r = do
   subFieldsNumberName <- fresh
   putFormField (subFieldsNumberName, const)
 
-  DD n v pars ffs acts <- lift get
+  DD n v pars _ _ <- lift get
   let
       stT          = renderTextT r
 

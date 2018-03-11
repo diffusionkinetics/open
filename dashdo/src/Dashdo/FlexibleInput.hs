@@ -3,22 +3,13 @@
 module Dashdo.FlexibleInput where
 
 import Dashdo.Types
-
 import Lucid
-import Lucid.Bootstrap
-import Lucid.Bootstrap3
-import Graphics.Plotly (Plotly)
-import Graphics.Plotly.Lucid
 import Data.Text (Text, unpack, pack)
-import qualified Data.Text.Lazy as TL
-import Data.Hashable
 import Data.List
 import Control.Monad.RWS.Strict
-import Control.Monad.State.Strict
 import Text.Read (readMaybe)
 import Lens.Micro
 import Lens.Micro.TH
-import Data.Monoid ((<>))
 import Prelude hiding (tail)
 
 infixr 0 <<~
@@ -85,6 +76,7 @@ data Select a = Select
 
 makeFields ''Select
 
+select :: [(Text, a)] -> Select a
 select opts = Select "" opts
 
 instance (Eq a) => FlexibleInput (Select a) where
@@ -111,6 +103,7 @@ data Checkbox a = Checkbox
 
 makeFields ''Checkbox
 
+checkbox :: Text -> a -> a -> Checkbox a
 checkbox = Checkbox
 
 instance (Eq a) => FlexibleInput (Checkbox a) where
@@ -122,12 +115,12 @@ instance (Eq a) => FlexibleInput (Checkbox a) where
         case t of
           "true" -> lensSetter f s vTrue
           _      -> lensSetter f s vFalse
-      checked = if val ^. f == vTrue then [checked_] else []
+      checkd = if val ^. f == vTrue then [checked_] else []
 
     putFormField (n, ft)
     div_ [class_ "checkbox"] $ do
       label_ $ do
-        input_ $ [type_ "checkbox", name_ n, value_ "true"] ++ checked
+        input_ $ [type_ "checkbox", name_ n, value_ "true"] ++ checkd
         toHtml text
     -- if checkbox doesn't supply a value we get this one instead
     input_ [type_ "hidden", name_ n, value_ "false"]

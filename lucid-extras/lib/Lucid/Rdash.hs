@@ -30,8 +30,6 @@ module Lucid.Rdash (
 import qualified Data.Text as T
 import Data.List
 
-import Control.Monad
-
 import Lucid.Bootstrap3
 
 import Lucid hiding (toHtml)

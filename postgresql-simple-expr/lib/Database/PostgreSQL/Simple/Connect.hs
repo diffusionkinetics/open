@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, TypeApplications #-}
 
 module Database.PostgreSQL.Simple.Connect where
 
@@ -36,7 +36,7 @@ configFromEnv = DatabaseConfig
   <*> (read <$> getEnv "PGPORT")
   <*> getEnv "PGDATABASE"
   <*> (maybe 2 read <$> (lookupEnv "PGPOOL_NUM_STRIPES"))
-  <*> (maybe (24*60*60) (fromIntegral . read) <$>
+  <*> (maybe (24*60*60) (fromIntegral . read @Int) <$>
        (lookupEnv "PGPOOL_KEEP_OPEN_TIME"))
   <*> (maybe 20 read <$> (lookupEnv "PGPOOL_RES_PER_STRIPES"))
 
