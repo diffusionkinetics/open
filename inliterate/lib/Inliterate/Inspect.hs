@@ -30,7 +30,7 @@ getTitleFirstP (Doc _ sblocks) = go allBlocks where
   go (Header _ inls : rest ) = (T.concat $ map inlineToText $ toList inls, goPara rest)
   go (_ : blocks ) = go blocks
   go [] = ("No Title", goPara allBlocks)
-  goPara (Para inls : rest )  = TL.toStrict $ renderHtml $ renderInlines def inls
+  goPara (Para inls : _ )  = TL.toStrict $ renderHtml $ renderInlines def inls
   goPara (_:rest) = goPara rest
   goPara [] = ""
 
@@ -42,3 +42,4 @@ inlineToText SoftBreak = " " -- ??
 inlineToText LineBreak = " "
 inlineToText (Emph inls) = T.concat $ map inlineToText $ toList inls
 inlineToText (Strong inls) = T.concat $ map inlineToText $ toList inls
+inlineToText n = error $ "inlineToText: unsupported type "++show n
