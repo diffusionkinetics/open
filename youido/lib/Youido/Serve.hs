@@ -31,7 +31,7 @@ serveY runM (YouidoT sm) = do
 
 loginPage :: Maybe (Html ()) -> Html ()
 loginPage mwarn = stdHtmlPage (return ()) $ container_ $
-   row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
+   row_ $ div_ [class_ "col-sm-12 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
 serve :: Monad m => (forall a. auth -> m a -> IO a) -> Youido auth m -> IO ()
 serve runM y@(Youido _ _ _ looku port') = do
