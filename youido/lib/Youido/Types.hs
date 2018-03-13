@@ -392,18 +392,6 @@ instance (GFromForm a) => GFromForm (D1 c a) where
 
 data Form a = FormLink | Form a deriving (Show, Generic)
 
--- data Variable = Variable
---  { varname :: Text
---  , varvalue :: Maybe Double
---  } deriving (Generic, Show)
-
--- instance FromForm Variable
-
--- data Variables = ListVariables | BlahVariable (Form (Variable)) deriving (Generic, Show)
-
--- instance FromRequest Variables
--- instance ToURL Variables
-
 --------------------------------------------------------------------------
 ---                 HANDLERS
 --------------------------------------------------------------------------
