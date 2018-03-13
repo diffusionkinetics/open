@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -25,15 +24,11 @@ import Data.Char (toLower, isUpper)
 import Data.List (intercalate)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.ToField
 import Data.ByteString (ByteString)
 import Network.HTTP.Types
 import Data.Void
 import Lens.Micro.Platform hiding (to)
-import Data.Map.Strict (Map)
 import GHC.Generics
-import Control.Monad.Reader
 import Lucid.PreEscaped
 import Text.Read (readMaybe)
 
@@ -54,8 +49,8 @@ type FormPars = [(TL.Text, TL.Text)]
 type URLParser a = GenParser Text FormPars a
 
 pToken :: tok -> (Text -> Maybe a) -> URLParser a
-pToken msg f = do pos <- getPosition
-                  token unpack (const $ incSourceLine pos 1) f
+pToken _ f = do pos <- getPosition
+                token unpack (const $ incSourceLine pos 1) f
 
 -- | match on a specific string
 segment :: Text -> URLParser Text
@@ -164,7 +159,7 @@ instance RequestInfo Integer where
 checkIntegral :: Integral a => Text -> Maybe a
 checkIntegral txt =
   case signed decimal txt of
-    (Left e) -> Nothing
+    (Left _) -> Nothing
     (Right (n, r))
        | T.null r -> Just n
        | otherwise -> Nothing
