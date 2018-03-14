@@ -53,6 +53,8 @@ library
                      , random
                      , scotty-cookie
                      , bcrypt
+                     , split
+                     , parsec
 
 Executable youido-example
   main-is: examples/Example.hs
