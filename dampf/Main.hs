@@ -181,7 +181,7 @@ instance ParseField ProvisionType
 
 parseProvision :: Parser Command
 parseProvision = Provision
-    <$> parseField (Just "SingleServer | Development | CI") Nothing
+    <$> parseField (Just "SingleServer | Development | CI") Nothing Nothing
 
 parseBackup :: Parser Command
 parseBackup = Backup
