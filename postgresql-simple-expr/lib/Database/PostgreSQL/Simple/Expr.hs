@@ -1,12 +1,13 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric, DefaultSignatures,
              PolyKinds, TypeOperators, ScopedTypeVariables, FlexibleContexts,
              FlexibleInstances, UndecidableInstances,
-             OverloadedStrings, TypeApplications, OverlappingInstances    #-}
+             OverloadedStrings, TypeApplications    #-}
 
 module Database.PostgreSQL.Simple.Expr where
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
@@ -19,7 +20,6 @@ import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
 import Data.Aeson
 import Data.Text (Text, pack)
-import qualified Data.Text as T
 import Control.Monad.Reader
 
 class MonadIO m => MonadConnection m where
@@ -95,51 +95,29 @@ class KeyField a where
    toFields :: a -> [Action]
    toText :: a -> Text
    autoIncrementing :: Proxy a -> Bool
+   fromFields :: RowParser a
 
    default toFields :: ToField a => a -> [Action]
    toFields = (:[]) . toField
    default toText :: Show a => a -> Text
    toText = pack . show
+   default fromFields :: FromField a => RowParser a
+   fromFields = field
 
    autoIncrementing _ = False
 
--- instance (ToRow a, FromRow a, Show a) => KeyField a where
-  -- toFields = toRow
+newtype ParseKey a = ParseKey { unParseKey :: a }
+
+instance KeyField a => FromRow (ParseKey a) where
+  fromRow = ParseKey <$> fromFields
+
+instance {-# OVERLAPS #-} (ToRow a, FromRow a, Show a) => KeyField a where
+  toFields = toRow
+  fromFields = fromRow
 
 instance KeyField Int
 instance KeyField Text
 instance KeyField String
-
-instance KeyField a => KeyField (Only a) where
-  toFields (Only a) = toFields a
-  toText (Only a) = "Only " <> toText a
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-
-instance KeyField a => KeyField [a] where
-  toFields xs = xs >>= toFields
-  toText = T.concat . intersperse "," . map toText
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-
-instance (KeyField a, KeyField b) => KeyField (a,b) where
-  toFields (x,y) = toFields x ++ toFields y
-  toText (x,y) = T.concat [toText x, ",", toText y]
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-                       && autoIncrementing (undefined :: Proxy b)
-
-instance (KeyField a, KeyField b, KeyField c) => KeyField (a,b,c) where
-  toFields (a,b,c) = toFields a ++ toFields b ++ toFields c
-  toText (a,b,c) = T.concat $ intersperse "," [toText a, toText b, toText c]
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-                       && autoIncrementing (undefined :: Proxy b)
-                       && autoIncrementing (undefined :: Proxy c)
-
-instance (KeyField a, KeyField b, KeyField c, KeyField d) => KeyField (a,b,c,d) where
-  toFields (a,b,c,d) = toFields a ++ toFields b ++ toFields c ++ toFields d
-  toText (a,b,c,d) = T.concat $ intersperse "," [toText a, toText b, toText c, toText d]
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-                       && autoIncrementing (undefined :: Proxy b)
-                       && autoIncrementing (undefined :: Proxy c)
-                       && autoIncrementing (undefined :: Proxy d)
 
 class HasTable a => HasKey a where
   type Key a
@@ -154,9 +132,8 @@ onConflictQ OnConflictDefault = mempty
 onConflictQ OnConflictDoNothing = "ON CONFLICT DO NOTHING"
 
 -- Internal function to handle both `insert` and `insertOrDoNothing`
-insert' :: forall a m . (HasKey a, KeyField (Key a),
-                         ToRow a, FromRow (Key a),
-                         MonadConnection m) => OnConflict -> a -> m (Key a)
+insert' :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m)
+        => OnConflict -> a -> m (Key a)
 insert' onConflict val = do
   if autoIncrementing (undefined :: Proxy (Key a))
      then ginsertSerial
@@ -177,12 +154,12 @@ insert' onConflict val = do
            res <- queryC q qArgs
            case res of
              [] -> fail $ "no key returned from "++show tblName
-             (ks:_) -> return ks
+             ParseKey ks:_ -> return ks
 
-insert :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromRow (Key a),MonadConnection m) =>  a -> m (Key a)
+insert :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m) => a -> m (Key a)
 insert = insert' OnConflictDefault
 
-insertOrDoNothing :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromRow (Key a),MonadConnection m) =>  a -> m (Key a)
+insertOrDoNothing :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m) =>  a -> m (Key a)
 insertOrDoNothing = insert' OnConflictDoNothing
 
 update
@@ -203,7 +180,7 @@ update  val = do
   return ()
 
 delete
-  :: forall a  m. (HasKey a, KeyField (Key a), ToRow (Key a),MonadConnection m)
+  :: forall a  m. (HasKey a, KeyField (Key a), MonadConnection m)
   =>  a -> m ()
 delete  x = do
   let tblName = fromString $ tableName (Proxy :: Proxy a)
@@ -248,7 +225,7 @@ getByKey  key = do
 newtype Serial a = Serial { unSerial :: a }
   deriving (Num, Ord, Show, Read, Eq, Generic, ToField, FromField)
 
-instance (ToField a, KeyField a) => KeyField (Serial a) where
+instance (ToField a, FromField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
   toText (Serial x) = toText x
   autoIncrementing _ = True
