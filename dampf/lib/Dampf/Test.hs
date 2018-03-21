@@ -21,7 +21,6 @@ import Control.Monad.IO.Class   (MonadIO, liftIO)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 
-type IP = Text 
 type Network = Text
 type Volumes = [(FilePath, FilePath)]
 type ContainerNames = [Text]
@@ -30,7 +29,7 @@ type ContainerNames = [Text]
 -- finalize on exceptions
 
 fakeHostsArgs :: (MonadIO m, MonadThrow m) =>
-  DampfT m (RunArgs -> RunArgs, ContainerNames, Network)
+  DampfT m (Hosts, RunArgs -> RunArgs, ContainerNames, Network)
 
 fakeHostsArgs = do
   netName <- randomName
@@ -47,13 +46,13 @@ fakeHostsArgs = do
                 . set detach (Detach False)
                 . set hosts fakeHosts
 
-  return (argsTweak, nginx_container_name : proxie_names, netName)
+  pure (fakeHosts, argsTweak, nginx_container_name : proxie_names, netName)
 
 test :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
 test ls = do
-  (argsTweak, container_names, netName) <- fakeHostsArgs
+  (hosts, argsTweak, container_names, netName) <- fakeHostsArgs
 
-  test_container_names <- runTests argsTweak ls
+  test_container_names <- runTests hosts argsTweak ls
   cleanUp netName (container_names ++ test_container_names)
 
 nginx_container_name = "dampf-nginx"

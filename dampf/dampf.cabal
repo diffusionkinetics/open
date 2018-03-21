@@ -62,6 +62,7 @@ library
     build-depends:
         base >= 4.7 && < 5
       , aeson
+      , wreq
       , attoparsec
       , containers
       , directory
@@ -98,4 +99,3 @@ executable dampf
       , optparse-applicative
       , optparse-generic
       , text
-

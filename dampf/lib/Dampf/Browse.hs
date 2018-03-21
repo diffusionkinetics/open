@@ -46,7 +46,7 @@ data Backend = VNC | X11 deriving (Show, Read, Eq, Generic)
 browse :: (MonadIO m, MonadThrow m) => Backend -> DampfT m ()
 browse b =
   let go (Browser name' spec args) = do
-        (argsTweak, container_names, netName) <- fakeHostsArgs
+        (hosts, argsTweak, container_names, netName) <- fakeHostsArgs
         void . runDockerT $ runWith (args . argsTweak) name' spec
         cleanUp netName (name' : container_names)
      in case b of

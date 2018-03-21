@@ -14,6 +14,7 @@ import Control.Monad.IO.Class   (MonadIO, liftIO)
 import System.Exit (exitFailure)
 import Data.Function (on)
 import Data.Text (Text)
+import Data.Maybe (catMaybes)
 import Data.Foldable (find)
 import Data.Monoid ((<>))
 import Data.Map.Strict (Map)
@@ -21,36 +22,49 @@ import Data.Map.Strict (Map)
 import Text.Regex.Posix
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
+import qualified Data.ByteString.Lazy.Char8 as BL
 
+import Network.Wreq 
+
+type IP = Text 
 type Tests = [Text]
 type Names = [Text]
+type Hosts = Map Text IP
 
 runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
-runMonitor = void . runTests id
+runMonitor = void . runTests mempty id
 
-runTests :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Tests -> DampfT m Names
-runTests argsTweak ls = tests_to_run ls >>= fmap (foldOf traverse) . (imapM $ \n (TestSpec us _) -> do
-    report ("running test: " <> T.unpack n) 
-    traverse (runUnit argsTweak) us)
+runTests :: (MonadIO m, MonadThrow m) => Hosts -> (RunArgs -> RunArgs) -> Tests -> DampfT m Names
+runTests hosts argsTweak ls = tests_to_run ls >>= fmap (catMaybes . foldOf traverse) . imapM go
+  where 
+    go :: (MonadIO m, MonadThrow m) => Text -> TestSpec -> DampfT m [Maybe Text]
+    go n (TestSpec us _) = do
+      report ("running test: " <> T.unpack n) 
+      traverse (runUnit hosts argsTweak) us
 
-runUnit :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> TestUnit -> DampfT m Text
-runUnit argsTweak = \case
+runUnit :: (MonadIO m, MonadThrow m) => Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
+runUnit hosts argsTweak = \case
   TestRun iname icmd -> do
-    cs  <- view (app . containers )
+    cs <- view (app . containers)
     find (has $ image . only iname) cs & maybe 
       (liftIO exitFailure)
       (runDockerT . runWith (set cmd icmd . argsTweak) iname)
-    return iname
+    pure $ Just iname
 
+  -- make it work on fake hosts
   TestGet uri mb_pattern -> do
-    (res) <- runDockerT . runWith argsTweak curl_container_name . curlSpec $ uri
+    res <- (liftIO . get . T.unpack $ uri) <&> (^. responseBody)
     case mb_pattern of
-      Nothing -> report (T.unpack res)
+      Nothing -> report (BL.unpack res)
       Just p 
-        | ((=~) `on` T.unpack) res p -> success
-        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") *> report (T.unpack res)
-    return curl_container_name
-        
+        | ((=~) `on` BL.unpack) res (BL.pack . T.unpack $ p) -> success
+        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") *> report (BL.unpack res)
+    pure Nothing
+
+type URL = String
+lookupHost :: Hosts -> URL -> Maybe URL
+lookupHost hosts url | null hosts = Nothing
+
 tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
 tests_to_run [] = all_tests 
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
@@ -72,9 +86,3 @@ all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 
 isOnlyAtBuild :: TestSpec -> Bool
 isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
-
-curl_container_name = "dampf-curl"
-
-curlSpec :: Text -> ContainerSpec
-curlSpec url = ContainerSpec 
-  "appropriate/curl" Nothing (Just $ "-sS " <> url) Nothing
