@@ -27,6 +27,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as BL
 
 import Network.Wreq 
+import Debug.Trace
 
 type IP = Text 
 type Tests = [Text]
@@ -58,20 +59,20 @@ runUnit hosts argsTweak = \case
     case mb_pattern of
       Nothing -> report res
       Just p 
-        | res =~ T.unpack p -> success
-        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") 
-                    *> report res
+        | res =~ T.unpack p -> report " [OK]"
+        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match\n") 
+                    *> report uri
     pure Nothing
 
 type URL = String
 lookupHost :: Hosts -> URL -> URL
-lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
+lookupHost hosts url = pick . traceShowId . toListOf traverse $ imap (go url) hosts
   where pick (Just url':_) = url'
         pick _ = url
 
         go :: URL -> Text -> IP -> Maybe URL
-        go url (T.unpack -> host) (T.unpack -> ip)
-          | ip =~ host = Just $ subRegex (mkRegex host) ip host
+        go (T.pack -> url) host ip
+          | T.isInfixOf host url = Just . T.unpack $ T.replace host ip url
           | otherwise = Nothing
 
 tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
@@ -79,16 +80,10 @@ tests_to_run [] = all_tests
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
 
 report :: (MonadIO m) => String -> DampfT m ()
-report = liftIO . putStr
+report = liftIO . putStrLn
 
 reportLn :: (MonadIO m) => String -> DampfT m ()
 reportLn = liftIO . putStrLn
-
-success :: (MonadIO m) => DampfT m ()
-success = reportLn " [OK]"
-
-reportFail :: (MonadIO m) => String -> DampfT m ()
-reportFail s = reportLn s *> liftIO exitFailure
 
 all_tests :: Monad m => DampfT m (Map Text TestSpec)
 all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
