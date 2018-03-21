@@ -1,4 +1,4 @@
-{-# language LambdaCase, OverloadedStrings, TupleSections #-}
+{-# language ViewPatterns, LambdaCase, OverloadedStrings, TupleSections #-}
 module Dampf.Monitor where
 
 import Dampf.Docker.Free (runDockerT)
@@ -18,8 +18,10 @@ import Data.Maybe (catMaybes)
 import Data.Foldable (find)
 import Data.Monoid ((<>))
 import Data.Map.Strict (Map)
+import Data.ByteString.Lazy.Lens (unpackedChars)
 
 import Text.Regex.Posix
+import Text.Regex
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -51,19 +53,26 @@ runUnit hosts argsTweak = \case
       (runDockerT . runWith (set cmd icmd . argsTweak) iname)
     pure $ Just iname
 
-  -- make it work on fake hosts
-  TestGet uri mb_pattern -> do
-    res <- (liftIO . get . T.unpack $ uri) <&> (^. responseBody)
+  TestGet (lookupHost hosts . T.unpack -> uri) mb_pattern -> do
+    res <- (liftIO . get) uri <&> (^. responseBody . unpackedChars)
     case mb_pattern of
-      Nothing -> report (BL.unpack res)
+      Nothing -> report res
       Just p 
-        | ((=~) `on` BL.unpack) res (BL.pack . T.unpack $ p) -> success
-        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") *> report (BL.unpack res)
+        | res =~ T.unpack p -> success
+        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match") 
+                    *> report res
     pure Nothing
 
 type URL = String
-lookupHost :: Hosts -> URL -> Maybe URL
-lookupHost hosts url | null hosts = Nothing
+lookupHost :: Hosts -> URL -> URL
+lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
+  where pick (Just url':_) = url'
+        pick _ = url
+
+        go :: URL -> Text -> IP -> Maybe URL
+        go url (T.unpack -> host) (T.unpack -> ip)
+          | ip =~ host = Just $ subRegex (mkRegex host) ip host
+          | otherwise = Nothing
 
 tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
 tests_to_run [] = all_tests 
