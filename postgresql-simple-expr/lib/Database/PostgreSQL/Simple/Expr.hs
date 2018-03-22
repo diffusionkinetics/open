@@ -1,11 +1,13 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric, DefaultSignatures,
              PolyKinds, TypeOperators, ScopedTypeVariables, FlexibleContexts,
-             FlexibleInstances, UndecidableInstances, OverloadedStrings, TypeApplications    #-}
+             FlexibleInstances, UndecidableInstances,
+             OverloadedStrings, TypeApplications    #-}
 
 module Database.PostgreSQL.Simple.Expr where
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
@@ -18,7 +20,6 @@ import Data.Monoid ((<>), mconcat)
 import Data.Maybe (listToMaybe)
 import Data.Aeson
 import Data.Text (Text, pack)
-import qualified Data.Text as T
 import Control.Monad.Reader
 
 class MonadIO m => MonadConnection m where
@@ -94,78 +95,84 @@ class KeyField a where
    toFields :: a -> [Action]
    toText :: a -> Text
    autoIncrementing :: Proxy a -> Bool
+   fromFields :: RowParser a
 
    default toFields :: ToField a => a -> [Action]
    toFields = (:[]) . toField
    default toText :: Show a => a -> Text
    toText = pack . show
+   default fromFields :: FromField a => RowParser a
+   fromFields = field
 
    autoIncrementing _ = False
+
+newtype ParseKey a = ParseKey { unParseKey :: a }
+
+instance KeyField a => FromRow (ParseKey a) where
+  fromRow = ParseKey <$> fromFields
+
+instance {-# OVERLAPS #-} (ToRow a, FromRow a, Show a) => KeyField a where
+  toFields = toRow
+  fromFields = fromRow
 
 instance KeyField Int
 instance KeyField Text
 instance KeyField String
-instance (KeyField a, KeyField b) => KeyField (a,b) where
-  toFields (x,y) = toFields x ++ toFields y
-  toText (x,y) = T.concat [toText x, ",", toText y]
-  autoIncrementing _ = autoIncrementing (undefined :: Proxy a)
-                       && autoIncrementing (undefined :: Proxy b)
 
 class HasTable a => HasKey a where
   type Key a
   getKey :: a -> Key a
   getKeyFieldNames :: Proxy a -> [String]
 
-insert :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a),MonadConnection m) =>  a -> m (Key a)
-insert  val = do
-  if autoIncrementing (undefined :: Proxy (Key a))
-     then ginsertSerial
-     else do insertAll  val
-             return $ getKey val
-   where ginsertSerial = do
-           let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
-               tblName = fromString $ tableName (Proxy :: Proxy a)
-               fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
-               fldNmsNoKey = filter (/=kName) fldNms
-               qmarks = mconcat $ intersperse "," $ map (const "?") fldNmsNoKey
-               fields = mconcat $ intersperse "," $ fldNmsNoKey
-               qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
-               q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") returning "<>kName
-           res <- queryC q qArgs
-           case res of
-             [] -> fail $ "no key returned from "++show tblName
-             Only k : _ -> return k
+data OnConflict = OnConflictDefault | OnConflictDoNothing
+  deriving (Show, Eq)
 
-insertOrDoNothing :: forall a m . (HasKey a, KeyField (Key a), ToRow a, FromField (Key a),MonadConnection m) =>  a -> m (Key a)
-insertOrDoNothing  val = do
+onConflictQ :: OnConflict -> Query
+onConflictQ OnConflictDefault = mempty
+onConflictQ OnConflictDoNothing = "ON CONFLICT DO NOTHING"
+
+-- Internal function to handle both `insert` and `insertOrDoNothing`
+insert' :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m)
+        => OnConflict -> a -> m (Key a)
+insert' onConflict val = do
   if autoIncrementing (undefined :: Proxy (Key a))
      then ginsertSerial
      else do insertAll  val
              return $ getKey val
    where ginsertSerial = do
-           let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+           let keyNames = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+               notInKeyNames = not . (`elem` keyNames)
                tblName = fromString $ tableName (Proxy :: Proxy a)
                fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
-               fldNmsNoKey = filter (/=kName) fldNms
+               fldNmsNoKey = filter notInKeyNames fldNms
                qmarks = mconcat $ intersperse "," $ map (const "?") fldNmsNoKey
                fields = mconcat $ intersperse "," $ fldNmsNoKey
-               qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
-               q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") ON CONFLICT DO NOTHING returning "<>kName
+               qArgs = map snd $ filter (notInKeyNames . fst) $ zip fldNms $ toRow val
+               qKeySet = mconcat $ intersperse "," keyNames
+               q = "insert into "<>tblName<>"("<>fields<>") values ("<>qmarks<>") "
+                 <> onConflictQ onConflict <> " returning "<>qKeySet
            res <- queryC q qArgs
            case res of
              [] -> fail $ "no key returned from "++show tblName
-             Only k : _ -> return k
+             ParseKey ks:_ -> return ks
+
+insert :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m) => a -> m (Key a)
+insert = insert' OnConflictDefault
+
+insertOrDoNothing :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m) =>  a -> m (Key a)
+insertOrDoNothing = insert' OnConflictDoNothing
 
 update
   :: forall a m . (HasKey a, KeyField (Key a), ToRow a,MonadConnection m)
   =>  a -> m ()
 update  val = do
-  let [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+  let keyNames = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+      notInKeyNames = not . (`elem` keyNames)
       kval = getKey val
       tblName = fromString $ tableName (Proxy :: Proxy a)
       fldNms = map fromString $ getFieldNames (Proxy :: Proxy a)
-      fldNmsNoKey = filter (/=kName) fldNms
-      qArgs = map snd $ filter ((/=kName) . fst) $ zip fldNms $ toRow val
+      fldNmsNoKey = filter notInKeyNames fldNms
+      qArgs = map snd $ filter (notInKeyNames . fst) $ zip fldNms $ toRow val
       fieldQ = mconcat $ intersperse ", " $ map (\f-> f <>" = ?") fldNmsNoKey
       (keyQ, keyA) = keyRestrict (Proxy @a) kval
       q = "update "<>tblName<>" set "<>fieldQ<>" where "<>keyQ
@@ -173,13 +180,15 @@ update  val = do
   return ()
 
 delete
-  :: forall a  m. (HasKey a, KeyField (Key a), ToField (Key a),MonadConnection m)
+  :: forall a  m. (HasKey a, KeyField (Key a), MonadConnection m)
   =>  a -> m ()
 delete  x = do
   let tblName = fromString $ tableName (Proxy :: Proxy a)
-      [kName] = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
-      q = "delete from "<> tblName<>" where "<>kName<>" = ?"
-  _ <- executeC q (Only $ getKey x)
+      keyNames = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
+      kval = getKey x
+      (keyQ, keyA) = keyRestrict (Proxy @a) kval
+      q = "delete from "<> tblName<>" where "<> keyQ
+  _ <- executeC q keyA
   return ()
 
 deleteByKey
@@ -216,7 +225,7 @@ getByKey  key = do
 newtype Serial a = Serial { unSerial :: a }
   deriving (Num, Ord, Show, Read, Eq, Generic, ToField, FromField)
 
-instance (ToField a, KeyField a) => KeyField (Serial a) where
+instance (ToField a, FromField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
   toText (Serial x) = toText x
   autoIncrementing _ = True
