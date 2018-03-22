@@ -29,7 +29,7 @@ dumpAll :: ([String], [Int]) -> String
 dumpAll ([s], []) = s
 dumpAll (ss, [_]) = concat $ "c(" : intersperse "," ss ++[")"]
 dumpAll (ss, ns) = concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c("]
-                             ++intersperse "," (map show ns)++[")"]
+                             ++intersperse "," (map show ns)++["))"]
 
 dumpAs :: Dump1 a => String -> a -> StanData
 dumpAs nm x = StanData $ Seq.singleton $ nm++"<-"++(dumpAll $ dump1 x)
