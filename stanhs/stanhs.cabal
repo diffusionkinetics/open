@@ -40,6 +40,7 @@ Library
                , process
                , containers
                , random
+               , vector
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

@@ -3,6 +3,7 @@ module Stan.Data where
 import Data.List
 import qualified Data.Sequence as Seq
 import Data.Monoid
+import qualified Data.Vector as V
 
 class Dump1 a where
   dump1 :: a -> ([String], [Int])
@@ -21,6 +22,8 @@ instance Dump1 a => Dump1 [a] where
     dump1 xs = let xss = map dump1 xs
                in (concatMap fst xss, length xss:(snd $ head xss) )
 
+instance Dump1 a => Dump1 (V.Vector a) where
+    dump1 xs = dump1 $ V.toList xs
 
 dumpAll :: ([String], [Int]) -> String
 dumpAll ([s], []) = s

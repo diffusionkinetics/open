@@ -88,5 +88,11 @@ instance IsString (Var,[Expr]) where
 normal :: (Expr , Expr) -> (String, [Expr])
 normal (mn, sd) = ("normal", [mn,sd])
 
+exponential :: Expr -> (String, [Expr])
+exponential mu = ("exponential", [mu])
+
+dot :: Expr -> Expr -> Expr
+dot e1 e2 = Apply "dot_product" [e1,e2]
+
 lower :: Expr -> Type -> Type
 lower lo ty = Bounded (Just lo) Nothing ty
