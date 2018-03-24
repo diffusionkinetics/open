@@ -9,7 +9,7 @@ import           Control.Monad                  (void, (<=<))
 import           Control.Monad.Catch            (MonadThrow)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
 import           Control.Monad.Trans.Free       (iterT)
-import           Data.Text                      (Text)
+import           Data.Text                      (Text, unpack)
 import           Data.Text.Lens
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -34,6 +34,7 @@ dockerIter = \case
   Rm c next      -> interpRm c >>= next
   RmMany cs next -> interpRmMany cs >>= next
   Run d c s next -> interpRun d c s >>= next
+  Exec c s next -> interpExec c s >>= next
   Stop c next    -> interpStop c >> next
   StopMany cs next -> interpStopMany cs >> next
   Pull n next    -> interpPull n >> next
@@ -80,6 +81,11 @@ interpRunWith f n spec = do
         res <- readDockerProcess . toArgs $ args
         liftIO . T.putStrLn $ res
         return res
+
+interpExec :: (MonadIO m, MonadThrow m) => Text -> Text -> DampfT m Text
+interpExec conNm cmds = do
+  readDockerProcess $ "exec":words (unpack cmds)
+
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = interpStopMany [c]
