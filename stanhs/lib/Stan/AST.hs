@@ -20,6 +20,7 @@ data Decl = Type ::: (Var,[Expr])
           | (Var,[Expr]) := Expr
           | (Var,[Expr]) :~ (String, [Expr])
           | For Var Expr Expr [Decl]
+          | Print String [Expr]
             deriving (Eq, Show, Generic, Hashable)
 
 data Type = Real
