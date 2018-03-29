@@ -184,7 +184,6 @@ delete
   =>  a -> m ()
 delete  x = do
   let tblName = fromString $ tableName (Proxy :: Proxy a)
-      keyNames = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
       kval = getKey x
       (keyQ, keyA) = keyRestrict (Proxy @a) kval
       q = "delete from "<> tblName<>" where "<> keyQ

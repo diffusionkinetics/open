@@ -43,7 +43,6 @@ import Prelude hiding
     , minimum
     , elem
     , notElem
-    , filterF
     )
 import qualified Prelude
 
