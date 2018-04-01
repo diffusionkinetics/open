@@ -27,7 +27,6 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as BL
 
 import Network.Wreq 
-import Debug.Trace
 
 type IP = Text 
 type Tests = [Text]
@@ -59,14 +58,14 @@ runUnit hosts argsTweak = \case
     case mb_pattern of
       Nothing -> report res
       Just p 
-        | res =~ T.unpack p -> report " [OK]"
+        | res =~ T.unpack p -> report $ uri <> " [OK]"
         | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match\n") 
                     *> report uri
     pure Nothing
 
 type URL = String
 lookupHost :: Hosts -> URL -> URL
-lookupHost hosts url = pick . traceShowId . toListOf traverse $ imap (go url) hosts
+lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
   where pick (Just url':_) = url'
         pick _ = url
 
