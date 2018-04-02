@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE TypeApplications   #-}
 
 {-|
 A limited Grammar of Graphics-like interface.
@@ -45,14 +46,14 @@ instance ToJSON (RGB Int) where
 
 instance ToJSON (RGB Double) where
   toJSON (RGB r g b) = toJSON $ concat ["rgb(",showd r,",",showd g, ",", showd b,")"]
-   where showd = show . floor . (*256)
+   where showd = show @Int. floor . (*256)
 
 instance ToJSON (RGBA Int) where
   toJSON (RGBA r g b a) = toJSON $ concat ["rgba(",show r,",",show g, ",", show b,",", show a, ")"]
 
 instance ToJSON (RGBA Double) where
   toJSON (RGBA r g b a) = toJSON $ concat ["rgb(",showd r,",",showd g, ",", showd b,",", showd a,")"]
-   where showd = show . floor . (*256)
+   where showd = show @Int. floor . (*256)
 
 class ToJSON a => IsColor a
 

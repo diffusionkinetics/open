@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections,
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TupleSections, RankNTypes,
              DeriveGeneric, ExtendedDefaultRules, FlexibleContexts#-}
 
 module Youido.Serve where
@@ -22,19 +22,19 @@ import qualified Data.Map.Strict as Map
 
 import Control.Monad.Reader
 
---conn <-  createConn <$> readJSON "youido.json"
 
-serveY :: a -> YouidoT (ReaderT a IO) () -> IO ()
-serveY x (YouidoT sm) = do
-  y <- runReaderT (execStateT sm (Youido [] "Not found!" id (const $const $return Nothing) 3000)) x
-  serve x y
+serveY :: Monad m => (forall a. auth -> m a -> IO a)  -> YouidoT auth m () -> IO ()
+serveY runM (YouidoT sm) = do
+  let youidoDef = Youido [] "Not found!" (const id) (const $ const $const $return Nothing) 3000
+  y  <- execStateT sm youidoDef
+  serve runM y
 
 loginPage :: Maybe (Html ()) -> Html ()
 loginPage mwarn = stdHtmlPage (return ()) $ container_ $
-   row_ $ div_ [class_ "col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
+   row_ $ div_ [class_ "col-sm-12 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
-serve :: a -> Youido (ReaderT a IO) -> IO ()
-serve x y@(Youido _ _ _ looku port') = do
+serve :: Monad m => (forall a. auth -> m a -> IO a) -> Youido auth m -> IO ()
+serve runM y@(Youido _ _ _ looku port') = do
   sessions <- newTVarIO (Data.IntMap.empty)
   scotty port' $ do
     middleware $ logStdout
@@ -49,19 +49,20 @@ serve x y@(Youido _ _ _ looku port') = do
     post "/login" $ do
       femail <- param "inputEmail"
       fpasswd <- param "inputPassword"
+      rq <- request
       let incorrect = renderText $ loginPage $ Just $
                 div_ [class_ "alert alert-danger"] "Incorrect user or password"
-      mu <- liftIO $ flip runReaderT x $ looku femail (hashPassword fpasswd)
+      mu <- liftIO $  looku rq femail fpasswd
       case mu of
         Nothing -> html incorrect
         Just u -> newSession sessions u >> redirect "/"
 
     matchAny (regex "/*") $ do
-      let go email = do
+      let go u = do
             rq <- request
             pars <- params
             --liftIO $ print ("got request", rq)
-            Response stat hdrs conts <- liftIO $ runReaderT (run y (rq, pars,email)) x
+            Response stat hdrs conts <- liftIO $ runM u $ run y u (rq, pars)
             status stat
             mapM_ (uncurry setHeader) hdrs
             raw conts
@@ -115,25 +116,23 @@ rdashWrapper hdTxt hdrMore sidebar h = doctypehtml_ $ do
     script_ [src_ "/js/dashdo.js"] ""
     dashdoCustomJS
 
-rdashSidebar :: Text -> [((Text, Text), Text)] -> Html ()
-rdashSidebar title links = do
+rdashSidebar :: Text ->  Html () -> [RD.SidebarItem] -> Html ()
+rdashSidebar title sbfoot links  = do
   let mklink :: ((Text, Text),Text) -> Html ()
       mklink ((title, fa), dest) =
         a_ [href_ dest] $
           toHtml title <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
-      sidebar = map mklink links
       sidebarMain  = a_ [href_ "#"] $ do
           toHtml title
           span_ [class_ "menu-icon glyphicon glyphicon-transfer"] (return ())
-      sb = RD.mkSidebar sidebarMain (span_ "Dashboards") $ sidebar
-      sbfoot = ""
-  RD.mkSidebarWrapper sb sbfoot
+      sb = RD.mkSidebar sidebarMain links
+  RD.mkSidebarWrapper sb $ RD.mkSidebarFooter sbfoot
 
 
-mkSidebar :: [(Text, Text)] -> Html ()
+{-mkSidebar :: [(Text, Text)] -> Html ()
 mkSidebar links = ul_ $ mapM_ f links where
-  f (title, dest) = li_ $ a_ [href_ dest] $: title
+  f (title, dest) = li_ $ a_ [href_ dest] $: title-}
 
 infixl 0 *~
-(*~) :: ToURL a => b -> a -> (b, Text)
-t *~ x = (t, toURL x)
+(*~) :: ToURL a => (Text,Text) -> a -> RD.SidebarItem
+(t,ic) *~ x = RD.SidebarLink t (toURL x) ic

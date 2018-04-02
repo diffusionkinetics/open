@@ -30,6 +30,7 @@ data DockerF next
     | Rm Text (Text -> next)
     | RmMany [Text] (Text -> next)
     | Run Bool Text ContainerSpec (Text -> next)
+    | Exec Text Text (Text -> next)
     | RunWith (RunArgs -> RunArgs) Text ContainerSpec (Text -> next)
     | Stop Text next
     | StopMany [Text] next
@@ -64,6 +65,9 @@ run d c s = liftF (Run d c s id)
 
 runWith :: (MonadIO m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DockerT m Text
 runWith f n spec = liftF (RunWith f n spec id)
+
+exec :: (MonadIO m) => Text -> Text -> DockerT m Text
+exec c s = liftF (Exec c s id)
 
 stop :: (MonadIO m) => Text -> DockerT m ()
 stop c = liftF (Stop c ())

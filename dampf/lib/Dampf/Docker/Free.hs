@@ -9,7 +9,7 @@ import           Control.Monad                  (void, (<=<))
 import           Control.Monad.Catch            (MonadThrow)
 import           Control.Monad.IO.Class         (MonadIO, liftIO)
 import           Control.Monad.Trans.Free       (iterT)
-import           Data.Text                      (Text)
+import           Data.Text                      (Text, unpack)
 import           Data.Text.Lens
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -34,12 +34,13 @@ dockerIter = \case
   Rm c next      -> interpRm c >>= next
   RmMany cs next -> interpRmMany cs >>= next
   Run d c s next -> interpRun d c s >>= next
+  Exec c s next -> interpExec c s >>= next
   Stop c next    -> interpStop c >> next
   StopMany cs next -> interpStopMany cs >> next
   Pull n next    -> interpPull n >> next
   RunWith f n spec next         -> interpRunWith f n spec >>= next
   NetworkCreate net next        -> interp (defCreateArg net) >> next
-  NetworkCreateWith args next   -> interp args >> next 
+  NetworkCreateWith args next   -> interp args >> next
   NetworkConnect net cont next  -> interp (defConnectArg net cont) >> next
   NetworkConnectWith args next  -> interp args >> next
   NetworkDisconnect n s next    -> interpNetworkDisconnect n s >> next
@@ -61,7 +62,7 @@ interpRmMany :: (MonadIO m) => [Text] -> DampfT m Text
 interpRmMany cs = do
     liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
     readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
-  
+
 interpRun :: (MonadIO m, MonadThrow m) => Bool -> Text -> ContainerSpec -> DampfT m Text
 interpRun True  = interpRunWith id
 interpRun False = interpRunWith unDaemonize
@@ -69,12 +70,21 @@ interpRun False = interpRunWith unDaemonize
 interpRunWith :: (MonadIO m, MonadThrow m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DampfT m Text
 interpRunWith f n spec = do
     args <- mkRunArgs n spec <&> f
-    -- liftIO . print . toArgs $ args
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
-    res <- readDockerProcess . toArgs $ args
-    liftIO . T.putStrLn $ res
-    return res
+    if args ^. interactive
+      then do
+        runDockerProcess . toArgs $ args
+        return ""
+      else do
+        res <- readDockerProcess . toArgs $ args
+        liftIO . T.putStrLn $ res
+        return res
+
+interpExec :: (MonadIO m, MonadThrow m) => Text -> Text -> DampfT m Text
+interpExec conNm cmds = do
+  readDockerProcess $ "exec":words (unpack cmds)
+
 
 interpStop :: (MonadIO m) => Text -> DampfT m ()
 interpStop c = interpStopMany [c]
@@ -82,7 +92,7 @@ interpStop c = interpStopMany [c]
 interpStopMany :: (MonadIO m) => [Text] -> DampfT m ()
 interpStopMany cs = do
     liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack (T.intercalate ", " cs)
-    runDockerProcess $ ["stop"] ++ fmap T.unpack cs
+    runDockerProcess $ ["stop"] ++ fmap T.unpack cs ++ ["-t", "1"]
 
 readDockerProcess :: MonadIO m => [String] -> DampfT m Text
 readDockerProcess = (go' <=< readProcess_) . proc "docker"
@@ -93,7 +103,7 @@ readDockerProcess = (go' <=< readProcess_) . proc "docker"
         go' (o, _) = return . de $ o
 
 runDockerProcess :: MonadIO m => [String] -> DampfT m ()
-runDockerProcess = runProcess_ . proc "docker" 
+runDockerProcess = runProcess_ . proc "docker"
 
 interp :: (MonadIO m, MonadThrow m, ToArgs arg) => arg -> DampfT m ()
 interp = runDockerProcess . toArgs
@@ -103,9 +113,9 @@ interpPull image_name = do
   liftIO . putStrLn $ "Docker: Pulling " ++ T.unpack image_name
   runDockerProcess ["pull", T.unpack image_name]
 
-interpNetworkDisconnect :: (MonadIO m, MonadThrow m) => 
-     Text 
-  -> ContainerSpec 
+interpNetworkDisconnect :: (MonadIO m, MonadThrow m) =>
+     Text
+  -> ContainerSpec
   -> DampfT m ()
 interpNetworkDisconnect netName spec = do
   liftIO . putStrLn $ "Docker: Diconnecting " ++ spec ^. image . _Text

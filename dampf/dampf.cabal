@@ -89,6 +89,7 @@ library
       , transformers
       , scientific
       , shelly
+      , wreq
 
 executable dampf
     main-is: Main.hs

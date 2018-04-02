@@ -45,6 +45,7 @@ instance Pretty Decl where
                                 in text "for" <+> parens (text vnm <+> text "in" <+> range) <+> char '{'
                                 $$ nest 2 (ppDecls ds)
                                 $$ char '}'
+  pPrint (Print s es) = text "print" <> parens (commasep $ text (show s) : map pPrint es)
 
 
 instance Pretty Type where

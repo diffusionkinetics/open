@@ -27,7 +27,7 @@ data DD m t = DD
 
 makeLenses ''DD
 
-type SHtml m t a = HtmlT (StateT (DD m t) m) a
+type SHtml m t = HtmlT (StateT (DD m t) m)
 
 data RDashdo m = forall t. RDashdo
   { rdFid    :: String

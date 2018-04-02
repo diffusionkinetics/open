@@ -3,10 +3,9 @@
 module Dashdo where
 
 import qualified Data.Text.Lazy as TL
-import Data.List
 import Dashdo.Types
 import Data.Monoid ((<>))
-import Data.Text (Text, pack)
+import Data.Text (Text)
 
 
 dashdoGenOut :: Monad m

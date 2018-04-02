@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings                   #-}
 {-# LANGUAGE GADTs, QuasiQuotes, ViewPatterns, FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 {-|
 

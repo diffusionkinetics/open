@@ -77,9 +77,11 @@
       }
     }.bind(this))
 
-    this.filter('form').on('submit', function(e) {
-      e.preventDefault()  // no 'native' submitting
-    })
+    if (typeof(manual_submit) === 'undefined' || !manual_submit) {
+        this.filter('form').on('submit', function(e) {
+          e.preventDefault()  // no 'native' submitting
+        })
+    }
 
     var requestHtmlFromServer = function(url, data, onSuccess) {
       $.ajax({

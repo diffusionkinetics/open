@@ -94,10 +94,11 @@ catColors xs =
   in List $ map (toJSON . ColIx . f) xs
 
 -- | Different types of markers
-data Symbol = Circle | Square | Diamond | Cross deriving (Show, Eq)
+data Symbol = Circle | Square | Diamond | Cross | CustomSymbol Text deriving (Show, Eq)
 
 instance ToJSON Symbol where
-  toJSON = toJSON . map toLower . show
+  toJSON (CustomSymbol t) = toJSON t
+  toJSON s = toJSON . map toLower . show $ s
 
 data ListOrElem a = List [a] | All a deriving Eq
 
@@ -117,7 +118,7 @@ data Marker = Marker
   , _sizeMode :: Maybe Sizemode
   , _markercolor :: Maybe (ListOrElem Value)
   , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
-  , _symbol :: Maybe Symbol
+  , _symbol :: Maybe (ListOrElem Symbol)
   , _opacity :: Maybe Double
   } deriving (Generic, Eq)
 
@@ -313,6 +314,20 @@ thinMargins, titleMargins :: Margin
 thinMargins = Margin 50 25 30 10 4
 titleMargins = Margin 50 25 30 40 4
 
+-- | Options for Fonts.
+data Font = Font
+  { _fontfamily :: Maybe Text
+  , _fontsize   :: Maybe Double
+  , _fontcolor  :: Maybe Color
+  } deriving Generic
+
+makeLenses ''Font
+
+instance ToJSON Font where
+  toJSON = genericToJSON jsonOptions { fieldLabelModifier = dropInitial "font" . unLens}
+
+defFont :: Font
+defFont = Font Nothing Nothing Nothing
 
 -- |options for the layout of the whole plot
 data Layout = Layout
@@ -326,18 +341,20 @@ data Layout = Layout
   , _yaxis4 :: Maybe Axis
   , _zaxis  :: Maybe Axis
   , _title  :: Maybe Text
+  , _titlefont :: Maybe Font
   , _showlegend :: Maybe Bool
   , _height :: Maybe Int
   , _width :: Maybe Int
   , _barmode :: Maybe Barmode
   , _margin :: Maybe Margin
+  , _font :: Maybe Font
   } deriving Generic
 
 makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions

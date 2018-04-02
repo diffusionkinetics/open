@@ -9,7 +9,7 @@ import Dashdo.Types
 import Web.Scotty
 import Network.Wai.Middleware.RequestLogger
 import Network.HTTP.Types (status404)
-import Control.Monad.Trans (liftIO, MonadIO)
+import Control.Monad.Trans (liftIO)
 import System.Random
 import qualified Data.List as L
 import qualified Data.UUID as UUID
@@ -17,16 +17,13 @@ import Data.Text.Lazy (Text, fromStrict)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
-import qualified Data.ByteString.Lazy as BLS
+
 
 import Control.Monad (forM_, when)
 import Data.Monoid
 import qualified Data.Set as Set
 import Network.HTTP.Types.Status
-import Control.Exception
 import Data.Hashable
-import Lucid
-import Control.DeepSeq
 import Control.Exception.Safe
 import Data.IORef
 
@@ -71,9 +68,9 @@ runRDashdo :: Monad m => RunInIO m -> Text -> [RDashdo m] -> IO ()
 runRDashdo = runRDashdoPort 3000
 
 runRDashdoPort :: Monad m => Int -> RunInIO m -> Text -> [RDashdo m] -> IO ()
-runRDashdoPort prt r html ds = do
+runRDashdoPort prt r htm ds = do
   handlers <- mapM (\(RDashdo _ _ d) -> dashdoHandler r d) ds
-  serve prt html $ zip3 (map rdFid ds) (map rdTitle ds) handlers
+  serve prt htm $ zip3 (map rdFid ds) (map rdTitle ds) handlers
 
 serve :: Int -> Text -> [(String, T.Text, [Param] -> ActionM ())] -> IO ()
 serve port iniHtml handlers = do

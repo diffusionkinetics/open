@@ -25,9 +25,9 @@ class AskInliterate a where
   askInliterate = answerWith show
 
 answerWith :: (a -> String) -> String -> [CodeType] -> a -> IO ()
-answerWith f t cts x = do
+answerWith f t _ x' = do
   putStr "<pre class=\"haskell\"><code>"
-  putStrLn $ concat [t, " => \n", f x]
+  putStrLn $ concat [t, " => \n", f x']
   putStrLn "</code></pre>"
 
 instance AskInliterate Int

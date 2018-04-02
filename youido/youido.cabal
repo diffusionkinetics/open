@@ -17,6 +17,10 @@ source-repository head
   type:     git
   location: https://github.com/diffusionkinetics/open
 
+Flag example
+     Description: Build an example executable
+     Default:     False
+
 library
   hs-source-dirs:    lib
   ghc-options:       -fwarn-unused-imports -fno-warn-unused-do-bind -fno-warn-type-defaults
@@ -49,3 +53,23 @@ library
                      , random
                      , scotty-cookie
                      , bcrypt
+                     , split
+                     , parsec
+
+Executable youido-example
+  main-is: examples/Example.hs
+  if flag(example)
+           Buildable:     True
+  else
+           Buildable:     False
+
+  build-depends:       base >=4.6 && <5
+                     , youido
+                     , lucid
+                     , lucid-extras
+                     , dashdo
+                     , mtl
+                     , wai
+                     , microlens-platform
+                     , text
+                     , datasets

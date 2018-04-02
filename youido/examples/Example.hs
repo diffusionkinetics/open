@@ -2,8 +2,6 @@
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
    OverloadedLabels, TypeOperators, DataKinds #-}
 
-module Youido.Example where
-
 import Youido.Serve
 import Youido.Types
 import Youido.Dashdo
@@ -38,7 +36,7 @@ instance ToURL Countries where
   toURL Countries = "/countries"
   toURL (Country cnm) = "/country/"<>cnm
 
-countryH :: [Gapminder] -> Countries -> ReaderT a IO (Html ())
+countryH :: Monad m => [Gapminder] -> Countries -> ReaderT a m (Html ())
 countryH gapM Countries = do
   let countries = nub $ map country gapM
   return $ ul_ $ forM_ countries $ \c -> li_ $ a_ [href_ $ toURL $ Country c] $ (toHtml c)
@@ -69,13 +67,13 @@ sidebar = mkSidebar
     , "Counties" *~ Countries
     ]
 
-runIt :: IO ()
-runIt = do
+main :: IO ()
+main = do
   gapM <- getDataset gapminder
   serveY () $ do
     dashdoGlobal
     dashdo #bubbles $ Dashdo (BubblesDD 1980) (bubblesDD gapM)
     port .= 3101
-    wrapper .= stdWrapper (mempty) sidebar
+    wrapper .= const (stdWrapper (mempty) sidebar)
     handle $ countryH gapM
 

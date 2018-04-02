@@ -29,3 +29,20 @@ library
                      , aeson
                      , bytestring
                      , text
+                     , mtl
+                     , resource-pool
+                     , time
+
+test-suite tests
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  main-is:          Spec.hs
+  default-language: Haskell2010
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
+  build-depends:    base
+                  , aeson
+                  , hspec
+                  , mtl
+                  , postgresql-simple
+                  , postgresql-simple-expr
+                  , text

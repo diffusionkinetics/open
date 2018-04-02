@@ -3,34 +3,27 @@
 
 module Youido.Authentication where
 
-import Youido.Types
 import Web.Scotty
 import Web.Scotty.Cookie
 import Control.Concurrent.STM
 import qualified Data.IntMap
 import Control.Monad.IO.Class
-import Data.Text (Text, pack, unpack)
-import Data.Text.Encoding
+import Data.Text (Text, unpack, pack)
+
 import System.Random
 import Text.Read (readMaybe)
-import Data.Proxy
-import Crypto.BCrypt
-import System.IO.Unsafe
 
-hashPassword :: Text-> HashPassword
-hashPassword t = unsafePerformIO $ do 
-  Just p <- hashPasswordUsingPolicy slowerBcryptHashingPolicy $ encodeUtf8 t
-  return $ HashPassword p
+import Data.ByteString(ByteString)
 
 --------------------------------------------------------------------------
 --- SERVING
 --------------------------------------------------------------------------
-  
+
 
 newSession :: TVar (Data.IntMap.IntMap a) -> a -> ActionM ()
-newSession tv email = do
+newSession tv x = do
   n <- liftIO $ randomRIO (0,99999999999)
-  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n email)
+  liftIO $ atomically $ modifyTVar' tv (Data.IntMap.insert n x)
   setSimpleCookie "youisess" (pack $ show n)
   return ()
 

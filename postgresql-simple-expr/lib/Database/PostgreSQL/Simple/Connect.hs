@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, TypeApplications #-}
 
 module Database.PostgreSQL.Simple.Connect where
 
@@ -12,6 +12,8 @@ import Control.Exception
 import System.Environment
 
 import Database.PostgreSQL.Simple
+import Data.Pool
+import Data.Time.Clock
 
 data DatabaseConfig = DatabaseConfig
   { user                   :: String
@@ -19,6 +21,9 @@ data DatabaseConfig = DatabaseConfig
   , host                   :: String
   , port                   :: Integer
   , dbname                 :: String
+  , numstripes             :: Int
+  , keepOpenTime           :: NominalDiffTime
+  , resPerStripe           :: Int
   } deriving (Show, Eq, Generic)
 
 instance FromJSON DatabaseConfig
@@ -30,6 +35,10 @@ configFromEnv = DatabaseConfig
   <*> getEnv "PGHOST"
   <*> (read <$> getEnv "PGPORT")
   <*> getEnv "PGDATABASE"
+  <*> (maybe 2 read <$> (lookupEnv "PGPOOL_NUM_STRIPES"))
+  <*> (maybe (24*60*60) (fromIntegral . read @Int) <$>
+       (lookupEnv "PGPOOL_KEEP_OPEN_TIME"))
+  <*> (maybe 20 read <$> (lookupEnv "PGPOOL_RES_PER_STRIPES"))
 
 
 createConn :: DatabaseConfig -> IO Connection
@@ -39,10 +48,8 @@ createConn config = do
                                     threadDelay $ 10 * 1000 * 1000
                                     createConn' config)
 
-
-createConn' :: DatabaseConfig -> IO Connection
-createConn' config = do
-  connect ConnectInfo
+dbCfgToConnectInfo :: DatabaseConfig -> ConnectInfo
+dbCfgToConnectInfo config = ConnectInfo
     { connectHost     = host     config
     , connectUser     = user     config
     , connectPassword = password config
@@ -50,13 +57,12 @@ createConn' config = do
     , connectPort     = fromInteger $ port config
     }
 
-{-getPool :: DatabaseConfig -> PoolOrConn Connection
-getPool dbconfig=
- let poolCfg    = PoolCfg (fromMaybe 2 $ num_stripes dbconfig)
-                          (fromMaybe 20 $ res_per_stripe dbconfig)
-                          $ 24*60*60
-     pool       = PCConn $ ConnBuilder (createConn dbconfig) close poolCfg
- in pool -}
+createConn' :: DatabaseConfig -> IO Connection
+createConn' = connect . dbCfgToConnectInfo
+
+createConnPool :: DatabaseConfig -> IO (Pool Connection)
+createConnPool cfg = createPool (createConn' cfg) close
+  (numstripes cfg) (keepOpenTime cfg) (resPerStripe cfg)
 
 readJSON :: FromJSON a => FilePath -> IO a
 readJSON path = do

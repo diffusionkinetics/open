@@ -14,11 +14,8 @@ import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Text                  (Text)
-import           Data.Text.Strict.Lens (utf8, _Text)
 import           Data.Bool (bool)
 import qualified Data.Text as T
-import           Data.List (intercalate)
-import           Data.Scientific
 
 import           Dampf.Docker.Args.Class
 import           Dampf.AppFile.Types (Port (..))
@@ -33,15 +30,6 @@ newtype Detach = Detach Bool
 
 instance Show Detach where
     show (Detach b) = if b then "-d" else ""
-
-newtype Rm = Rm Bool
-    deriving (Eq)
-
-
-instance Show Rm where
-    show (Rm b) = if b then "--rm" else ""
-
-
 
 data RestartPolicy
     = No
@@ -58,7 +46,7 @@ instance Show RestartPolicy where
 data RunArgs = RunArgs
     { _name     :: Text
     , _detach   :: Detach
-    , _rm       :: Rm
+    , _rm       :: Bool
     , _restart  :: RestartPolicy
     , _net      :: Text
     , _privileged :: Bool
@@ -66,7 +54,6 @@ data RunArgs = RunArgs
     , _hosts    :: Map Text Text -- (domain, ip)
     , _publish  :: [Port]
     , _envs     :: Map Text Text
-    , _rmArg    :: Bool
     , _img      :: Text
     , _cmd      :: Text
     , _volumes  :: [(FilePath, FilePath)]
@@ -77,10 +64,9 @@ makeClassy ''RunArgs
 
 instance ToArgs RunArgs where
     toArgs r = ["run"]
-        <> bool ["--rm"] [] (r ^. rmArg)
-        <> flagArg (r ^. detach)
-        <> flagArg (r ^. rm)
+        <> bool [] ["--rm"] (r ^. rm)
         <> bool [] ["-it"] (r ^. interactive)
+        <> flagArg (r ^. detach)
         <> bool [] ["--privileged"] (r ^. privileged)
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
@@ -104,9 +90,10 @@ instance ToArgs RunArgs where
         envArg n v es = es ++ ["-e", T.unpack n ++ "=" ++ T.unpack v]
 
 unDaemonize :: RunArgs -> RunArgs
-unDaemonize = 
-    set rm (Rm True)
+unDaemonize =
+    set rm True
   . set detach (Detach False)
+  . set interactive True
   . set restart No
 
 mkRunArgs :: (MonadIO m, MonadThrow m)
@@ -129,7 +116,7 @@ mkRunArgs n spec = do
         , ("PGUSER", d ^. user)
         , ("PGPASSWORD", s ^. users . at (d ^. user) . non "")
         ]
-        
+
 {-mkRunArgsNonDaemon :: (MonadIO m, MonadThrow m)-}
     {-=> Text -> ContainerSpec -> DampfT m RunArgs-}
 {-mkRunArgsNonDaemon n spec = do-}
@@ -155,17 +142,16 @@ defaultRunArgs :: Text -> ContainerSpec -> RunArgs
 defaultRunArgs n spec = RunArgs
     { _name     = n
     , _detach   = Detach True
-    , _rm       = Rm False
+    , _rm       = False
     , _restart  = Always
     , _privileged = False
     , _interactive = False
     , _net      = "host"
     , _publish  = spec ^. expose . non []
-    , _rmArg    = True
     , _envs     = Map.empty
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""
     , _hosts    = Map.empty
     , _volumes  = []
     , _dns      = Nothing
-    } 
+    }

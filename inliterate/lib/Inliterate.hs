@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings, StandaloneDeriving, CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Inliterate where
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.IO as TL
 import Data.Text (Text)
 import Data.List (isPrefixOf)
 import qualified Data.Text.IO as T
@@ -16,14 +16,12 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Sequence as Seq
 import Text.Blaze.Html.Renderer.Text (renderHtml)
-import Lucid
 import Data.Monoid ((<>))
 #if MIN_VERSION_haskell_src_exts(1,18,0)
 import Language.Haskell.Exts hiding (Do)
 #else
 import Language.Haskell.Exts.Annotated hiding (Do)
 #endif
-import Inliterate.Inspect
 import Inliterate.Import
 
 dumpDoc :: FilePath -> IO ()
@@ -78,10 +76,12 @@ printBlock blk@(CodeBlock (CodeAttr "haskell" ci) t)
   where ct = parseCodeInfo ci
 printBlock blk = if isHtmlHeader blk then [] else printAnyBlock blk
 
-isHtmlHeader (CodeBlock (CodeAttr "html_header" ci) t) = True
+isHtmlHeader :: Block -> Bool
+isHtmlHeader (CodeBlock (CodeAttr "html_header" _) _) = True
 isHtmlHeader _ = False
 
-codeBlockBody (CodeBlock (CodeAttr "html_header" ci) t) = t
+codeBlockBody :: Block -> Text
+codeBlockBody (CodeBlock (CodeAttr "html_header" _) t) = t
 
 printAsk :: Set CodeType -> Text -> [Text]
 printAsk cts t

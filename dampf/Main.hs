@@ -59,8 +59,7 @@ run (Options af cf p cmd) = do
         Provision pt        -> goProvision pt
         Env cmds            -> envCmd cmds
         Browse b            -> browse b
-        
-
+        LsEnv               -> lsEnvCmd
 
 -- Command Line Options
 
@@ -82,6 +81,7 @@ data Command
     | NewMigration Text FilePath
     | RunMigrations (Maybe Text)
     | Env [Text]
+    | LsEnv
     | SetupDatabase
     | Monitor [Text]
     | Test [Text]
@@ -172,6 +172,10 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseEnv)
                 (O.progDesc "Run command locally in an environment that can access database"))
+    <> O.command "lsenv"
+            (O.info
+                (O.helper <*> pure LsEnv)
+                (O.progDesc "list variables for an environment that can access database"))
     <> O.command "provision"
             (O.info
                 (O.helper <*> parseProvision)
@@ -187,7 +191,7 @@ instance ParseField Backend
 
 parseProvision :: Parser Command
 parseProvision = Provision
-    <$> parseField (Just "SingleServer | Development | CI") Nothing
+    <$> parseField (Just "SingleServer | Development | CI") Nothing Nothing
 
 parseBackup :: Parser Command
 parseBackup = Backup
@@ -201,7 +205,7 @@ parseRestore = Restore
 
 parseBrowse :: Parser Command
 parseBrowse = Browse
-    <$> parseField (Just "VNC | X11 ") Nothing
+    <$> parseField (Just "VNC | X11 ") Nothing Nothing
 
 parseRun :: Parser Command
 parseRun = Run
