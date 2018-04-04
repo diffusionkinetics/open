@@ -48,8 +48,9 @@ data RunArgs = RunArgs
     , _detach   :: Detach
     , _rm       :: Bool
     , _restart  :: RestartPolicy
-    , _interactive :: Bool
     , _net      :: Text
+    , _privileged :: Bool
+    , _interactive :: Bool
     , _hosts    :: Map Text Text -- (domain, ip)
     , _publish  :: [Port]
     , _envs     :: Map Text Text
@@ -66,6 +67,7 @@ instance ToArgs RunArgs where
         <> bool [] ["--rm"] (r ^. rm)
         <> bool [] ["-it"] (r ^. interactive)
         <> flagArg (r ^. detach)
+        <> bool [] ["--privileged"] (r ^. privileged)
         <> namedTextArg "name" (r ^. name)
         <> namedArg "restart" (r ^. restart)
         <> namedTextArg "net" (r ^. net)
@@ -79,7 +81,7 @@ instance ToArgs RunArgs where
       where
         volArgs ("",_) = []
         volArgs (_,"") = []
-        volArgs (k, v) = ["-v", k <> ":" ++ v ++ ":ro"]
+        volArgs (k, v) = ["-v", k <> ":" ++ v]
 
         hostArgs ("",_) = []
         hostArgs (_,"") = []
@@ -142,6 +144,7 @@ defaultRunArgs n spec = RunArgs
     , _detach   = Detach True
     , _rm       = False
     , _restart  = Always
+    , _privileged = False
     , _interactive = False
     , _net      = "host"
     , _publish  = spec ^. expose . non []

@@ -17,8 +17,9 @@ import           Options.Generic
 import           Dampf
 import           Dampf.Postgres
 import           Dampf.Types
-import           Dampf.Monitor
-import           Dampf.Test
+import           Dampf.Monitor (runMonitor)
+import           Dampf.Test (test)
+import           Dampf.Browse (browse, Backend(..))
 import           Dampf.Docker
 import           Dampf.Provision
 
@@ -57,6 +58,7 @@ run (Options af cf p cmd) = do
         Test tests          -> test tests
         Provision pt        -> goProvision pt
         Env cmds            -> envCmd cmds
+        Browse b            -> browse b
         LsEnv               -> lsEnvCmd
 
 -- Command Line Options
@@ -84,6 +86,7 @@ data Command
     | Monitor [Text]
     | Test [Text]
     | Provision ProvisionType
+    | Browse Backend
     deriving (Show)
 
 
@@ -159,6 +162,12 @@ parseCommand = O.subparser $
             (O.info
                 (O.helper <*> parseMonitor)
                 (O.progDesc "Run specified test (if not specified, run all tests) against live production environment"))
+
+    <> O.command "browse"
+            (O.info
+                (O.helper <*> parseBrowse)
+                (O.progDesc "Run a browser to interact with proxied conatainers"))
+
     <> O.command "env"
             (O.info
                 (O.helper <*> parseEnv)
@@ -178,6 +187,7 @@ parseCommand = O.subparser $
                 (O.progDesc "Run specified test (if not specified, all tests)"))
 
 instance ParseField ProvisionType
+instance ParseField Backend
 
 parseProvision :: Parser Command
 parseProvision = Provision
@@ -192,6 +202,10 @@ parseRestore = Restore
         <$> O.argument O.readerAsk (O.metavar "FILE")
         <*> optional (O.argument readerText (O.metavar "DATABASE"))
 
+
+parseBrowse :: Parser Command
+parseBrowse = Browse
+    <$> parseField (Just "VNC | X11 ") Nothing Nothing
 
 parseRun :: Parser Command
 parseRun = Run
@@ -216,7 +230,6 @@ parseTest = Test
 parseMonitor :: Parser Command
 parseMonitor = Monitor
     <$> many (O.argument readerText (O.metavar "TESTS"))
-
 
 parseEnv :: Parser Command
 parseEnv = Env

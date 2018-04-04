@@ -27,6 +27,7 @@ library
       , Dampf.Docker.Types
       , Dampf.Test
       , Dampf.Monitor
+      , Dampf.Browse
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
@@ -61,6 +62,7 @@ library
     build-depends:
         base >= 4.7 && < 5
       , aeson
+      , wreq
       , attoparsec
       , containers
       , directory
@@ -79,8 +81,8 @@ library
       , unordered-containers
       , vector
       , yaml
-      , regex-base
       , regex-posix
+      , regex-compat
       , bytestring
       , split
       , random
@@ -98,4 +100,3 @@ executable dampf
       , optparse-applicative
       , optparse-generic
       , text
-
