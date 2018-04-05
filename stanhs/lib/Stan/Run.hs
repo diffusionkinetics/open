@@ -147,7 +147,7 @@ getStanTempDirectory = do
 
 writeStanDataFile :: FilePath -> StanData -> IO FilePath
 writeStanDataFile dir sData = do
-  let dataLines = toList $ unStanData sData
+  let dataLines = dumpEnv sData
   let dataNm = 'd': (show $ abs $ hash dataLines)
       dataFile = dir </> dataNm <.> "data.R"
   writeFile dataFile $ unlines dataLines

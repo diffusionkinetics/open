@@ -30,6 +30,7 @@ Library
                  , Stan.Data
                  , Stan.Schools
                  , Stan.Run
+                 , Stan.Simulate
 
    Build-depends:
                  base                    >= 4.6 && <5
