@@ -114,9 +114,10 @@ class RequestInfo url where
 
 -- it's instances all the way down
 
-instance (FromForm a) => RequestInfo (Form a) where
-  toPathSegments _ = []
-  fromReq = Form <$> do
+instance (FromForm a) => RequestInfo (QueryString a) where
+  toPathSegments (QueryStringLink) = []
+  toPathSegments (QueryString x) = [] --TODO
+  fromReq = QueryString <$> do
    res <- fromForm <$> getState
    case res of
      Nothing -> unexpected "failed"
@@ -242,10 +243,11 @@ class FromRequest a where
   fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
 
   default fromRequest :: (Generic a, GRequestInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
-  fromRequest (rq,pars) = let parser = to <$> gfromRequest in
-    case (runParser parser pars "" (pathInfo rq)) of
-      Left _ -> Nothing
-      Right t -> Just t
+  fromRequest (rq,pars) =
+    let parser = to <$> gfromRequest
+    in case (runParser parser pars "" (pathInfo rq)) of
+         Left _ -> Nothing
+         Right t -> Just t
 
 class ToURL a where
   toURL :: a -> Text
@@ -386,6 +388,8 @@ instance (GFromForm a) => GFromForm (D1 c a) where
 -- data using FromForm when deriving FromRequest
 
 data Form a = FormLink | Form a deriving (Show, Generic)
+data QueryString a = QueryStringLink | QueryString a deriving (Show, Generic)
+
 
 --------------------------------------------------------------------------
 ---                 HANDLERS

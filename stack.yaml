@@ -1,4 +1,4 @@
-resolver: lts-8.5
+resolver: lts-9.21
 packages:
   - ./datasets
   - ./plotlyhs
@@ -9,6 +9,6 @@ packages:
   - ./inliterate
 
 
-extra-deps: 
+extra-deps:
 - kmeans-vector-0.3.2
 - probable-0.1.2
