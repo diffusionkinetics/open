@@ -1,10 +1,9 @@
 module Stan.Data where
 
 import Data.List
-import qualified Data.Sequence as Seq
-import Data.Monoid
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as Map
+
 class Dump1 a where
   dump1 :: a -> ([String], [Int])
 
@@ -74,3 +73,7 @@ instance ToStanData a => ToStanData [a] where
     toStanData xs = VArray $ V.fromList $ map toStanData xs
 instance ToStanData a => ToStanData (V.Vector a) where
     toStanData xs = VArray $ V.map toStanData xs
+
+mcmcToEnv :: Map.Map String [Double] -> StanEnv
+mcmcToEnv = Map.map f where
+    f xs = VSamples $ V.fromList $ map VDouble xs
