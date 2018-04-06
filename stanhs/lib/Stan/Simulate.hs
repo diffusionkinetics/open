@@ -47,18 +47,21 @@ simulate (For vnm loe hie ds) = do
     Just x -> modify $ Map.insert vnm x
 simulate ((vnm,ixs) := e) = do
   env <- get
-  let v = eval env e
-  case ixs of
-    [] -> modify $ Map.insert vnm v
-    [eix] -> do
-      let VInt ix =  eval env eix
-      modify $ Map.alter (vSet ix v) vnm
+  setVar vnm ixs $ eval env e
 simulate ((vnm,ixs) :~ (distnm, argEs)) = do
   env <- get
   let argVs = map (eval env) argEs
       Just (VSeed oldSeed) = Map.lookup "__seed" env
   let (v, newSeed) = simDist distnm argVs oldSeed 
   modify $ Map.insert "__seed" (VSeed newSeed)
+  setVar vnm ixs v
+
+setVar :: Var -> [Expr] -> StanValue -> State StanEnv ()
+setVar vnm [] v = modify $ Map.insert vnm v
+setVar vnm [eix] v = do
+  env <- get
+  let VInt ix =  eval env eix
+  modify $ Map.alter (vSet ix v) vnm
   
 simDist :: String -> [StanValue] -> PureMT-> (StanValue, PureMT)
 simDist "normal" [VDouble mu, VDouble sd] seed 
@@ -69,4 +72,8 @@ vSet ix newVal (Just (VArray v)) = Just $ VArray $ v V.// [(ix,newVal)]
 
 runSimulate :: [Decl] -> StanEnv -> StanEnv
 runSimulate ds = execState (mapM_ simulate ds)
+
+
+seedEnv :: PureMT -> StanEnv
+seedEnv = Map.singleton "__seed" . VSeed
 
