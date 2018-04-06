@@ -42,6 +42,7 @@ Library
                , containers
                , random
                , vector
+               , mtl
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0
