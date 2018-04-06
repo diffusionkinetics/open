@@ -3,10 +3,13 @@
 module Stan.Simulate where
 
 import Stan.Data
-import Stan.AST
+import Stan.AST hiding (normal)
 import Control.Monad.State
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
+import Data.Random
+import Data.Random.Source.PureMT
+import Data.Random.Distribution.Normal
 
 eval :: StanEnv -> Expr -> StanValue
 eval _ (LitInt x) = VInt x
@@ -49,7 +52,21 @@ simulate ((vnm,ixs) := e) = do
     [] -> modify $ Map.insert vnm v
     [eix] -> do
       let VInt ix =  eval env eix
-      modify $ Map.adjust (vSet ix v) vnm
+      modify $ Map.alter (vSet ix v) vnm
+simulate ((vnm,ixs) :~ (distnm, argEs)) = do
+  env <- get
+  let argVs = map (eval env) argEs
+      Just (VSeed oldSeed) = Map.lookup "__seed" env
+  let (v, newSeed) = simDist distnm argVs oldSeed 
+  modify $ Map.insert "__seed" (VSeed newSeed)
+  
+simDist :: String -> [StanValue] -> PureMT-> (StanValue, PureMT)
+simDist "normal" [VDouble mu, VDouble sd] seed 
+  = sampleState (fmap VDouble $ normal mu sd) seed 
+  
+vSet :: Int -> StanValue -> Maybe StanValue -> Maybe StanValue
+vSet ix newVal (Just (VArray v)) = Just $ VArray $ v V.// [(ix,newVal)]
 
-vSet :: Int -> StanValue -> StanValue -> StanValue
-vSet ix newVal (VArray v) = VArray $ v V.// [(ix,newVal)]
+runSimulate :: [Decl] -> StanEnv -> StanEnv
+runSimulate ds = execState (mapM_ simulate ds)
+

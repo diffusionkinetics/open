@@ -3,6 +3,7 @@ module Stan.Data where
 import Data.List
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as Map
+import Data.Random.Source.PureMT
 
 class Dump1 a where
   dump1 :: a -> ([String], [Int])
@@ -47,6 +48,8 @@ data StanValue = VDouble Double
                | VInt Int
                | VArray (V.Vector StanValue)
                | VSamples (V.Vector StanValue)
+               | VSeed PureMT
+               
 instance Dump1 StanValue where
     dump1 (VDouble x) = dump1 x
     dump1 (VInt x) = dump1 x
