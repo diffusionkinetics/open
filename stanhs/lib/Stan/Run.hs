@@ -92,6 +92,7 @@ instance StanMethod Sample where
                           , ("thin", show thn)
                           ]
           cmd = concat ["./", mdlNm, " sample ", optArg, " data file=", dataFile, " output file=", outFl ] --TODO set output file
+      --putStrLn cmd
       ExitSuccess <- system cmd
       readStanSampleOutput outFl
 
