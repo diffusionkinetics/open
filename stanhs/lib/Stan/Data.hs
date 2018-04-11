@@ -49,7 +49,8 @@ data StanValue = VDouble Double
                | VArray (V.Vector StanValue)
                | VSamples (V.Vector StanValue)
                | VSeed PureMT
-               
+               deriving (Show)
+
 instance Dump1 StanValue where
     dump1 (VDouble x) = dump1 x
     dump1 (VInt x) = dump1 x

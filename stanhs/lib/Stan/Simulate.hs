@@ -3,13 +3,14 @@
 module Stan.Simulate where
 
 import Stan.Data
-import Stan.AST hiding (normal)
+import Stan.AST hiding (normal, gamma)
 import Control.Monad.State
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Random
 import Data.Random.Source.PureMT
 import Data.Random.Distribution.Normal
+import Data.Random.Distribution.Gamma
 
 eval :: StanEnv -> Expr -> StanValue
 eval _ (LitInt x) = VInt x
@@ -20,9 +21,23 @@ eval e (BinOp "*" x y) = numOp2 (*) (eval e x) (eval e y)
 --eval e (BinOp "/" x y) = numOp2 (/) (eval e x) (eval e y)
 eval e (Apply "sqrt" [x]) = fracOp sqrt (eval e x)
 eval e (Apply "exp" [x]) = fracOp exp (eval e x)
+eval e (Apply "dot_product" [ev1,ev2]) =
+  let VArray v1 = eval e ev1
+      VArray v2 = eval e ev2
+  in esum e $ V.toList $ V.zipWith (numOp2 (*)) v1 v2
 eval e (Var vnm) = case Map.lookup vnm e of
                      Nothing-> error $ "variable not found: "++vnm
                      Just v -> v
+eval e (Ix arrE dimEs ) =
+  let arrv = eval e arrE
+      dimVs = map (eval e) dimEs
+  in case (arrv, dimVs) of
+       (VArray v, [VInt ix]) -> v V.! (ix-1)
+eval _ ex = error $ "eval: "++show ex
+
+esum :: StanEnv -> [StanValue] -> StanValue
+esum _ [] = VDouble 0
+esum env (v:vs) = numOp2 (+) v $ esum env vs
 
 numOp2 :: (forall a . Num a => a -> a -> a) -> StanValue -> StanValue -> StanValue
 numOp2 f (VDouble x) (VDouble y) = VDouble $ f x y
@@ -66,9 +81,17 @@ setVar vnm [eix] v = do
 simDist :: String -> [StanValue] -> PureMT-> (StanValue, PureMT)
 simDist "normal" [VDouble mu, VDouble sd] seed
   = sampleState (fmap VDouble $ normal mu sd) seed
+simDist "gamma" [VDouble a, VDouble b] seed
+  = sampleState (fmap VDouble $ gamma a b) seed
+simDist d args _ = error $ "simDist: "++d++" "++show args
 
 vSet :: Int -> StanValue -> Maybe StanValue -> Maybe StanValue
-vSet ix newVal (Just (VArray v)) = Just $ VArray $ v V.// [(ix,newVal)]
+vSet ix newVal (Just (VArray v))
+  | ix <= V.length v = Just $ VArray $ v V.// [(ix-1,newVal)]
+  | ix == V.length v +1 = Just $ VArray $ v `V.snoc` newVal
+vSet 1 newVal Nothing = Just $ VArray $ V.singleton newVal
+vSet ix newVal mv = error $ "vSet: "++show ix++" "++show mv
+
 
 runSimulate :: [Stan] -> StanEnv -> StanEnv
 runSimulate sts = execState (mapM_ simulate ds) where
