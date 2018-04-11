@@ -43,7 +43,7 @@ simulate (For vnm loe hie ds) = do
     modify $ Map.insert vnm (VInt i)
     mapM_ simulate ds
   case oldv of
-    Nothing -> modify $ Map.delete vnm 
+    Nothing -> modify $ Map.delete vnm
     Just x -> modify $ Map.insert vnm x
 simulate ((vnm,ixs) := e) = do
   env <- get
@@ -52,7 +52,7 @@ simulate ((vnm,ixs) :~ (distnm, argEs)) = do
   env <- get
   let argVs = map (eval env) argEs
       Just (VSeed oldSeed) = Map.lookup "__seed" env
-  let (v, newSeed) = simDist distnm argVs oldSeed 
+  let (v, newSeed) = simDist distnm argVs oldSeed
   modify $ Map.insert "__seed" (VSeed newSeed)
   setVar vnm ixs v
 
@@ -62,16 +62,17 @@ setVar vnm [eix] v = do
   env <- get
   let VInt ix =  eval env eix
   modify $ Map.alter (vSet ix v) vnm
-  
+
 simDist :: String -> [StanValue] -> PureMT-> (StanValue, PureMT)
-simDist "normal" [VDouble mu, VDouble sd] seed 
-  = sampleState (fmap VDouble $ normal mu sd) seed 
-  
+simDist "normal" [VDouble mu, VDouble sd] seed
+  = sampleState (fmap VDouble $ normal mu sd) seed
+
 vSet :: Int -> StanValue -> Maybe StanValue -> Maybe StanValue
 vSet ix newVal (Just (VArray v)) = Just $ VArray $ v V.// [(ix,newVal)]
 
-runSimulate :: [Decl] -> StanEnv -> StanEnv
-runSimulate ds = execState (mapM_ simulate ds)
+runSimulate :: [Stan] -> StanEnv -> StanEnv
+runSimulate sts = execState (mapM_ simulate ds) where
+  ds = (concat [ds' | Model ds' <- sts])
 
 
 seedEnv :: PureMT -> StanEnv
