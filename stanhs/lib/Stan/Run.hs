@@ -91,7 +91,7 @@ instance StanMethod Sample where
                           , ("num_warmup", show nw)
                           , ("thin", show thn)
                           ]
-          cmd = concat ["./", mdlNm, " sample ", optArg, " data file=", dataFile, " output file=", outFl ] --TODO set output file
+          cmd = concat ["./", mdlNm, " sample ", optArg, " data file=", dataFile, " output file=", outFl," 1>&2" ]
       --putStrLn cmd
       ExitSuccess <- system cmd
       readStanSampleOutput outFl
@@ -104,7 +104,7 @@ instance StanMethod Optimize where
       let optArg = toArgs [ ("iter", show iter)
                           , ("algorithm", map toLower $ show meth)
                           ]
-          cmd = concat ["./", mdlNm, " optimize ", optArg, " data file=", dataFile, " output file=", outFl ] --TODO set output file
+          cmd = concat ["./", mdlNm, " optimize ", optArg, " data file=", dataFile, " output file=", outFl," 1>&2" ]
       ExitSuccess <- system cmd
       readStanOptimizeOutput outFl
 
