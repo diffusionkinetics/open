@@ -78,6 +78,3 @@ instance ToStanData a => ToStanData [a] where
 instance ToStanData a => ToStanData (V.Vector a) where
     toStanData xs = VArray $ V.map toStanData xs
 
-mcmcToEnv :: Map.Map String [Double] -> StanEnv
-mcmcToEnv = Map.map f where
-    f xs = VSamples $ V.fromList $ map VDouble xs

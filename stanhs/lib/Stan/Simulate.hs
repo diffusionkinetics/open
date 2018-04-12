@@ -8,6 +8,8 @@ import Control.Monad.State
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Random
+import Data.Maybe
+import Data.Monoid
 import Data.Random.Source.PureMT
 import Data.Random.Distribution.Normal
 import Data.Random.Distribution.Gamma
@@ -100,4 +102,17 @@ runSimulate sts = execState (mapM_ simulate ds) where
 
 seedEnv :: PureMT -> StanEnv
 seedEnv = Map.singleton "__seed" . VSeed
+
+packArrays :: [Stan] -> StanEnv -> StanEnv
+packArrays ss senv =
+  let arrPars = [(vnm,eix) | Model ds <- ss, t ::: (vnm, [eix]) <- ds]
+      extraEnv = Map.fromList $ map f arrPars
+      f (vnm,eix) =
+          let VInt n = eval senv eix
+          in (vnm,VArray $ V.generate n $ \i -> fromJust $ Map.lookup (vnm++"."++show (i+1)) senv)
+  in senv <> extraEnv
+
+mcmcToEnv :: [Stan] -> Map.Map String [Double] -> StanEnv
+mcmcToEnv ss = packArrays ss . Map.map f where
+      f xs = VSamples $ V.fromList $ map VDouble xs
 
