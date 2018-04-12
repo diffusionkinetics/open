@@ -26,7 +26,7 @@ eval e (Apply "exp" [x]) = fracOp exp (eval e x)
 eval e (Apply "dot_product" [ev1,ev2]) =
   let VArray v1 = eval e ev1
       VArray v2 = eval e ev2
-  in esum e $ V.toList $ V.zipWith (numOp2 (*)) v1 v2
+  in esum $ V.toList $ V.zipWith (numOp2 (*)) v1 v2
 eval e (Var vnm) = case Map.lookup vnm e of
                      Nothing-> error $ "variable not found: "++vnm
                      Just v -> v
@@ -37,9 +37,9 @@ eval e (Ix arrE dimEs ) =
        (VArray v, [VInt ix]) -> v V.! (ix-1)
 eval _ ex = error $ "eval: "++show ex
 
-esum :: StanEnv -> [StanValue] -> StanValue
-esum _ [] = VDouble 0
-esum env (v:vs) = numOp2 (+) v $ esum env vs
+esum :: [StanValue] -> StanValue
+esum [] = VDouble 0
+esum (v:vs) = numOp2 (+) v $ esum vs
 
 numOp2 :: (forall a . Num a => a -> a -> a) -> StanValue -> StanValue -> StanValue
 numOp2 f (VDouble x) (VDouble y) = VDouble $ f x y
@@ -67,11 +67,24 @@ simulate ((vnm,ixs) := e) = do
   setVar vnm ixs $ eval env e
 simulate ((vnm,ixs) :~ (distnm, argEs)) = do
   env <- get
-  let argVs = map (eval env) argEs
-      Just (VSeed oldSeed) = Map.lookup "__seed" env
-  let (v, newSeed) = simDist distnm argVs oldSeed
-  modify $ Map.insert "__seed" (VSeed newSeed)
-  setVar vnm ixs v
+  let vixs = map (eval env) ixs
+      mcmcNm = "__mcmc__"++vnm++postfixIxs vixs
+  case Map.lookup mcmcNm env of
+    Nothing -> do
+      let argVs = map (eval env) argEs
+          Just (VSeed oldSeed) = Map.lookup "__seed" env
+      let (v, newSeed) = simDist distnm argVs oldSeed
+      modify $ Map.insert "__seed" (VSeed newSeed)
+      setVar vnm ixs v
+    Just (VSamples dbls) -> do
+      let Just (VInt n) = Map.lookup "__sampleix" env
+          v = dbls V.! n
+      setVar vnm ixs v
+
+postfixIxs :: [StanValue] -> [Char]
+postfixIxs [] = ""
+postfixIxs (VInt n : vs) = '.':show n++postfixIxs vs
+
 
 setVar :: Var -> [Expr] -> StanValue -> State StanEnv ()
 setVar vnm [] v = modify $ Map.insert vnm v
@@ -103,16 +116,16 @@ runSimulate sts = execState (mapM_ simulate ds) where
 seedEnv :: PureMT -> StanEnv
 seedEnv = Map.singleton "__seed" . VSeed
 
-packArrays :: [Stan] -> StanEnv -> StanEnv
+{-packArrays :: [Stan] -> StanEnv -> StanEnv
 packArrays ss senv =
   let arrPars = [(vnm,eix) | Model ds <- ss, t ::: (vnm, [eix]) <- ds]
       extraEnv = Map.fromList $ map f arrPars
       f (vnm,eix) =
           let VInt n = eval senv eix
           in (vnm,VArray $ V.generate n $ \i -> fromJust $ Map.lookup (vnm++"."++show (i+1)) senv)
-  in senv <> extraEnv
+  in senv <> extraEnv -}
 
-mcmcToEnv :: [Stan] -> Map.Map String [Double] -> StanEnv
-mcmcToEnv ss = packArrays ss . Map.map f where
+mcmcToEnv :: Map.Map String [Double] -> StanEnv
+mcmcToEnv = Map.mapKeys ("__mcmc__"++) . Map.map f where
       f xs = VSamples $ V.fromList $ map VDouble xs
 
