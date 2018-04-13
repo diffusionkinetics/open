@@ -30,6 +30,7 @@ Library
                  , Stan.Data
                  , Stan.Schools
                  , Stan.Run
+                 , Stan.Simulate
 
    Build-depends:
                  base                    >= 4.6 && <5
@@ -41,6 +42,9 @@ Library
                , containers
                , random
                , vector
+               , mtl
+               , random-fu
+               , random-source
 
 Test-Suite test-stan
     type:       exitcode-stdio-1.0

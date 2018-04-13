@@ -89,6 +89,9 @@ instance IsString (Var,[Expr]) where
 normal :: (Expr , Expr) -> (String, [Expr])
 normal (mn, sd) = ("normal", [mn,sd])
 
+gamma :: (Expr , Expr) -> (String, [Expr])
+gamma (a, b) = ("gamma", [a,b])
+
 exponential :: Expr -> (String, [Expr])
 exponential mu = ("exponential", [mu])
 

@@ -1,9 +1,9 @@
 module Stan.Data where
 
 import Data.List
-import qualified Data.Sequence as Seq
-import Data.Monoid
 import qualified Data.Vector as V
+import qualified Data.Map.Strict as Map
+import Data.Random.Source.PureMT
 
 class Dump1 a where
   dump1 :: a -> ([String], [Int])
@@ -32,20 +32,70 @@ dumpAll (ss, ns) =
     concat $ "structure(c(" : intersperse "," ss ++["), .Dim = c("]
                              ++intersperse "," (map show ns)++["))"]
 
-dumpAs :: Dump1 a => String -> a -> StanData
-dumpAs nm x = StanData $ Seq.singleton $ nm++"<-"++(dumpAll $ dump1 x)
+dumpAs :: ToStanData a => String -> a -> StanData
+dumpAs nm x = Map.singleton nm $ toStanData x
 
-(<~) :: Dump1 a => String -> a -> StanData
+(<~) :: ToStanData a => String -> a -> StanData
 (<~) = dumpAs
 
-newtype StanData = StanData { unStanData :: Seq.Seq String }
-
-instance Monoid StanData where
-  StanData s1 `mappend` StanData s2 = StanData $ s1 <> s2
-  mempty = StanData mempty
+type StanData = StanEnv
 
 inGroupsOf :: Int -> [a] -> [[a]]
-inGroupsOf n [] = []
+inGroupsOf _ [] = []
 inGroupsOf n xs = let (a,b) = splitAt n xs in a : inGroupsOf n b
---class ToStanData a where
---  toStanData :: a -> String
+
+data StanValue = VDouble Double
+               | VInt Int
+               | VArray (V.Vector StanValue)
+               | VSamples (V.Vector StanValue)
+               | VSeed PureMT
+               deriving (Show)
+
+instance Dump1 StanValue where
+    dump1 (VDouble x) = dump1 x
+    dump1 (VInt x) = dump1 x
+    dump1 (VArray x) = dump1 x
+    dump1 (VSamples _) = error "Dump1 VSamples ¯\\_(ツ)_/¯"
+
+type StanEnv = Map.Map String StanValue
+
+dumpEnv :: StanEnv -> [String]
+dumpEnv = map f . Map.toList where
+    f (nm,sv) = nm++"<-"++(dumpAll $ dump1 sv)
+
+class ToStanData a where
+    toStanData :: a -> StanValue
+
+instance ToStanData Double where
+    toStanData x = VDouble x
+instance ToStanData Int where
+    toStanData x = VInt x
+instance ToStanData Bool where
+    toStanData True = VInt 1
+    toStanData False = VInt 0
+instance ToStanData a => ToStanData [a] where
+    toStanData xs = VArray $ V.fromList $ map toStanData xs
+instance ToStanData a => ToStanData (V.Vector a) where
+    toStanData xs = VArray $ V.map toStanData xs
+
+--TODO class Reify a where reify :: String -> StanEnv -> Maybe a
+
+unDouble :: StanValue -> Double
+unDouble (VDouble x) = x
+unDouble (VInt x) = realToFrac x
+unDouble v = error $ "unDouble: "++show v
+
+unDoubles :: StanValue -> [Double]
+unDoubles (VArray vs) = V.toList $ V.map unDouble vs
+
+unPairDoubles :: StanValue -> [(Double,Double)]
+unPairDoubles (VArray vs)
+   = V.toList $ V.map (\(VArray vs) -> (unDouble $ vs V.! 0, unDouble $ vs V.! 1)) vs
+
+sumValue :: StanValue -> StanValue -> StanValue
+sumValue (VDouble x) (VDouble y) = VDouble (x+y)
+sumValue (VArray v1) (VArray v2) = VArray $ V.zipWith sumValue v1 v2
+
+scaleValue :: Double -> StanValue -> StanValue
+scaleValue x (VDouble y) = VDouble (y*x)
+scaleValue x (VArray v) = VArray $ V.map (scaleValue x) v
