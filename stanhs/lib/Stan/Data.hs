@@ -78,9 +78,16 @@ instance ToStanData a => ToStanData [a] where
 instance ToStanData a => ToStanData (V.Vector a) where
     toStanData xs = VArray $ V.map toStanData xs
 
+--TODO class Reify a where reify :: String -> StanEnv -> Maybe a
+
 unDouble :: StanValue -> Double
 unDouble (VDouble x) = x
 unDouble (VInt x) = realToFrac x
+unDouble v = error $ "unDouble: "++show v
 
 unDoubles :: StanValue -> [Double]
 unDoubles (VArray vs) = V.toList $ V.map unDouble vs
+
+unPairDoubles :: StanValue -> [(Double,Double)]
+unPairDoubles (VArray vs)
+   = V.toList $ V.map (\(VArray vs) -> (unDouble $ vs V.! 0, unDouble $ vs V.! 1)) vs
