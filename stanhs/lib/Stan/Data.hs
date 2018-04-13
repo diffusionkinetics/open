@@ -91,3 +91,11 @@ unDoubles (VArray vs) = V.toList $ V.map unDouble vs
 unPairDoubles :: StanValue -> [(Double,Double)]
 unPairDoubles (VArray vs)
    = V.toList $ V.map (\(VArray vs) -> (unDouble $ vs V.! 0, unDouble $ vs V.! 1)) vs
+
+sumValue :: StanValue -> StanValue -> StanValue
+sumValue (VDouble x) (VDouble y) = VDouble (x+y)
+sumValue (VArray v1) (VArray v2) = VArray $ V.zipWith sumValue v1 v2
+
+scaleValue :: Double -> StanValue -> StanValue
+scaleValue x (VDouble y) = VDouble (y*x)
+scaleValue x (VArray v) = VArray $ V.map (scaleValue x) v

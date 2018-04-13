@@ -10,6 +10,8 @@ import qualified Data.Vector as V
 import Data.Random
 import Data.Maybe
 import Data.Monoid
+import Data.Maybe
+import Data.List
 import Data.Random.Source.PureMT
 import Data.Random.Distribution.Normal
 import Data.Random.Distribution.Gamma
@@ -119,21 +121,19 @@ runSimulate n sts initEnv =
       nextEnv = runSimulateOnce sts samEnv
       Just seed = Map.lookup "__seed" nextEnv
       recEnv = Map.insert "__seed" seed initEnv
-  in runSimulate (n-1) sts recEnv
+  in nextEnv : runSimulate (n-1) sts recEnv
 
 seedEnv :: PureMT -> StanEnv
 seedEnv s = Map.fromList [("__seed", VSeed s), ("__sampleix", VInt 0)]
 
-{-packArrays :: [Stan] -> StanEnv -> StanEnv
-packArrays ss senv =
-  let arrPars = [(vnm,eix) | Model ds <- ss, t ::: (vnm, [eix]) <- ds]
-      extraEnv = Map.fromList $ map f arrPars
-      f (vnm,eix) =
-          let VInt n = eval senv eix
-          in (vnm,VArray $ V.generate n $ \i -> fromJust $ Map.lookup (vnm++"."++show (i+1)) senv)
-  in senv <> extraEnv -}
+
 
 mcmcToEnv :: Map.Map String [Double] -> StanEnv
 mcmcToEnv = Map.mapKeys ("__mcmc__"++) . Map.map f where
       f xs = VSamples $ V.fromList $ map VDouble xs
 
+avgVar :: [StanEnv] -> String -> StanValue
+avgVar senvs vnm =
+  let n = realToFrac $ length senvs
+      sm = foldl1' sumValue $ mapMaybe (Map.lookup vnm) senvs
+  in scaleValue (1/n) sm
