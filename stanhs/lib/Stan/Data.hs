@@ -78,3 +78,9 @@ instance ToStanData a => ToStanData [a] where
 instance ToStanData a => ToStanData (V.Vector a) where
     toStanData xs = VArray $ V.map toStanData xs
 
+unDouble :: StanValue -> Double
+unDouble (VDouble x) = x
+unDouble (VInt x) = realToFrac x
+
+unDoubles :: StanValue -> [Double]
+unDoubles (VArray vs) = V.toList $ V.map unDouble vs

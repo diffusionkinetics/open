@@ -105,16 +105,24 @@ vSet ix newVal (Just (VArray v))
   | ix <= V.length v = Just $ VArray $ v V.// [(ix-1,newVal)]
   | ix == V.length v +1 = Just $ VArray $ v `V.snoc` newVal
 vSet 1 newVal Nothing = Just $ VArray $ V.singleton newVal
-vSet ix newVal mv = error $ "vSet: "++show ix++" "++show mv
+vSet ix _ mv = error $ "vSet: "++show ix++" "++show mv
 
 
-runSimulate :: [Stan] -> StanEnv -> StanEnv
-runSimulate sts = execState (mapM_ simulate ds) where
+runSimulateOnce :: [Stan] -> StanEnv -> StanEnv
+runSimulateOnce sts = execState (mapM_ simulate ds) where
   ds = (concat [ds' | Model ds' <- sts])
 
+runSimulate :: Int -> [Stan] -> StanEnv -> [StanEnv]
+runSimulate 0 _ _ = []
+runSimulate n sts initEnv =
+  let samEnv = Map.insert "__sampleix" (VInt n) initEnv
+      nextEnv = runSimulateOnce sts samEnv
+      Just seed = Map.lookup "__seed" nextEnv
+      recEnv = Map.insert "__seed" seed initEnv
+  in runSimulate (n-1) sts recEnv
 
 seedEnv :: PureMT -> StanEnv
-seedEnv = Map.singleton "__seed" . VSeed
+seedEnv s = Map.fromList [("__seed", VSeed s), ("__sampleix", VInt 0)]
 
 {-packArrays :: [Stan] -> StanEnv -> StanEnv
 packArrays ss senv =
