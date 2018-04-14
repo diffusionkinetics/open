@@ -330,6 +330,9 @@ newtype FormFields = FormFields [(TL.Text, TL.Text)]
 instance FromRequest FormFields where
   fromRequest (_,pars) = Just $ FormFields pars
 
+instance FromRequest a => FromRequest (a, Request) where
+  fromRequest (rq, pars) = (,) <$> fromRequest (rq, pars) <*> (Just rq)
+
 --------------------------------------------------------------------------
 ---                 FORM HANDLING
 --------------------------------------------------------------------------
