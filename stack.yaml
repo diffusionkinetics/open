@@ -1,4 +1,4 @@
-resolver: lts-9.21
+resolver: lts-10.10
 packages:
   - ./datasets
   - ./plotlyhs
@@ -11,4 +11,4 @@ packages:
 
 extra-deps:
 - kmeans-vector-0.3.2
-- probable-0.1.2
+- probable-0.1.3
