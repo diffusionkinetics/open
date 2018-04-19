@@ -32,6 +32,7 @@ library
                      , mtl
                      , resource-pool
                      , time
+                     , safe-exceptions
 
 test-suite tests
   type:             exitcode-stdio-1.0
