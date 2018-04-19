@@ -21,6 +21,7 @@ import Data.Maybe (listToMaybe)
 import Data.Aeson
 import Data.Text (Text, pack)
 import Control.Monad.Reader
+import Control.Exception.Safe
 
 class MonadIO m => MonadConnection m where
   getConnection :: m Connection
@@ -67,6 +68,13 @@ countFrom q1 args = do
   n :: [Only Int] <- queryC fullq args
   return $ sum $ map unOnly n
 
+withTransactionC :: (MonadMask m, MonadConnection m) => m a -> m a
+withTransactionC act =
+  mask $ \restore -> do
+    withConnection begin
+    r <- restore act `onException` (withConnection rollback)
+    withConnection commit
+    return r
 
 --insert all fields
 insertAll :: forall r m. (ToRow r, HasTable r,MonadConnection m) =>  r -> m ()
