@@ -216,6 +216,9 @@ data Trace = Trace
   , _hoveron :: Maybe [HoverOn]
   , _connectgaps :: Maybe Bool
 
+  -- Pie
+  , _sort :: Maybe Bool
+
   -- 3D mesh
   , _i :: Maybe [Int] -- ^ i values, as ints
   , _j :: Maybe [Int] -- ^ j values, as ints
@@ -231,7 +234,7 @@ data Trace = Trace
 makeLenses ''Trace
 
 mkTrace :: TraceType -> Trace
-mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+mkTrace tt = Trace Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing tt Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- |an empty scatter plot
 scatter :: Trace
