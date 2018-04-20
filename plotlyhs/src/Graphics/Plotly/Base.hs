@@ -151,10 +151,17 @@ data Fill = FillNone | ToZeroY | ToNextY | ToZeroX | ToNextX | ToSelf | ToNext d
 instance ToJSON Fill where
   toJSON = toJSON . map toLower . dropInitial "Fill" . show
 
+
+data LineShape = Linear | Spline | Hv | Hvh | Vh | Vhv deriving Show
+
+instance ToJSON LineShape where
+  toJSON = toJSON . map toLower . show
+
 -- | line specification
 data Line = Line
   { _linewidth :: Maybe Double
   , _linecolor :: Maybe Color
+  , _lineshape :: Maybe LineShape
   , _dash :: Maybe Dash
   } deriving Generic
 
@@ -164,7 +171,7 @@ instance ToJSON Line where
   toJSON = genericToJSON jsonOptions { fieldLabelModifier = dropInitial "line" . unLens}
 
 defLine :: Line
-defLine = Line Nothing Nothing Nothing
+defLine = Line Nothing Nothing Nothing Nothing
 
 data HoverElem = HoverX | HoverY | HoverZ | HoverText | HoverName
   deriving (Generic, Show)
