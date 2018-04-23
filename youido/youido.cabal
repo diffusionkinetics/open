@@ -55,6 +55,8 @@ library
                      , bcrypt
                      , split
                      , parsec
+                     , digestive-functors
+                     , digestive-functors-lucid
 
 Executable youido-example
   main-is: examples/Example.hs
