@@ -114,6 +114,14 @@ class RequestInfo url where
 
 -- it's instances all the way down
 
+instance (FromForm a) => RequestInfo (Form a) where
+  toPathSegments _ = []
+  fromReq = Form <$> do
+   res <- fromForm <$> getState
+   case res of
+     Nothing -> unexpected "failed"
+     Just t -> return t
+
 instance (FromForm a) => RequestInfo (QueryString a) where
   toPathSegments (QueryStringLink) = []
   toPathSegments (QueryString x) = [] --TODO
