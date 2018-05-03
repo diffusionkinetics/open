@@ -341,6 +341,13 @@ instance FromRequest FormFields where
 instance FromRequest a => FromRequest (a, Request) where
   fromRequest (rq, pars) = (,) <$> fromRequest (rq, pars) <*> (Just rq)
 
+
+instance RequestInfo FormFields where
+  toPathSegments _ = []
+  fromReq = do
+    result <- getState
+    return $ FormFields result
+
 --------------------------------------------------------------------------
 ---                 FORM HANDLING
 --------------------------------------------------------------------------
