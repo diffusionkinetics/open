@@ -124,6 +124,7 @@ data DomainSpec = DomainSpec
     , _proxyContainer   :: Maybe Text
     , _letsEncrypt      :: Maybe Bool
     , _isCDN            :: Maybe Bool
+    , _httpsOnly        :: Maybe Bool
     } deriving (Eq, Show, Generic)
 
 makeClassy ''DomainSpec

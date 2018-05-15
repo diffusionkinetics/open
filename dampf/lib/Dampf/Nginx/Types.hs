@@ -24,6 +24,7 @@ data ServerDecl
     | SSLCertificate FilePath
     | SSLCertificateKey FilePath
     | SSLTrustedCertificate FilePath
+    | Return Int String
 
 
 pShowServer :: Server -> String
@@ -38,7 +39,6 @@ pShowFakeServer = render . addMoreThings
           $+$ text "http" <+> lbrace
           $+$ nest 4 (pprServer doc)
           $+$ rbrace
-
 
 pprServer :: Server -> Doc
 pprServer (Server ds) = 
@@ -70,6 +70,9 @@ pprServerDecl (SSLTrustedCertificate p)    = text "ssl_trusted_certificate"
 
 pprServerDecl (SSLCertificateKey p) = text "ssl_certificate_key"
     <+> text p <> semi
+
+pprServerDecl (Return i url) = text "return" 
+    <+> int i <+> text url
 
 ppMap :: (Text, Text) -> Doc
 ppMap (k, v) = text (T.unpack k) <+> text (T.unpack v) <> semi

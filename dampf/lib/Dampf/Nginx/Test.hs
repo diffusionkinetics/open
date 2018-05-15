@@ -46,12 +46,15 @@ domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
 domainToServer name spec
     | isSSL     = do
         decls <- (http ++) <$> sslDecls name spec
-        return (Server decls)
+        return (Server $ decls ++ redirection)
 
-    | otherwise = return (Server http)
+    | otherwise = return (Server $ http ++ redirection)
   where
     isSSL = spec ^. letsEncrypt . non False
     http  = httpDecls name spec
+    isHttpsOnly = spec ^. httpsOnly . non False
+    redirection = if not isHttpsOnly then [] 
+      else [ Return 301 "https://$server_name$request_uri;" ]
 
 domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
 domainToLocation name spec =
