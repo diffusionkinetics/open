@@ -42,7 +42,7 @@ cdnBootstrapJS
   =  scriptSrc "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
 
 cdnFontAwesome
-  =  link_ [href_ "https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",
+  =  link_ [href_ "https://maxcdn.bootstrapcdn.com/font-awesome/5.0.13/css/font-awesome.min.css",
             rel_ "stylesheet",
             type_ "text/css"]
 
