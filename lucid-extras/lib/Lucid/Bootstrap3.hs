@@ -42,9 +42,9 @@ cdnBootstrapJS
   =  scriptSrc "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
 
 cdnFontAwesome
-  =  link_ [href_ "https://maxcdn.bootstrapcdn.com/font-awesome/5.0.13/css/font-awesome.min.css",
+  =  link_ [href_ "https://use.fontawesome.com/releases/v5.0.13/css/all.css",
             rel_ "stylesheet",
-            type_ "text/css"]
+            type_ "text/css", crossorigin_ "anonymous"]
 
 data NavAttribute = Inverse | Transparent | FixedTop | NavBarClass T.Text deriving Eq
 

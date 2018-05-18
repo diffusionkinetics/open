@@ -50,7 +50,7 @@ ariaHidden = term "aria-hidden"
 tooltip_ = term "tooltip"
 
 fa_ :: Monad m => T.Text -> HtmlT m ()
-fa_ x = i_ [class_ $ T.unwords ["fa", x]] (return ())
+fa_ x = i_ [class_ $ T.unwords ["fas", x]] (return ())
 
 aHash_ :: Monad m => HtmlT m () -> HtmlT m ()
 aHash_ = a_ [href_ "#"]
@@ -84,7 +84,7 @@ mkSidebar sbm sbl = ul_ [class_ "sidebar"] $ do
       render (SidebarLink t dest fa)
         = li_ [class_ "sidebar-list"]
           $ a_ [href_ dest]
-          $ toHtml t <> i_ [class_ ("fa fa-"<>fa<>" menu-icon")] mempty
+          $ toHtml t <> i_ [class_ (fa<>" menu-icon")] mempty
   mapM_ render sbl
 
 mkSidebarFooter :: (Monad m) => HtmlT m () -> HtmlT m ()
