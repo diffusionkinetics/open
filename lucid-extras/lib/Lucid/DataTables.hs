@@ -13,11 +13,11 @@ import Data.Monoid
 dataTablesCDN :: Monad m => HtmlT m ()
 dataTablesCDN
   =  scriptSrc "https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"
-
+  
+-- | Additional properties to pass to the table.
+--   See https://datatables.net/reference/option/ for values
+--   we might wish to use here.
 activateDataTable :: Monad m => T.Text
-                     -- | Additional properties to pass to the table.
-                     --   See https://datatables.net/reference/option/ for values
-                     --   we might wish to use here.
                   -> Maybe (Aeson.Value)
                   -> HtmlT m ()
 activateDataTable elm props = script_ $
