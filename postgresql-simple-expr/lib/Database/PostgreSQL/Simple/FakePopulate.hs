@@ -10,7 +10,7 @@ import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Dynamic
 import           Data.Foldable
-import           Data.List (intersperse, groupBy, find)
+import           Data.List (intersperse, find)
 import           Data.Map (Map(..))
 import qualified Data.Map as M
 import           Data.Monoid ((<>), mconcat)
@@ -21,7 +21,6 @@ import           Data.String
 import           Data.Typeable ()
 import           Database.PostgreSQL.Simple hiding (fold)
 import           Database.PostgreSQL.Simple.Expr
-import           Database.PostgreSQL.Simple.ToRow
 import           Database.PostgreSQL.Simple.FromRow
 import           Fake
 import           GHC.Generics
@@ -39,69 +38,6 @@ commas :: (IsString a, Monoid a) => [a] -> a
 commas = mconcat . intersperse ", "
 
 toQs = commas . map (const "?")
-
-------------------------------------------------------------
-
-insertWithRandomFKs :: forall a m.
-  (HasKey a, KeyField (Key a), ToRow a, MonadConnection m)
-  => [ForeignKey] -> [a] -> m ()
-insertWithRandomFKs fks vals =
-  let tbl = tableName (Proxy :: Proxy a)
-      fldNms = getFieldNames (Proxy :: Proxy a)
-      keyFldNms = getKeyFieldNames (Proxy :: Proxy a)
-      fkFldNms = map _1 fks
-      fldsNoFKs = filter (not . (`elem` fkFldNms)) fldNms
-      q = mkRandomFKsQuery tbl fldNms keyFldNms fks
-      getQueryArgs val = map snd . filter ((`elem` fldsNoFKs) . fst)
-                         $ zip fldNms (toRow val)
-  in traverse_ (executeC q . getQueryArgs) vals
-
-mkRandomFKsQuery :: String   -- | Table to insert into
-                 -> [String] -- | Field names of the table
-                 -> [String] -- | Key field names of the table
-                 -> [ForeignKey]
-                 -> Query
-mkRandomFKsQuery tbl fldNms keyFldNms fks = let
-  usedFkKeysAlias = "used_fk_keys"
-  valuesAlias = "qvalues"
-  fkFldNms = map _1 fks
-
-  qualify fldNm =
-    case find (\fk -> _1 fk == fldNm) fks of
-      Nothing -> valuesAlias <> "." <> fldNm
-      Just (_,refTbl,refFld) -> refTbl <> "." <> refFld <> " as " <> fldNm
-  qualifiedFlds = map qualify fldNms
-
-  fksThatAreKeys = filter (`elem` keyFldNms) fkFldNms
-  fldsNoFKs = filter (not . (`elem` fkFldNms)) fldNms
-  fksThatAreKeysQ = "select " <> fromString (mconcat fksThatAreKeys) <> " from " <> tbl
-
-  notInClause (tblF,refTbl,refFld) =
-    refTbl <> "." <> refFld <> "not in ("
-    <> "select " <> tblF <> " from " <> usedFkKeysAlias <> ")"
-  fksByTable = Data.List.groupBy (\(_,t,_) (_,s,_) -> t == s) fks
-  selectRandomRow :: [ForeignKey] -> String
-  selectRandomRow tblFks =
-    let refTbl = _2 (head tblFks)
-        fkKeyOverlap = filter (\fk -> (_3 fk) `elem` fksThatAreKeys) tblFks
-        joinClause = mconcat $ intersperse " and "
-                     $ map notInClause fkKeyOverlap
-    in "join (select " <> (commas $ map _3 tblFks)
-       <> " from " <> refTbl
-       <> " order by random() limit 1) as " <> refTbl
-       <> " on " <> (if fkKeyOverlap == [] then "true " else joinClause)
-  fkRandomRows = fromString . commas $ map selectRandomRow fksByTable
-
-  in mconcat $
-     ["insert into " :: Query, fromString tbl, " (", fromString (commas fldNms), ")"
-     , if (fksThatAreKeys == mempty) then mempty
-       else fromString $ " with used_fk_keys as (" <> fksThatAreKeysQ <> ")"
-     , " select ", fromString . commas $ qualifiedFlds
-     , " from (values (", toQs fldsNoFKs,")) as ",fromString valuesAlias
-     ," (", fromString . commas $ fldsNoFKs, ")"
-     , if (fkRandomRows == mempty) then mempty else " left outer "
-     , fkRandomRows, ";"
-     ]
 
 ------------------------------------------------------------
 
