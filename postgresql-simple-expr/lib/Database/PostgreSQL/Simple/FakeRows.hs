@@ -2,7 +2,7 @@
              DefaultSignatures, PolyKinds, TypeOperators, ScopedTypeVariables,
              FlexibleContexts, FlexibleInstances, OverloadedStrings,
              TypeApplications, AllowAmbiguousTypes #-}
-module Database.PostgreSQL.Simple.FakePopulate
+module Database.PostgreSQL.Simple.FakeRows
   ( FakeRows(..)
   , generateRows
   ) where

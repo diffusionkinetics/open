@@ -10,7 +10,7 @@ import Test.Hspec
 
 import Common
 import KeySpec
-import FakePopulateSpec
+import FakeRowsSpec
 
 basicSpec :: SpecWith Connection
 basicSpec =
@@ -26,4 +26,4 @@ main :: IO ()
 main = hspec $ beforeAll setupPG $ afterAll close $ do
   basicSpec
   keySpec
-  fakePopulateSpec
+  fakeRowsSpec

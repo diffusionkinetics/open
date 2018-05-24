@@ -5,14 +5,14 @@
            , StandaloneDeriving
            , TypeApplications
            , FlexibleInstances #-}
-module FakePopulateSpec (fakePopulateSpec) where
+module FakeRowsSpec (fakeRowsSpec) where
 
 import Common
 import Control.Applicative
 import Control.Exception (bracket_)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Expr
-import Database.PostgreSQL.Simple.FakePopulate
+import Database.PostgreSQL.Simple.FakeRows
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.FromField
 import Fake
@@ -88,10 +88,10 @@ dropTbls = do
 
 handleTbls go c = bracket_ (rr c mkTbls) (rr c dropTbls) (go c)
 
-fakePopulateSpec :: SpecWith Connection
-fakePopulateSpec = aroundWith handleTbls $ do
-  describe "FakePopulate" $ do
-    it "should populate the database with fake data" $ \c -> do
+fakeRowsSpec :: SpecWith Connection
+fakeRowsSpec = aroundWith handleTbls $ do
+  describe "FakeRows" $ do
+    it "should populate the database with fake rows" $ \c -> do
       (xs, ys, zs) <- rr c $ do
         populate @X 150
         populate @Y 100
