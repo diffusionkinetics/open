@@ -34,8 +34,7 @@ instance HasKey X where
 
 instance ToRow X
 instance FromRow X
-instance FakeRows X where
-  numRows = 150
+instance FakeRows X
 
 newtype YKey = YKey { unYKey :: String }
   deriving (Show,Generic,Eq,Ord,FromField,ToField)
@@ -60,8 +59,7 @@ instance HasKey Y where
 
 instance ToRow Y
 instance FromRow Y
-instance FakeRows Y where
-  numRows = 100
+instance FakeRows Y
 
 data Z = Z { z1 :: Foreign X, z2 :: Foreign Y, z3 :: String }
   deriving (Show, Generic)
@@ -75,8 +73,7 @@ instance HasKey Z where
   getKeyFieldNames _ = ["z1", "z2"]
 instance ToRow Z
 instance FromRow Z
-instance FakeRows Z where
-  numRows = 50
+instance FakeRows Z
 
 mkTbls = do
   executeC "create table x (x serial primary key, y integer);" ()
@@ -96,13 +93,13 @@ fakePopulateSpec = aroundWith handleTbls $ do
   describe "FakePopulate" $ do
     it "should populate the database with fake data" $ \c -> do
       (xs, ys, zs) <- rr c $ do
-        populate @X
-        populate @Y
-        populate @Z
+        populate @X 150
+        populate @Y 100
+        populate @Z 50
         xs <- selectFrom @X "x" ()
         ys <- selectFrom @Y "y" ()
         zs <- selectFrom @Z "z" ()
         return (xs, ys, zs)
-      length xs `shouldBe` numRows @X
-      length ys `shouldBe` numRows @Y
-      length zs `shouldBe` numRows @Z
+      length xs `shouldBe` 150
+      length ys `shouldBe` 100
+      length zs `shouldBe` 50

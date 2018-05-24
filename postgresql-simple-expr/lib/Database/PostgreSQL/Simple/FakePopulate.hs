@@ -30,17 +30,15 @@ commas :: (IsString a, Monoid a) => [a] -> a
 commas = mconcat . intersperse ", "
 
 class HasTable a => FakeRows a where
-  numRows :: Int
-  numRows = 100
-  populate :: MonadConnection m => m ()
+  populate :: MonadConnection m => Int -> m ()
 
   default populate :: forall m key. (MonadConnection m,
                        HasTable a, ToRow a, HasKey a, Generic a,
                        GFake (Rep a), GGetFKs (Rep a),
                        Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
                        Typeable key, GFake (Rep key), GToDynMap (Rep key))
-                      => m ()
-  populate = genericPopulate @m @a (numRows @a)
+                      => Int -> m ()
+  populate numRows = genericPopulate @m @a numRows
 
 genericPopulate :: forall m a key.
                    (MonadConnection m,
