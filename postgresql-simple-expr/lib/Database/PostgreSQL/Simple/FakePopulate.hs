@@ -3,7 +3,7 @@
              FlexibleContexts, FlexibleInstances, OverloadedStrings,
              TypeApplications, AllowAmbiguousTypes #-}
 module Database.PostgreSQL.Simple.FakePopulate
-  ( FakeRows(..), gFGenWith, gtoDynMap, generateUniqueKeys, toKeyMap, getForeignKeys, getFKs, getFKMap
+  ( FakeRows(..), gFGenWith, gtoDynMap, generateUniqueKeys, toKeyMap, getForeignKeys, getFKs, getFKMap, generateRows
   ) where
 
 import           Control.Applicative
@@ -67,11 +67,17 @@ genericPopulate :: forall m a key.
                     Typeable key, GFake (Rep key), GToDynMap (Rep key))
                 => Int -> [ForeignKey] -> m ()
 genericPopulate n fks = do
-  let
-    keyFlds = getKeyFieldNames (Proxy :: Proxy a)
-    keyFieldNames = S.fromList keyFlds
-    fkFieldNames = S.fromList $ map _1 fks
-    fksThatAreKeys = keyFieldNames `S.intersection` fkFieldNames
+  rows <- generateRows @m @a n fks
+  traverse_ insertAll rows
+
+generateRows :: forall m a key.
+  (MonadConnection m, HasTable a, ToRow a, HasKey a, Generic a,
+   GFake (Rep a), GGetFKs (Rep a),
+   Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
+   Typeable key, GFake (Rep key), GToDynMap (Rep key))
+  => Int -> [ForeignKey] -> m [a]
+generateRows n fks = do
+  let keyFlds = getKeyFieldNames (Proxy :: Proxy a)
 
   -- generate n unique tuples for key
   keys :: Set key <- liftIO . generate $ generateUniqueKeys @a n
@@ -86,9 +92,7 @@ genericPopulate n fks = do
   let maps = zipWith (<>) fkMaps keyMaps
 
   -- gen n fake rows of A, using keymaps for each key
-  rows :: [a] <- liftIO . generate $ traverse (gFGenWith @a) maps
-
-  traverse_ insertAll rows
+  liftIO . generate $ traverse (gFGenWith @a) maps
 
 -- | Returns n maps of foreign keys, where each map contains an entry
 -- for each Foreign type in the table of type `a`.
