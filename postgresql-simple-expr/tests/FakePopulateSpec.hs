@@ -62,7 +62,6 @@ instance ToRow Y
 instance FromRow Y
 instance FakeRows Y where
   numRows = 100
-  foreignKeys = [("b", "X", "x")]
 
 data Z = Z { z1 :: Foreign X, z2 :: Foreign Y, z3 :: String }
   deriving (Show, Generic)
@@ -78,7 +77,6 @@ instance ToRow Z
 instance FromRow Z
 instance FakeRows Z where
   numRows = 50
-  foreignKeys = [("z1", "X", "x"), ("z2", "Y", "a")]
 
 mkTbls = do
   executeC "create table x (x serial primary key, y integer);" ()

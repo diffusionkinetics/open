@@ -3,18 +3,19 @@
              FlexibleContexts, FlexibleInstances, OverloadedStrings,
              TypeApplications, AllowAmbiguousTypes #-}
 module Database.PostgreSQL.Simple.FakePopulate
-  ( FakeRows(..), gFGenWith, gtoDynMap, generateUniqueKeys, toKeyMap, getForeignKeys, getFKs, getFKMap, generateRows
+  ( FakeRows(..)
+  , generateRows
   ) where
 
 import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Dynamic
 import           Data.Foldable
-import           Data.List (intersperse, find)
+import           Data.List (intersperse)
 import           Data.Map (Map(..))
 import qualified Data.Map as M
 import           Data.Monoid ((<>), mconcat)
-import           Data.Proxy
+import           Data.Proxy()
 import           Data.Set (Set(..))
 import qualified Data.Set as S
 import           Data.String
@@ -25,28 +26,10 @@ import           Database.PostgreSQL.Simple.FromRow
 import           Fake
 import           GHC.Generics
 
-_1 :: (a,b,c) -> a
-_1 (x,_,_) = x
-
-_2 :: (a,b,c) -> b
-_2 (_,x,_) = x
-
-_3 :: (a,b,c) -> c
-_3 (_,_,x) = x
-
 commas :: (IsString a, Monoid a) => [a] -> a
 commas = mconcat . intersperse ", "
 
-toQs = commas . map (const "?")
-
-------------------------------------------------------------
-
--- | (name of referencing column, referenced table, referenced column)
-type ForeignKey = (String, String, String)
-
 class HasTable a => FakeRows a where
-  foreignKeys :: [ForeignKey]
-  foreignKeys = []
   numRows :: Int
   numRows = 100
   populate :: MonadConnection m => m ()
@@ -57,7 +40,7 @@ class HasTable a => FakeRows a where
                        Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
                        Typeable key, GFake (Rep key), GToDynMap (Rep key))
                       => m ()
-  populate = genericPopulate @m @a (numRows @a) (foreignKeys @a)
+  populate = genericPopulate @m @a (numRows @a)
 
 genericPopulate :: forall m a key.
                    (MonadConnection m,
@@ -65,9 +48,9 @@ genericPopulate :: forall m a key.
                     GFake (Rep a), GGetFKs (Rep a),
                     Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
                     Typeable key, GFake (Rep key), GToDynMap (Rep key))
-                => Int -> [ForeignKey] -> m ()
-genericPopulate n fks = do
-  rows <- generateRows @m @a n fks
+                => Int -> m ()
+genericPopulate n = do
+  rows <- generateRows @m @a n
   traverse_ insertAll rows
 
 generateRows :: forall m a key.
@@ -75,8 +58,8 @@ generateRows :: forall m a key.
    GFake (Rep a), GGetFKs (Rep a),
    Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
    Typeable key, GFake (Rep key), GToDynMap (Rep key))
-  => Int -> [ForeignKey] -> m [a]
-generateRows n fks = do
+  => Int -> m [a]
+generateRows n = do
   let keyFlds = getKeyFieldNames (Proxy :: Proxy a)
 
   -- generate n unique tuples for key
@@ -86,7 +69,7 @@ generateRows n fks = do
   let keyMaps = map (toKeyMap keyFlds) (S.toAscList keys)
 
   -- generate foreign keys as maps of fkFieldName --> Foreign (Key parent)
-  fkMaps <- getForeignKeys @m @a n fks
+  fkMaps <- getRandomFKs @m @a n
 
   -- merge key maps and foreign key maps, with the FKs taking precedence
   let maps = zipWith (<>) fkMaps keyMaps
@@ -94,53 +77,52 @@ generateRows n fks = do
   -- gen n fake rows of A, using keymaps for each key
   liftIO . generate $ traverse (gFGenWith @a) maps
 
+------------------------------------------------------------
+
 -- | Returns n maps of foreign keys, where each map contains an entry
 -- for each Foreign type in the table of type `a`.
 -- The key is the haskell field name of the fk as the key
 -- The value is the (Key p) type where p is the parent table
-getForeignKeys :: forall m a. (MonadConnection m, HasTable a, HasKey a, Generic a, GGetFKs (Rep a))
-               => Int -> [ForeignKey] -> m [Map String Dynamic]
-getForeignKeys n [] = return $ replicate n M.empty
-getForeignKeys n fks =
-  let keyFlds = getKeyFieldNames (Proxy :: Proxy a)
-      fks' = map (\fk@(childFld,_,_) -> (fk, childFld `elem` keyFlds)) fks
-  in ggetFKs (Proxy :: Proxy (Rep a)) n fks'
+getRandomFKs :: forall m a.
+  (MonadConnection m, HasTable a, HasKey a, Generic a, GGetFKs (Rep a))
+  => Int -> m [Map String Dynamic]
+getRandomFKs n = gGetRandomFKs @(Rep a) (Proxy :: Proxy a) n
 
 class GGetFKs f where
-  ggetFKs :: (MonadConnection m) => Proxy f -> Int -> [(ForeignKey, Bool)] -> m [Map String Dynamic]
+  gGetRandomFKs :: (MonadConnection m, HasKey child)
+                => Proxy child -> Int -> m [Map String Dynamic]
 
 instance GGetFKs f => GGetFKs (M1 D c f) where
-  ggetFKs _ = ggetFKs (undefined :: Proxy f)
+  gGetRandomFKs px = gGetRandomFKs @f px
 
 instance GGetFKs f => GGetFKs (M1 C c f) where
-  ggetFKs _ = ggetFKs (undefined :: Proxy f)
+  gGetRandomFKs px = gGetRandomFKs @f px
 
-instance {-# OVERLAPS #-} (HasTable t, HasKey t, FromRow t, KeyField (Key t), Typeable (Foreign t), Selector c) => GGetFKs (M1 S c (K1 R (Foreign t))) where
-  ggetFKs _ n fks =
-    let
-      sel = selName $ (undefined :: M1 S c (K1 R (Foreign t)) ())
-      tbl = tableName (Proxy :: Proxy t)
-      found = find (\((childFld, parTbl,_), pok) ->
-                      sel == childFld && parTbl == tbl) fks
-    in case found of
-      Nothing -> pure $ replicate n M.empty
-      Just (fk, pok) -> getFKMap (Proxy :: Proxy t) n pok fk
+instance {-# OVERLAPS #-} (HasTable t, HasKey t, FromRow t, KeyField (Key t),
+                           Typeable (Foreign t), Selector c) =>
+  GGetFKs (M1 S c (K1 R (Foreign t))) where
+  gGetRandomFKs px n =
+    let sel = selName $ (undefined :: M1 S c (K1 R (Foreign t)) ())
+        childKeyFlds = getKeyFieldNames px
+    in selectFKsAsMap (Proxy :: Proxy t) n sel (sel `elem` childKeyFlds)
 
 instance {-# OVERLAPPABLE #-} GGetFKs (M1 S c (K1 R t)) where
-  ggetFKs _ n _ = pure $ replicate n M.empty
+  gGetRandomFKs _ n = pure $ replicate n M.empty
 
 instance (GGetFKs f, GGetFKs g) => GGetFKs (f :*: g) where
-  ggetFKs _ n fks = do
-    m1 <- ggetFKs (Proxy :: Proxy f) n fks
-    m2 <- ggetFKs (Proxy :: Proxy g) n fks
+  gGetRandomFKs px n = do
+    m1 <- gGetRandomFKs @f px n
+    m2 <- gGetRandomFKs @g px n
     return $ zipWith (<>) m1 m2
 
-getFKMap :: forall m parent.
-  (MonadConnection m, HasKey parent, FromRow parent, KeyField (Key parent), Typeable (Foreign parent))
-  => Proxy parent -> Int -> Bool -> ForeignKey -> m [Map String Dynamic]
-getFKMap _ n isPartOfKey fk@(childFld, parentTbl, parentFld) = do
-  keys <- getFKs @m @parent n isPartOfKey fk
-  return $ map (\k -> M.insert childFld (toDyn (Foreign k :: Foreign parent)) M.empty) keys
+selectFKsAsMap :: forall m parent.
+  (MonadConnection m, HasKey parent, FromRow parent,
+   KeyField (Key parent), Typeable (Foreign parent))
+  => Proxy parent -> Int -> String -> Bool -> m [Map String Dynamic]
+selectFKsAsMap _ n childFld isPartOfKey = do
+  keys <- selectFKs @m @parent n isPartOfKey
+  let toMap k = M.insert childFld (toDyn (Foreign k :: Foreign parent)) M.empty
+  return $ map toMap keys
 
 newtype Random t = Random { unRandom :: (Double, t) }
 instance (FromRow t) => FromRow (Random t) where
@@ -149,14 +131,17 @@ instance (FromRow t) => FromRow (Random t) where
     t <- fromRow
     return $ Random (r, t)
 
-getFKs :: forall m parent.
-  (MonadConnection m, HasKey parent, FromRow parent, KeyField (Key parent))
-  => Int -> Bool -> ForeignKey -> m [Key parent]
-getFKs n isPartOfKey (_, parentTbl, _) = do
+selectFKs :: forall m parent.
+  (MonadConnection m, HasTable parent, HasKey parent,
+   FromRow parent, KeyField (Key parent))
+  => Int -> Bool -> m [Key parent]
+selectFKs n isPartOfKey = do
   let
     unique = if isPartOfKey then " distinct " else ""
     kflds = getFieldNames (Proxy :: Proxy parent)
-    q = "select " <> unique <> " random() as r, "<>commas kflds <> " from "<> parentTbl <> " order by r limit " <> show n
+    tbl = tableName (Proxy :: Proxy parent)
+    q = "select " <> unique <> " random() as r, "<> commas kflds
+      <> " from "<> tbl <> " order by r limit " <> show n
   ks :: [Random parent] <- queryC (fromString q) ()
   return $ map (getKey @parent . snd . unRandom) ks
 
