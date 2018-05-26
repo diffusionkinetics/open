@@ -262,6 +262,7 @@ instance FromJSON a => FromJSON (Serial a) where
 newtype Foreign parent = Foreign { unForeign :: Key parent }
   deriving Generic
 
+deriving instance (Read (Key t)) => Read (Foreign t)
 deriving instance (Show (Key t)) => Show (Foreign t)
 deriving instance (Eq (Key t)) => Eq (Foreign t)
 deriving instance (Ord (Key t)) => Ord (Foreign t)
