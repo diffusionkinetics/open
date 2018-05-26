@@ -244,10 +244,6 @@ newtype Serial a = Serial { unSerial :: a }
 instance Num a => Fake (Serial a) where
   fake = Serial . fromIntegral <$> fakeInt 0 2147483647
 
--- `integer` bounds in postgresql
-instance Fake Int where
-  fake = fakeInt (-2147483648) 2147483647
-
 instance (ToField a, FromField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
   toText (Serial x) = toText x

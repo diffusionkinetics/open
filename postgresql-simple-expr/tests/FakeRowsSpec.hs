@@ -19,6 +19,10 @@ import Fake
 import GHC.Generics
 import Test.Hspec
 
+-- `integer` bounds in postgresql
+instance Fake Int where
+  fake = fakeInt (-2147483648) 2147483647
+
 instance Fake String where
   fake = listUpTo 100 fakeLetter
 
