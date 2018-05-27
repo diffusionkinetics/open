@@ -487,6 +487,8 @@ instance FormField Int where
 instance FormField Double where
   fromFormField = D.stringRead "must be a double"
 
+  renderField _ =renderBootstrapInput "number" []
+
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
 enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])
 
