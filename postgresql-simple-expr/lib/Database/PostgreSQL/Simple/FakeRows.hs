@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric,
              DefaultSignatures, PolyKinds, TypeOperators, ScopedTypeVariables,
              FlexibleContexts, FlexibleInstances, OverloadedStrings,
-             TypeApplications, AllowAmbiguousTypes #-}
+             TypeApplications, AllowAmbiguousTypes, UndecidableInstances #-}
 module Database.PostgreSQL.Simple.FakeRows
   ( FakeRows(..)
   , generateRows
@@ -11,14 +11,16 @@ import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Dynamic
 import           Data.Foldable
+import           Data.Kind (Constraint)
 import           Data.List (intersperse)
 import           Data.Map (Map(..))
 import qualified Data.Map as M
 import           Data.Monoid ((<>), mconcat)
-import           Data.Proxy()
+import           Data.Proxy ()
 import           Data.Set (Set(..))
 import qualified Data.Set as S
 import           Data.String
+import           Data.Text (Text)
 import           Data.Typeable ()
 import           Database.PostgreSQL.Simple hiding (fold)
 import           Database.PostgreSQL.Simple.Expr
@@ -34,18 +36,16 @@ class HasTable a => FakeRows a where
 
   default populate :: forall m key. (MonadConnection m,
                        HasTable a, ToRow a, HasKey a, Generic a,
-                       GFake (Rep a), GGetFKs (Rep a),
-                       Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
-                       Typeable key, GFake (Rep key), GToDynMap (Rep key))
+                       GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
+                       Fake key, KeyField key, Ord key, HasDynMap key)
                       => Int -> m ()
   populate numRows = genericPopulate @m @a numRows
 
 genericPopulate :: forall m a key.
                    (MonadConnection m,
                     HasTable a, ToRow a, HasKey a, Generic a,
-                    GFake (Rep a), GGetFKs (Rep a),
-                    Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
-                    Typeable key, GFake (Rep key), GToDynMap (Rep key))
+                    GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
+                    Fake key, KeyField key, Ord key, HasDynMap key)
                 => Int -> m ()
 genericPopulate n = do
   rows <- generateRows @m @a n
@@ -53,9 +53,8 @@ genericPopulate n = do
 
 generateRows :: forall m a key.
   (MonadConnection m, HasTable a, ToRow a, HasKey a, Generic a,
-   GFake (Rep a), GGetFKs (Rep a),
-   Key a ~ key, Fake key, KeyField key, Ord key, Generic key,
-   Typeable key, GFake (Rep key), GToDynMap (Rep key))
+   GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
+   Fake key, KeyField key, Ord key, HasDynMap key)
   => Int -> m [a]
 generateRows n = do
   let keyFlds = getKeyFieldNames (Proxy :: Proxy a)
@@ -64,7 +63,7 @@ generateRows n = do
   keys :: Set key <- liftIO . generate $ generateUniqueKeys @a n
 
   -- turn keys into map of keyFieldName --> keyValue.
-  let keyMaps = map (toKeyMap keyFlds) (S.toAscList keys)
+  let keyMaps = map (toDynMap keyFlds) (S.toAscList keys)
 
   -- generate foreign keys as maps of fkFieldName --> Foreign (Key parent)
   fkMaps <- getRandomFKs @m @a n
@@ -145,11 +144,9 @@ selectFKs n isPartOfKey = do
 
 ------------------------------------------------------------
 
-generateUniqueKeys :: forall a.
-                      (HasFieldNames a, HasKey a,
-                       -- Ord (Key a), Generic (Key a), GFake (Rep (Key a)))
-                       Ord (Key a), Generic (Key a), Fake (Key a))
-                   => Int -> FGen (Set (Key a))
+generateUniqueKeys ::
+  forall a. (HasFieldNames a, HasKey a, Ord (Key a), Fake (Key a))
+  => Int -> FGen (Set (Key a))
 generateUniqueKeys n =
   genKeys 0 S.empty
   where
@@ -171,28 +168,58 @@ generateUniqueKeys n =
               ,"\nError was called after ",show i
               , " iterations, after generating "<>show sz<> " unique keys"]
 
-toKeyMap :: (Generic a, GToDynMap (Rep a), Typeable a)
-         => [String] -> a -> Map String Dynamic
-toKeyMap [x] k = M.fromList [(x, toDyn k)]
-toKeyMap keyFlds k = gtoDynMap keyFlds k
+type family HasDynMap key :: Constraint where
+  HasDynMap Char = ToDynMap Char
+  HasDynMap Int = ToDynMap Int
+  HasDynMap Float = ToDynMap Float
+  HasDynMap Double = ToDynMap Double
+  HasDynMap Text = ToDynMap Text
+  HasDynMap b = ToDynMap b
 
-gtoDynMap :: (Generic a, GToDynMap (Rep a)) => [String] -> a -> Map String Dynamic
-gtoDynMap flds = M.fromList . gToMap flds . from
+class ToDynMap key where
+  toDynMap :: [String] -> key -> Map String Dynamic
+
+instance {-# OVERLAPS #-} ToDynMap Int where
+  toDynMap (fld:_) v = M.fromList [(fld, toDyn v)]
+  toDynMap _ v = M.fromList [("__unknown__", toDyn v)]
+
+instance {-# OVERLAPS #-} ToDynMap Float where
+  toDynMap (fld:_) v = M.fromList [(fld, toDyn v)]
+  toDynMap _ v = M.fromList [("__unknown__", toDyn v)]
+
+instance {-# OVERLAPS #-} ToDynMap Double where
+  toDynMap (fld:_) v = M.fromList [(fld, toDyn v)]
+  toDynMap _ v = M.fromList [("__unknown__", toDyn v)]
+
+instance {-# OVERLAPS #-} ToDynMap Char where
+  toDynMap (fld:_) v = M.fromList [(fld, toDyn v)]
+  toDynMap _ v = M.fromList [("__unknown__", toDyn v)]
+
+instance {-# OVERLAPS #-} ToDynMap Text where
+  toDynMap (fld:_) v = M.fromList [(fld, toDyn v)]
+
+instance {-# OVERLAPS #-} (Generic key, Typeable key, GToDynMap (Rep key)) => ToDynMap key where
+  toDynMap = gToDynMap
+
+gToDynMap :: (Generic a, GToDynMap (Rep a), Typeable a)
+         => [String] -> a -> Map String Dynamic
+gToDynMap [x] k = M.fromList [(x, toDyn k)]
+gToDynMap keyFlds k = M.fromList . gtoDynMap keyFlds $ from k
 
 class GToDynMap f where
-  gToMap :: [String] -> f p -> [(String, Dynamic)]
+  gtoDynMap :: [String] -> f p -> [(String, Dynamic)]
 
 instance (Typeable t, Selector d) => GToDynMap (M1 S d (K1 R t)) where
-  gToMap (fld:_) (M1 (K1 x)) = [(fld, toDyn x)]
+  gtoDynMap (fld:_) (M1 (K1 x)) = [(fld, toDyn x)]
 
 instance GToDynMap f => GToDynMap (M1 D c f) where
-  gToMap flds (M1 f) = gToMap flds f
+  gtoDynMap flds (M1 f) = gtoDynMap flds f
 
 instance GToDynMap f => GToDynMap (M1 C c f) where
-  gToMap flds (M1 f) = gToMap flds f
+  gtoDynMap flds (M1 f) = gtoDynMap flds f
 
 instance (GToDynMap f, GToDynMap g) => GToDynMap (f :*: g) where
-  gToMap (fldF:flds) (f :*: g) = gToMap [fldF] f ++ gToMap flds g
+  gtoDynMap (fldF:flds) (f :*: g) = gtoDynMap [fldF] f ++ gtoDynMap flds g
 
 ------------------------------------------------------------
 
