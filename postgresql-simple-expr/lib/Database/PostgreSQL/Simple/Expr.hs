@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric, DefaultSignatures,
              PolyKinds, TypeOperators, ScopedTypeVariables, FlexibleContexts,
              FlexibleInstances, UndecidableInstances,
-             OverloadedStrings, TypeApplications    #-}
+             OverloadedStrings, TypeApplications, StandaloneDeriving #-}
 
 module Database.PostgreSQL.Simple.Expr where
 
@@ -22,6 +22,7 @@ import Data.Aeson
 import Data.Text (Text, pack)
 import Control.Monad.Reader
 import Control.Exception.Safe
+import Fake
 
 class MonadIO m => MonadConnection m where
   getConnection :: m Connection
@@ -114,10 +115,13 @@ class KeyField a where
 
    autoIncrementing _ = False
 
-newtype ParseKey a = ParseKey { unParseKey :: a }
+newtype ParseKey a = ParseKey { unParseKey :: a } deriving (Show, Generic)
 
 instance KeyField a => FromRow (ParseKey a) where
   fromRow = ParseKey <$> fromFields
+
+instance KeyField a => ToRow (ParseKey a) where
+  toRow (ParseKey k) = toFields k
 
 instance {-# OVERLAPS #-} (ToRow a, FromRow a, Show a) => KeyField a where
   toFields = toRow
@@ -144,10 +148,14 @@ insert' :: forall a m . (HasKey a, KeyField (Key a), ToRow a, MonadConnection m)
         => OnConflict -> a -> m (Key a)
 insert' onConflict val = do
   if autoIncrementing (undefined :: Proxy (Key a))
-     then ginsertSerial
+     then ginsertSerial onConflict val
      else do insertAll  val
              return $ getKey val
-   where ginsertSerial = do
+
+ginsertSerial :: forall a m .
+                 (HasKey a, KeyField (Key a), ToRow a, MonadConnection m)
+              => OnConflict -> a -> m (Key a)
+ginsertSerial onConflict val = do
            let keyNames = map fromString $ getKeyFieldNames (Proxy :: Proxy a)
                notInKeyNames = not . (`elem` keyNames)
                tblName = fromString $ tableName (Proxy :: Proxy a)
@@ -232,6 +240,10 @@ getByKey  key = do
 newtype Serial a = Serial { unSerial :: a }
   deriving (Num, Ord, Show, Read, Eq, Generic, ToField, FromField)
 
+-- `serial` bounds in postgresql
+instance Num a => Fake (Serial a) where
+  fake = Serial . fromIntegral <$> fakeInt 0 2147483647
+
 instance (ToField a, FromField a, KeyField a) => KeyField (Serial a) where
   toFields (Serial x) = [toField x]
   toText (Serial x) = toText x
@@ -241,6 +253,24 @@ instance ToJSON a => ToJSON (Serial a) where
   toJSON (Serial x) = toJSON x
 instance FromJSON a => FromJSON (Serial a) where
   parseJSON mx = Serial <$> parseJSON mx
+
+------------------------------------------------------------
+newtype Foreign parent = Foreign { unForeign :: Key parent }
+  deriving Generic
+
+deriving instance (Read (Key t)) => Read (Foreign t)
+deriving instance (Show (Key t)) => Show (Foreign t)
+deriving instance (Eq (Key t)) => Eq (Foreign t)
+deriving instance (Ord (Key t)) => Ord (Foreign t)
+deriving instance (ToField (Key t)) => ToField (Foreign t)
+deriving instance (FromField (Key t)) => FromField (Foreign t)
+deriving instance (ToRow (Key t)) => ToRow (Foreign t)
+-- deriving instance (FromRow (Key t)) => FromRow (Foreign t)
+
+instance (Fake (Key t)) => Fake (Foreign t) where
+  fake = Foreign <$> fake
+
+------------------------------------------------------------
 
 -- https://hackage.haskell.org/package/hpack-0.15.0/src/src/Hpack/GenericsUtil.hs
 -- Copyright (c) 2014-2016 Simon Hengel <sol@typeful.net>
