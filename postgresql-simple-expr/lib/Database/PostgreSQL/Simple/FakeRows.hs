@@ -11,7 +11,6 @@ import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Dynamic
 import           Data.Foldable
-import           Data.Kind (Constraint)
 import           Data.List (intersperse)
 import           Data.Map (Map(..))
 import qualified Data.Map as M
@@ -37,7 +36,7 @@ class HasTable a => FakeRows a where
   default populate :: forall m key. (MonadConnection m,
                        HasTable a, ToRow a, HasKey a, Generic a,
                        GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
-                       Fake key, KeyField key, Ord key, HasDynMap key)
+                       Fake key, KeyField key, Ord key, ToDynMap key)
                       => Int -> m ()
   populate numRows = genericPopulate @m @a numRows
 
@@ -45,7 +44,7 @@ genericPopulate :: forall m a key.
                    (MonadConnection m,
                     HasTable a, ToRow a, HasKey a, Generic a,
                     GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
-                    Fake key, KeyField key, Ord key, HasDynMap key)
+                    Fake key, KeyField key, Ord key, ToDynMap key)
                 => Int -> m ()
 genericPopulate n = do
   rows <- generateRows @m @a n
@@ -54,7 +53,7 @@ genericPopulate n = do
 generateRows :: forall m a key.
   (MonadConnection m, HasTable a, ToRow a, HasKey a, Generic a,
    GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
-   Fake key, KeyField key, Ord key, HasDynMap key)
+   Fake key, KeyField key, Ord key, ToDynMap key)
   => Int -> m [a]
 generateRows n = do
   let keyFlds = getKeyFieldNames (Proxy :: Proxy a)
@@ -167,14 +166,6 @@ generateUniqueKeys n =
               , "\nCheck the fake instance for the corresponding data type."
               ,"\nError was called after ",show i
               , " iterations, after generating "<>show sz<> " unique keys"]
-
-type family HasDynMap key :: Constraint where
-  HasDynMap Char = ToDynMap Char
-  HasDynMap Int = ToDynMap Int
-  HasDynMap Float = ToDynMap Float
-  HasDynMap Double = ToDynMap Double
-  HasDynMap Text = ToDynMap Text
-  HasDynMap b = ToDynMap b
 
 class ToDynMap key where
   toDynMap :: [String] -> key -> Map String Dynamic
