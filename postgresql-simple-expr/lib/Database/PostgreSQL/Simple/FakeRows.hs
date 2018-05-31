@@ -1,10 +1,11 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, DeriveGeneric,
              DefaultSignatures, PolyKinds, TypeOperators, ScopedTypeVariables,
-             FlexibleContexts, FlexibleInstances, OverloadedStrings,
+             FlexibleContexts, FlexibleInstances, OverloadedStrings, InstanceSigs,
              TypeApplications, AllowAmbiguousTypes, UndecidableInstances #-}
 module Database.PostgreSQL.Simple.FakeRows
   ( FakeRows(..)
   , generateRows
+  , genericPopulateNoKey
   ) where
 
 import           Control.Applicative
@@ -50,6 +51,15 @@ genericPopulate n = do
   rows <- generateRows @m @a n
   traverse_ insertAll rows
 
+genericPopulateNoKey :: forall m a.
+  (MonadConnection m, HasTable a, ToRow a, Generic a,
+    GFake (Rep a), GGetFKs (Rep a))
+  => Int -> m ()
+genericPopulateNoKey n = do
+  fkMaps <- getRandomFKs @m @a n []
+  rows <- liftIO . generate $ traverse (gFGenWith @a) fkMaps
+  traverse_ insertAll rows
+
 generateRows :: forall m a key.
   (MonadConnection m, HasTable a, ToRow a, HasKey a, Generic a,
    GFake (Rep a), GGetFKs (Rep a), Key a ~ key,
@@ -65,7 +75,7 @@ generateRows n = do
   let keyMaps = map (toDynMap keyFlds) (S.toAscList keys)
 
   -- generate foreign keys as maps of fkFieldName --> Foreign (Key parent)
-  fkMaps <- getRandomFKs @m @a n
+  fkMaps <- getRandomFKs @m @a n keyFlds
 
   -- merge key maps and foreign key maps, with the FKs taking precedence
   let maps = zipWith (<>) fkMaps keyMaps
@@ -80,42 +90,58 @@ generateRows n = do
 -- The key is the haskell field name of the fk as the key
 -- The value is the (Key p) type where p is the parent table
 getRandomFKs :: forall m a.
-  (MonadConnection m, HasTable a, HasKey a, Generic a, GGetFKs (Rep a))
-  => Int -> m [Map String Dynamic]
-getRandomFKs n = gGetRandomFKs @(Rep a) (Proxy :: Proxy a) n
+  (MonadConnection m, HasTable a, Generic a, GGetFKs (Rep a))
+  => Int -> [String] -> m [Map String Dynamic]
+getRandomFKs n keyFlds = gGetRandomFKs @(Rep a) n keyFlds
 
 class GGetFKs f where
-  gGetRandomFKs :: (MonadConnection m, HasKey child)
-                => Proxy child -> Int -> m [Map String Dynamic]
+  gGetRandomFKs :: (MonadConnection m)
+                => Int -> [String] -> m [Map String Dynamic]
 
 instance GGetFKs f => GGetFKs (M1 D c f) where
-  gGetRandomFKs px = gGetRandomFKs @f px
+  gGetRandomFKs = gGetRandomFKs @f
 
 instance GGetFKs f => GGetFKs (M1 C c f) where
-  gGetRandomFKs px = gGetRandomFKs @f px
+  gGetRandomFKs = gGetRandomFKs @f
 
 instance {-# OVERLAPS #-} (HasTable t, HasKey t, FromRow t, KeyField (Key t),
                            Typeable (Foreign t), Selector c) =>
   GGetFKs (M1 S c (K1 R (Foreign t))) where
-  gGetRandomFKs px n =
+  gGetRandomFKs :: forall m. (MonadConnection m)
+                => Int -> [String] -> m [Map String Dynamic]
+  gGetRandomFKs n keyFlds =
     let sel = selName $ (undefined :: M1 S c (K1 R (Foreign t)) ())
-        childKeyFlds = getKeyFieldNames px
-    in selectFKsAsMap (Proxy :: Proxy t) n sel (sel `elem` childKeyFlds)
+    in selectFKsAsMap @m @t n sel (sel `elem` keyFlds)
+
+instance {-# OVERLAPS #-} (HasTable t, HasKey t, KeyField (Key t), FromRow t,
+                           Typeable (Maybe (Foreign t)), Selector c) =>
+  GGetFKs (M1 S c (K1 R (Maybe (Foreign t)))) where
+  gGetRandomFKs :: forall m. (MonadConnection m)
+                => Int -> [String] -> m [Map String Dynamic]
+  gGetRandomFKs n keyFlds =
+    let sel = selName $ (undefined :: M1 S c (K1 R (Maybe (Foreign t) )) ())
+    in do
+      keys <- selectFKs @m @t n (sel `elem` keyFlds)
+      let toMap k = liftIO $ do
+            usefk <- generate fakeEnum
+            let v = if usefk then Just (Foreign k :: Foreign t) else Nothing
+            return $ M.insert sel (toDyn v) M.empty
+      traverse toMap keys
 
 instance {-# OVERLAPPABLE #-} GGetFKs (M1 S c (K1 R t)) where
-  gGetRandomFKs _ n = pure $ replicate n M.empty
+  gGetRandomFKs n _ = pure $ replicate n M.empty
 
 instance (GGetFKs f, GGetFKs g) => GGetFKs (f :*: g) where
-  gGetRandomFKs px n = do
-    m1 <- gGetRandomFKs @f px n
-    m2 <- gGetRandomFKs @g px n
+  gGetRandomFKs n kfs = do
+    m1 <- gGetRandomFKs @f n kfs
+    m2 <- gGetRandomFKs @g n kfs
     return $ zipWith (<>) m1 m2
 
 selectFKsAsMap :: forall m parent.
   (MonadConnection m, HasKey parent, FromRow parent,
    KeyField (Key parent), Typeable (Foreign parent))
-  => Proxy parent -> Int -> String -> Bool -> m [Map String Dynamic]
-selectFKsAsMap _ n childFld isPartOfKey = do
+  => Int -> String -> Bool -> m [Map String Dynamic]
+selectFKsAsMap n childFld isPartOfKey = do
   keys <- selectFKs @m @parent n isPartOfKey
   let toMap k = M.insert childFld (toDyn (Foreign k :: Foreign parent)) M.empty
   return $ map toMap keys
