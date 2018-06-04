@@ -4,7 +4,9 @@
            , GeneralizedNewtypeDeriving
            , StandaloneDeriving
            , TypeApplications
-           , FlexibleInstances #-}
+           , FlexibleInstances
+           , ScopedTypeVariables
+           , InstanceSigs #-}
 module FakeRowsSpec (fakeRowsSpec) where
 
 import Common
@@ -79,12 +81,24 @@ instance ToRow Z
 instance FromRow Z
 instance FakeRows Z
 
+data NoKey = NoKey { nokey1 :: Maybe (Foreign X), nokey2 :: Int } deriving (Generic, Show)
+instance HasFieldNames NoKey
+instance HasTable NoKey where
+  tableName _ = "NoKey"
+instance ToRow NoKey
+instance FromRow NoKey
+instance FakeRows NoKey where
+  populate :: forall m. (MonadConnection m) => Int -> m ()
+  populate = genericPopulateNoKey @m @NoKey
+
 mkTbls = do
   executeC "create table x (x serial primary key, y integer);" ()
   executeC "create table y (a text primary key, b integer references x(x), c integer);" ()
   executeC "create table z (z1 serial references x(x), z2 text references y(a), z3 text, primary key (z1, z2))" ()
+  executeC "create table nokey (nokey1 integer references x(x), nokey2 integer);" ()
 
 dropTbls = do
+  executeC "drop table nokey;" ()
   executeC "drop table z;" ()
   executeC "drop table y;" ()
   executeC "drop table x;" ()
@@ -96,14 +110,17 @@ fakeRowsSpec :: SpecWith Connection
 fakeRowsSpec = aroundWith handleTbls $ do
   describe "FakeRows" $ do
     it "should populate the database with fake rows" $ \c -> do
-      (xs, ys, zs) <- rr c $ do
+      (xs, ys, zs, nk) <- rr c $ do
         populate @X 150
         populate @Y 100
         populate @Z 50
+        populate @NoKey 50
         xs <- selectFrom @X "x" ()
         ys <- selectFrom @Y "y" ()
         zs <- selectFrom @Z "z" ()
-        return (xs, ys, zs)
+        nk <- selectFrom @NoKey "nokey" ()
+        return (xs, ys, zs, nk)
       length xs `shouldBe` 150
       length ys `shouldBe` 100
       length zs `shouldBe` 50
+      length nk `shouldBe` 50
