@@ -18,7 +18,7 @@ import Data.Monoid
 import GHC.TypeLits
 import Data.Proxy
 import Lucid
-import Data.Aeson
+import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
 import Data.List (intercalate)
@@ -30,7 +30,6 @@ import Data.Void
 import Lens.Micro.Platform hiding (to)
 import GHC.Generics
 import Lucid.PreEscaped
-import Text.Read (readMaybe)
 
 import Control.Applicative((<|>))
 
@@ -38,6 +37,15 @@ import Text.ParserCombinators.Parsec       (optionMaybe, getState)
 import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
 import Text.ParserCombinators.Parsec.Prim  (unexpected, runParser, GenParser, getPosition, token, (<?>),
                                             many)
+
+import Text.Digestive.View (View)
+import qualified Text.Digestive as D
+
+import Control.Monad.Identity (Identity, runIdentity)
+
+import Data.Maybe (maybeToList)
+
+import qualified Text.Digestive.Lucid.Html5 as DL
 
 --------------------------------------------------------------------------
 ---                 PATHINFO
@@ -116,21 +124,41 @@ class RequestInfo url where
 
 instance (FromForm a) => RequestInfo (Form a) where
   toPathSegments _ = []
-  fromReq = Form <$> do
-   res <- fromForm <$> getState
-   case res of
-     Nothing -> unexpected "failed"
-     Just t -> return t
+  fromReq = do
+    result <- formResult
+    case result of
+        (_, Just x) -> return $ Form x
+        (view, Nothing) -> return $ FormError view
+    where
+      formResult :: URLParser (View Text, Maybe a)
+      formResult = runPostForm <$> getState
+
+      lookupPath :: [(TL.Text, TL.Text)] -> D.Path -> [D.FormInput]
+      lookupPath pars path = maybeToList $ D.TextInput <$> TL.toStrict <$> lookup (TL.fromStrict (D.fromPath path)) pars
+
+      runPostForm :: [(TL.Text, TL.Text)] -> (View Text, Maybe a)
+      runPostForm pars = runIdentity $ D.postForm "top-level-form" form (postFormHandler pars)
+        where
+          postFormHandler :: (Monad m) => [(TL.Text, TL.Text)] -> D.FormEncType -> m (D.Env m)
+          postFormHandler pars D.UrlEncoded = return $ \path -> (return $ lookupPath pars path)
+          postFormHandler pars D.MultiPart = return $ const (return [])
+
+          form :: D.Form Text Identity a
+          form = fromForm Nothing
 
 instance (FromForm a) => RequestInfo (QueryString a) where
   toPathSegments (QueryStringLink) = []
   toPathSegments (QueryString x) = [] --TODO
-  fromReq = QueryString <$> do
-   res <- fromForm <$> getState
+  fromReq = do
+   res <- formToQueryString <$> fromReq
    case res of
      Nothing -> unexpected "failed"
      Just t -> return t
 
+formToQueryString :: FromForm a => Form a -> Maybe (QueryString a)
+formToQueryString FormLink = Just $ QueryStringLink
+fromToQueryString (Form a) = Just $ QueryString a
+fromToQueryString _        = Nothing
 
 instance (RequestInfo a, RequestInfo b) => RequestInfo (a,b) where
   toPathSegments (a,b)  = toPathSegments a ++ toPathSegments b
@@ -352,62 +380,123 @@ instance RequestInfo FormFields where
 ---                 FORM HANDLING
 --------------------------------------------------------------------------
 
-class FormField a where
-  fromFormField :: TL.Text -> Maybe a
+data Options = Options
+  {
+    fieldLabelModifier :: Text -> Text
+  , constructorTagModifier :: Text -> Text
+  }
 
-  ffLookup :: FormField a => TL.Text -> [(TL.Text, TL.Text)] -> Maybe a
-  ffLookup k pars = fromFormField =<< (lookup k pars)
+defaultOptions :: Options
+defaultOptions = Options id id
 
-instance FormField a => FormField (Maybe a) where
-  fromFormField = Just . fromFormField
+genericFromForm :: (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
+genericFromForm def = to <$>  postFormG (from  <$> def)
 
-instance FormField TL.Text where
-  fromFormField  = Just
-
-instance FormField Text where
-  fromFormField  = Just . TL.toStrict
-
-instance FormField String where
-  fromFormField  = Just . TL.unpack
-
-instance FormField Int where
-  fromFormField t = readMaybe =<< fromFormField t
-
-instance FormField Double where
-  fromFormField t = readMaybe =<< fromFormField t
-
--- We assume this comes from a checkbox
-instance FormField Bool where
-  fromFormField _ = Nothing
-  ffLookup k pars = Just $ k `elem` map fst pars
+genericRenderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a -> Options -> View Text -> HtmlT m ()
+genericRenderForm p options view =  do
+  DL.errorList "" (toHtml <$> view)
+  renderFormG (from <$> p) options view
 
 class FromForm a where
-  fromForm :: [(TL.Text, TL.Text)] -> Maybe a
+  fromForm ::
+    (Monad m) => D.Formlet Text m a
+  default fromForm ::
+    (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
+  fromForm def = to <$>  postFormG (from  <$> def)
 
-  default fromForm :: (Generic a, GFromForm (Rep a)) => [(TL.Text, TL.Text)] -> Maybe a
-  fromForm pars = to <$> (gfromForm pars)
+  renderForm :: Monad m => Proxy a  -> View Text -> HtmlT m ()
+  default renderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a  -> View Text -> HtmlT m ()
+  renderForm p = genericRenderForm p defaultOptions
 
-class GFromForm f where
-  gfromForm :: [(TL.Text, TL.Text)] -> Maybe (f a)
+  getView :: Maybe a -> View Text
+  getView def = runIdentity $ D.getForm "top-level-form" $ fromForm def
 
-instance (GFromForm a, GFromForm b) => GFromForm (a :*: b) where
-  gfromForm pars = (:*:) <$> (gfromForm pars) <*> (gfromForm pars)
+type Label = Text
+type FieldName = Text
+type InputType = Text
 
-instance (Selector c, FormField a) => GFromForm (M1 S c (K1 i a)) where
- gfromForm pars = M1 . K1 <$> (ffLookup (TL.pack (selName (undefined :: M1 S c (K1 i a) r))) pars)
+renderBootstrapInput :: (Monad m) => InputType -> [Attribute]
+                     -> FieldName -> Label
+                     -> View Text -> HtmlT m ()
+renderBootstrapInput typ_ attrs fieldName label view = div_ [class_ "form-group"] $ do
+    DL.label fieldName view (toHtml label)
+    with (DL.inputWithType typ_ attrs fieldName view)
+      [class_ "form-control", autofocus_]
+    DL.errorList fieldName (toHtml <$> view)
 
-instance (Constructor c, GFromForm a) => GFromForm (C1 c a) where
-  gfromForm pars = M1 <$> gfromForm pars
+class FormField a where
+  fromFormField :: (Monad m) => D.Formlet Text m a
 
-instance (GFromForm a) => GFromForm (D1 c a) where
-  gfromForm pars = M1 <$> gfromForm pars
+  renderField :: (Monad m) => Proxy a -> Text -> Text -> View Text -> HtmlT m ()
+  renderField _ = renderBootstrapInput "text" []
+---------------------------------------------------------------------------------
+
+class PostFormG f where
+  postFormG :: Monad m => D.Formlet Text m (f a)
+  renderFormG :: Monad m => Proxy (f a) -> Options -> View Text -> HtmlT m ()
+
+instance PostFormG f => PostFormG (M1 D t f) where
+  postFormG def = M1 <$> (postFormG $ unM1 <$> def)
+  renderFormG _ = renderFormG (Proxy :: Proxy (f a))
+
+instance (PostFormG f) => PostFormG (M1 C t f) where
+  postFormG def = M1 <$> (postFormG $ unM1 <$> def)
+  renderFormG _ = renderFormG (Proxy :: Proxy (f a))
+
+instance (Selector t, FormField a) => PostFormG (M1 S t (K1 i a)) where
+  postFormG def = M1 .K1 <$> (fieldName D..:(fromFormField $ (unK1 . unM1  <$> def)))
+   where
+     val :: M1 S t (K1 i a) r
+     val = undefined
+
+     fieldName :: Text
+     fieldName = T.pack $ selName val
+
+  renderFormG _ options view = renderField (Proxy :: Proxy a) fieldName (fieldLabelModifier options $ fieldName) view
+   where
+     val :: M1 S t (K1 i a) r
+     val = undefined
+
+     fieldName :: Text
+     fieldName = T.pack $ selName val
+
+instance (PostFormG f, PostFormG g) => PostFormG (f :*: g) where
+  postFormG (Just (def1 :*: def2)) = (:*:) <$> (postFormG $ Just def1) <*> (postFormG $ Just def2)
+  postFormG Nothing = (:*:) <$> (postFormG Nothing) <*> (postFormG Nothing)
+
+  renderFormG _ options view = do
+    renderFormG (Proxy :: Proxy (f a)) options view
+    renderFormG (Proxy :: Proxy (g a)) options view
+
+instance FormField Text where
+  fromFormField = D.text
+
+instance FormField Bool where
+  renderField _ fieldName label view = div_ [class_ "checkbox"] $ do
+    DL.label fieldName view $ do
+      with (DL.inputCheckbox fieldName (toHtml <$> view))
+        [autofocus_]
+      toHtml label
+    DL.errorList fieldName (toHtml <$> view)
+
+  fromFormField = D.bool
+
+instance FormField Int where
+  fromFormField = D.stringRead "must be an integer"
+
+instance FormField Double where
+  fromFormField = D.stringRead "must be a double"
+
+  renderField _ =renderBootstrapInput "number" []
+
+enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
+enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])
 
 -- when a field is wrapped in a Form type, switch to getting the
 -- data using FromForm when deriving FromRequest
 
-data Form a = FormLink | Form a deriving (Show, Generic)
+data Form a = FormLink | FormError (View Text) | Form a deriving (Show, Generic)
 data QueryString a = QueryStringLink | QueryString a deriving (Show, Generic)
-
 
 --------------------------------------------------------------------------
 ---                 HANDLERS

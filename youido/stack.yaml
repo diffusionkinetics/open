@@ -14,6 +14,9 @@ packages:
 extra-deps:
 - plotlyhs-0.2
 - scotty-cookie-0.1.0.3
+- digestive-functors-0.8.3.0
+- digestive-functors-lucid-0.0.0.5
+
 # Override default flag values for local packages and extra-deps
 flags: {}
 
