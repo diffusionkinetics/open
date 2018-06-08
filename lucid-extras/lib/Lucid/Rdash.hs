@@ -27,6 +27,7 @@ module Lucid.Rdash (
   , SidebarItem(..)
   ) where
 
+import Control.Applicative ((<$>))
 import qualified Data.Text as T
 import Data.List
 
@@ -34,7 +35,7 @@ import Lucid.Bootstrap3
 
 import Lucid hiding (toHtml)
 import qualified Lucid (toHtml)
-import Data.Monoid ((<>))
+import Data.Monoid ((<>), mempty)
 
 toHtml :: Monad m => T.Text -> HtmlT m ()
 toHtml = Lucid.toHtml
