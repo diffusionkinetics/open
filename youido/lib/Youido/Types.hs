@@ -21,7 +21,8 @@ import Lucid
 import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
-import Data.List (intercalate)
+import Data.List (intercalate, intersperse)
+import Data.Foldable (traverse_)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
@@ -30,7 +31,7 @@ import Data.Void
 import Lens.Micro.Platform hiding (to)
 import GHC.Generics
 import Lucid.PreEscaped
-
+import Lucid.Bootstrap
 import Control.Applicative((<|>))
 
 import Text.ParserCombinators.Parsec       (optionMaybe, getState)
@@ -38,8 +39,9 @@ import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
 import Text.ParserCombinators.Parsec.Prim  (unexpected, runParser, GenParser, getPosition, token, (<?>),
                                             many)
 
-import Text.Digestive.View (View)
+import Text.Digestive.View (View(..))
 import qualified Text.Digestive as D
+import qualified Text.Digestive.Form.List as D
 
 import Control.Monad.Identity (Identity, runIdentity)
 
@@ -488,6 +490,39 @@ instance FormField Double where
   fromFormField = D.stringRead "must be a double"
 
   renderField _ =renderBootstrapInput "number" []
+
+renderItem :: forall m a. (FromForm a, Monad m) => Proxy a -> Text -> Int -> View Text -> HtmlT m ()
+renderItem _ fieldName idx v@(View nm ctx _ _ _ _) = do
+  let context = (viewName v) <> "."
+        <> (T.intercalate "." $ init (viewContext v))
+      js = "(this,'" <> fieldName <> "','" <> context <> "'); return false;"
+
+  div_ [class_ "youido_multi_item well container"] $ do
+    renderForm (Proxy :: Proxy a) v
+    button_ [ type_ "button",
+              class_ "remove_field_button"
+            , onclick_ $ "youidoRemoveItem" <> js] $ do
+      a_ [] "Delete"
+    span_ [] $ " | "
+    button_ [ type_ "button"
+            , class_ "add_field"
+            , onclick_ $ "youidoAddItem" <> js] $ do
+      a_ [] "Add new item"
+
+instance FromForm a => FormField [a] where
+  fromFormField = D.listOf fromForm
+  renderField _ fieldName label view = do
+    DL.label fieldName view $ toHtml label
+    div_ [class_ "youido_multi_list form-group"] $ do
+      let items = D.listSubViews fieldName view
+      let p' = D.toPath fieldName ++ D.toPath D.indicesRef
+      let p = D.fromPath $ (viewName view) : p'
+      input_ [style_ "display: none", id_ p, name_ p,
+              value_ (D.fieldInputText (D.fromPath p') view)]
+      traverse_
+        (\(x,idx) -> renderItem (Proxy :: Proxy a) fieldName idx x)
+        $ zip items [0..]
+      DL.errorList fieldName (toHtml <$> view)
 
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
 enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])

@@ -10,7 +10,7 @@ maintainer:          tomn@diffusionkinetics.com
 copyright:           Tom Nielsen
 category:            Web
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  form-repeat.js
 cabal-version:       >=1.10
 
 source-repository head
@@ -75,3 +75,5 @@ Executable youido-example
                      , microlens-platform
                      , text
                      , datasets
+                     , digestive-functors
+                     , digestive-functors-lucid
