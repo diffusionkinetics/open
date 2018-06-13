@@ -2,7 +2,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveGeneric, KindSignatures, DataKinds, TypeApplications, GADTs,
-             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, CPP,
+             FlexibleInstances, MultiParamTypeClasses, OverloadedLabels, CPP,TypeFamilies,
              TypeOperators, GeneralizedNewtypeDeriving, TemplateHaskell  #-}
 
 module Youido.Types where
@@ -398,13 +398,14 @@ genericRenderForm p options view =  do
   renderFormG (from <$> p) options view
 
 class FromForm a where
+  type FormMonad a :: * -> *
   fromForm ::
     (Monad m) => D.Formlet Text m a
   default fromForm ::
     (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
   fromForm def = to <$>  postFormG (from  <$> def)
 
-  renderForm :: Monad m => Proxy a  -> View Text -> HtmlT m ()
+  renderForm :: Monad (FormMonad a) => Proxy a  -> View Text -> HtmlT (FormMonad a) ()
   default renderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a  -> View Text -> HtmlT m ()
   renderForm p = genericRenderForm p defaultOptions
 
@@ -425,9 +426,11 @@ renderBootstrapInput typ_ attrs fieldName label view = div_ [class_ "form-group"
     DL.errorList fieldName (toHtml <$> view)
 
 class FormField a where
+  type FieldMonad a :: * -> *
+
   fromFormField :: (Monad m) => D.Formlet Text m a
 
-  renderField :: (Monad m) => Proxy a -> Text -> Text -> View Text -> HtmlT m ()
+  renderField :: Monad (FormMonad a) => Proxy a -> Text -> Text -> View Text -> HtmlT (FormMonad a) ()
   renderField _ = renderBootstrapInput "text" []
 ---------------------------------------------------------------------------------
 
