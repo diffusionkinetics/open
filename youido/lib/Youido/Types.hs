@@ -22,6 +22,7 @@ import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
 import Data.List (intercalate)
+import Data.Maybe (fromMaybe)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
@@ -504,14 +505,22 @@ data QueryString a = QueryStringLink | QueryString a deriving (Show, Generic)
 newtype SelectOptions (s:: Symbol) = SelectOptions { unSelectOptions :: Text }
 
 instance KnownSymbol s => FormField (SelectOptions s) where
-  fromFormField = fmap SelectOptions . D.text . fmap unSelectOptions 
+  fromFormField =
+     fmap SelectOptions . D.text . fmap unSelectOptions
+     
   renderField _ mp fieldName label view = div_ $ do
-    let Just (options::[Text]) = Map.lookup (pack $ symbolVal (Proxy::Proxy s)) mp
+    let choices::[Text] = fromMaybe [] $ Map.lookup (pack $ symbolVal (Proxy::Proxy s)) mp
+        ref'    = D.absoluteRef label view
+        value i = ref' `mappend` "." `mappend` i
+        
     DL.label fieldName view $ do
-      -- TODO select with the options in `options`
+      select_
+		    [ id_   ref'
+		    , name_ ref'
+		    ] $ forM_ choices $ \t -> option_
+              [value_ (value t)] $ toHtml t
       toHtml label
     DL.errorList fieldName (toHtml <$> view)
-
 
 
 --------------------------------------------------------------------------
