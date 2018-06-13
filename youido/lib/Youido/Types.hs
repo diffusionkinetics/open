@@ -30,7 +30,7 @@ import Data.Void
 import Lens.Micro.Platform hiding (to)
 import GHC.Generics
 import Lucid.PreEscaped
-
+import qualified Data.Map.Strict as Map
 import Control.Applicative((<|>))
 
 import Text.ParserCombinators.Parsec       (optionMaybe, getState)
@@ -380,6 +380,9 @@ instance RequestInfo FormFields where
 ---                 FORM HANDLING
 --------------------------------------------------------------------------
 
+type OptionsMap = Map.Map Text [Text]
+
+
 data Options = Options
   {
     fieldLabelModifier :: Text -> Text
@@ -392,10 +395,10 @@ defaultOptions = Options id id
 genericFromForm :: (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
 genericFromForm def = to <$>  postFormG (from  <$> def)
 
-genericRenderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a -> Options -> View Text -> HtmlT m ()
-genericRenderForm p options view =  do
+genericRenderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a -> Options -> OptionsMap ->View Text -> HtmlT m ()
+genericRenderForm p options mp view =  do
   DL.errorList "" (toHtml <$> view)
-  renderFormG (from <$> p) options view
+  renderFormG (from <$> p) options mp view
 
 class FromForm a where
   fromForm ::
@@ -404,9 +407,9 @@ class FromForm a where
     (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
   fromForm def = to <$>  postFormG (from  <$> def)
 
-  renderForm :: Monad m => Proxy a  -> View Text -> HtmlT m ()
-  default renderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a  -> View Text -> HtmlT m ()
-  renderForm p = genericRenderForm p defaultOptions
+  renderForm :: Monad m => Proxy a  -> OptionsMap ->View Text -> HtmlT m ()
+  default renderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a  -> OptionsMap ->View Text -> HtmlT m ()
+  renderForm p mp = genericRenderForm p defaultOptions mp
 
   getView :: Maybe a -> View Text
   getView def = runIdentity $ D.getForm "top-level-form" $ fromForm def
@@ -427,13 +430,13 @@ renderBootstrapInput typ_ attrs fieldName label view = div_ [class_ "form-group"
 class FormField a where
   fromFormField :: (Monad m) => D.Formlet Text m a
 
-  renderField :: (Monad m) => Proxy a -> Text -> Text -> View Text -> HtmlT m ()
-  renderField _ = renderBootstrapInput "text" []
+  renderField :: (Monad m) => Proxy a -> OptionsMap ->Text -> Text -> View Text -> HtmlT m ()
+  renderField _ _ = renderBootstrapInput "text" []
 ---------------------------------------------------------------------------------
 
 class PostFormG f where
   postFormG :: Monad m => D.Formlet Text m (f a)
-  renderFormG :: Monad m => Proxy (f a) -> Options -> View Text -> HtmlT m ()
+  renderFormG :: Monad m => Proxy (f a) -> Options -> OptionsMap ->View Text -> HtmlT m ()
 
 instance PostFormG f => PostFormG (M1 D t f) where
   postFormG def = M1 <$> (postFormG $ unM1 <$> def)
@@ -452,7 +455,7 @@ instance (Selector t, FormField a) => PostFormG (M1 S t (K1 i a)) where
      fieldName :: Text
      fieldName = T.pack $ selName val
 
-  renderFormG _ options view = renderField (Proxy :: Proxy a) fieldName (fieldLabelModifier options $ fieldName) view
+  renderFormG _ options mp view = renderField (Proxy :: Proxy a) mp fieldName (fieldLabelModifier options $ fieldName) view
    where
      val :: M1 S t (K1 i a) r
      val = undefined
@@ -464,15 +467,15 @@ instance (PostFormG f, PostFormG g) => PostFormG (f :*: g) where
   postFormG (Just (def1 :*: def2)) = (:*:) <$> (postFormG $ Just def1) <*> (postFormG $ Just def2)
   postFormG Nothing = (:*:) <$> (postFormG Nothing) <*> (postFormG Nothing)
 
-  renderFormG _ options view = do
-    renderFormG (Proxy :: Proxy (f a)) options view
-    renderFormG (Proxy :: Proxy (g a)) options view
+  renderFormG _ options mp view = do
+    renderFormG (Proxy :: Proxy (f a)) options mp view
+    renderFormG (Proxy :: Proxy (g a)) options mp view
 
 instance FormField Text where
   fromFormField = D.text
 
 instance FormField Bool where
-  renderField _ fieldName label view = div_ [class_ "checkbox"] $ do
+  renderField _ _ fieldName label view = div_ [class_ "checkbox"] $ do
     DL.label fieldName view $ do
       with (DL.inputCheckbox fieldName (toHtml <$> view))
         [autofocus_]
@@ -487,7 +490,7 @@ instance FormField Int where
 instance FormField Double where
   fromFormField = D.stringRead "must be a double"
 
-  renderField _ =renderBootstrapInput "number" []
+  renderField _ _ =renderBootstrapInput "number" []
 
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
 enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])
@@ -497,6 +500,19 @@ enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBo
 
 data Form a = FormLink | FormError (View Text) | Form a deriving (Show, Generic)
 data QueryString a = QueryStringLink | QueryString a deriving (Show, Generic)
+
+newtype SelectOptions (s:: Symbol) = SelectOptions { unSelectOptions :: Text }
+
+instance KnownSymbol s => FormField (SelectOptions s) where
+  fromFormField = fmap SelectOptions . D.text . fmap unSelectOptions 
+  renderField _ mp fieldName label view = div_ $ do
+    let Just (options::[Text]) = Map.lookup (pack $ symbolVal (Proxy::Proxy s)) mp
+    DL.label fieldName view $ do
+      -- TODO select with the options in `options`
+      toHtml label
+    DL.errorList fieldName (toHtml <$> view)
+
+
 
 --------------------------------------------------------------------------
 ---                 HANDLERS
