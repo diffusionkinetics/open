@@ -57,6 +57,7 @@ library
                      , parsec
                      , digestive-functors
                      , digestive-functors-lucid
+                     , transformers
 
 Executable youido-example
   main-is: examples/Example.hs

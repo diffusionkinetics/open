@@ -1,3 +1,6 @@
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -33,9 +36,10 @@ import Lucid.PreEscaped
 
 import Control.Applicative((<|>))
 
-import Text.ParserCombinators.Parsec       (optionMaybe, getState)
+import Text.Parsec       (optionMaybe, getState, putState)
 import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
-import Text.ParserCombinators.Parsec.Prim  (unexpected, runParser, GenParser, getPosition, token, (<?>),
+import Text.Parsec (ParsecT, runParserT, tokenPrim)
+import Text.ParserCombinators.Parsec.Prim  (unexpected, GenParser, getPosition, (<?>),
                                             many)
 
 import Text.Digestive.View (View)
@@ -47,6 +51,8 @@ import Data.Maybe (maybeToList)
 
 import qualified Text.Digestive.Lucid.Html5 as DL
 
+import Control.Monad.Trans.Class
+
 --------------------------------------------------------------------------
 ---                 PATHINFO
 --- Code copied from the web-routes library
@@ -54,18 +60,18 @@ import qualified Text.Digestive.Lucid.Html5 as DL
 
 type FormPars = [(TL.Text, TL.Text)]
 
-type URLParser a = GenParser Text FormPars a
+type URLParser m a = ParsecT [Text] (Request, FormPars) m a
 
-pToken :: tok -> (Text -> Maybe a) -> URLParser a
+pToken :: (Monad m) => tok -> (Text -> Maybe a) -> URLParser m a
 pToken _ f = do pos <- getPosition
-                token unpack (const $ incSourceLine pos 1) f
+                tokenPrim unpack (\pos _ _ -> incSourceLine pos 1) f
 
 -- | match on a specific string
-segment :: Text -> URLParser Text
+segment :: Monad m => Text -> URLParser m Text
 segment x = (pToken (const x) (\y -> if x == y then Just x else Nothing)) <?> unpack x
 
 -- | match on any string
-anySegment :: URLParser Text
+anySegment :: Monad m => URLParser m Text
 anySegment = pToken (const "any string") Just
 
 hyphenate :: String -> Text
@@ -74,124 +80,147 @@ hyphenate =
   where
     splitter = dropInitBlank . keepDelimsL . whenElt $ isUpper
 
-class GRequestInfo f where
-  gtoPathSegments   :: f url -> [Text]
-  gfromRequest :: URLParser (f url)
+class GToURL f where
+  gtoURL   :: f url -> Text
 
-instance GRequestInfo U1 where
-  gtoPathSegments U1 = []
-  gfromRequest = pure U1
+instance GToURL U1 where
+  gtoURL U1 = ""
 
-instance GRequestInfo a => GRequestInfo (D1 c a) where
-  gtoPathSegments = gtoPathSegments . unM1
-  gfromRequest = M1 <$> gfromRequest
+instance GToURL a => GToURL (D1 c a) where
+  gtoURL = gtoURL . unM1
 
-instance GRequestInfo a => GRequestInfo (S1 c a) where
-  gtoPathSegments = gtoPathSegments . unM1
-  gfromRequest = M1 <$> gfromRequest
+instance GToURL a => GToURL (S1 c a) where
+  gtoURL = gtoURL . unM1
 
-instance forall c a. (GRequestInfo a, Constructor c) => GRequestInfo (C1 c a) where
-  gtoPathSegments m@(M1 x) = (hyphenate . conName) m : gtoPathSegments x
-  gfromRequest = M1 <$ segment (hyphenate . conName $ (undefined :: C1 c a r))
-                         <*> gfromRequest
+instance forall c a. (GToURL a, Constructor c) => GToURL (C1 c a) where
+  gtoURL m@(M1 x) = (hyphenate . conName) m <> "/" <> gtoURL x
 
-instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :*: b) where
-  gtoPathSegments (a :*: b) = gtoPathSegments a ++ gtoPathSegments b
-  gfromRequest = (:*:) <$> gfromRequest <*> gfromRequest
+instance (GToURL a, GToURL b) => GToURL (a :*: b) where
+  gtoURL (a :*: b) = gtoURL a <> gtoURL b
 
-instance (GRequestInfo a, GRequestInfo b) => GRequestInfo (a :+: b) where
-  gtoPathSegments (L1 x) = gtoPathSegments x
-  gtoPathSegments (R1 x) = gtoPathSegments x
-  gfromRequest = L1 <$> gfromRequest
-                  <|> R1 <$> gfromRequest
+instance (GToURL a, GToURL b) => GToURL (a :+: b) where
+  gtoURL (L1 x) = gtoURL x
+  gtoURL (R1 x) = gtoURL x
 
-instance RequestInfo a => GRequestInfo (K1 i a) where
-  gtoPathSegments = toPathSegments . unK1
-  gfromRequest = K1 <$> fromReq
+instance ToURL a => GToURL (K1 i a) where
+  gtoURL = toURL . unK1
 
--- This is an intermediate class between GRequestinfo and FromRequest/ToURL.
--- This is not part of the API
-class RequestInfo url where
-  toPathSegments :: url -> [Text]
-  fromReq :: URLParser url
+class GFromRequest m f where
+  grequestParser :: URLParser m (f url)
 
-  default toPathSegments :: (Generic url, GRequestInfo (Rep url)) => url -> [Text]
-  toPathSegments = gtoPathSegments . from
-  default fromReq :: (Generic url, GRequestInfo (Rep url)) => URLParser url
-  fromReq = to <$> gfromRequest
+instance GFromRequest m U1 where
+  grequestParser = pure U1
+
+instance GFromRequest m a => GFromRequest m (D1 c a) where
+  grequestParser = M1 <$> grequestParser
+
+instance GFromRequest m a => GFromRequest m (S1 c a) where
+  grequestParser = M1 <$> grequestParser
+
+instance forall c a m. (Monad m, GFromRequest m a, Constructor c) => GFromRequest m (C1 c a) where
+  grequestParser = M1 <$ segment (hyphenate . conName $ (undefined :: C1 c a r))
+                         <*> grequestParser
+
+instance (GFromRequest m a, GFromRequest m b) => GFromRequest m (a :*: b) where
+  grequestParser = (:*:) <$> grequestParser <*> grequestParser
+
+instance (GFromRequest m a, GFromRequest m b) => GFromRequest m (a :+: b) where
+  grequestParser = L1 <$> grequestParser
+                  <|> R1 <$> grequestParser
+
+instance FromRequest m a => GFromRequest m (K1 i a) where
+  grequestParser = K1 <$> requestParser
 
 -- it's instances all the way down
+instance ToURL (Form a) where
+  toURL _ = ""
 
-instance (FromForm a) => RequestInfo (Form a) where
-  toPathSegments _ = []
-  fromReq = do
+instance (Monad m, FromForm m a) => FromRequest m (Form a) where
+  requestParser = do
     result <- formResult
-    case result of
-        (_, Just x) -> return $ Form x
-        (view, Nothing) -> return $ FormError view
+    return $ case result of
+        (_, Just x) -> Form x
+        (view, Nothing) -> FormError view
     where
-      formResult :: URLParser (View Text, Maybe a)
-      formResult = runPostForm <$> getState
+      formResult :: URLParser m (View Text, Maybe a)
+      formResult = do
+        (_, pars) <- getState
+        lift $ runPostForm pars
 
       lookupPath :: [(TL.Text, TL.Text)] -> D.Path -> [D.FormInput]
       lookupPath pars path = maybeToList $ D.TextInput <$> TL.toStrict <$> lookup (TL.fromStrict (D.fromPath path)) pars
 
-      runPostForm :: [(TL.Text, TL.Text)] -> (View Text, Maybe a)
-      runPostForm pars = runIdentity $ D.postForm "top-level-form" form (postFormHandler pars)
+      runPostForm :: [(TL.Text, TL.Text)] -> m (View Text, Maybe a)
+      runPostForm pars = D.postForm "top-level-form" form (postFormHandler pars)
         where
           postFormHandler :: (Monad m) => [(TL.Text, TL.Text)] -> D.FormEncType -> m (D.Env m)
           postFormHandler pars D.UrlEncoded = return $ \path -> (return $ lookupPath pars path)
           postFormHandler pars D.MultiPart = return $ const (return [])
 
-          form :: D.Form Text Identity a
+          form :: D.Form Text m a
           form = fromForm Nothing
 
-instance (FromForm a) => RequestInfo (QueryString a) where
-  toPathSegments (QueryStringLink) = []
-  toPathSegments (QueryString x) = [] --TODO
-  fromReq = do
-   res <- formToQueryString <$> fromReq
-   case res of
-     Nothing -> unexpected "failed"
-     Just t -> return t
+-- instance (Monad m, FromForm1 m a) => FromRequest m (QueryString a) where
+--   requestParser = do
+--     form <- requestParser
+--     let res = formToQueryString form
+--     case res of
+--       Nothing -> unexpected "failed"
+--       Just t -> return t
 
-formToQueryString :: FromForm a => Form a -> Maybe (QueryString a)
-formToQueryString FormLink = Just $ QueryStringLink
-fromToQueryString (Form a) = Just $ QueryString a
-fromToQueryString _        = Nothing
+-- formToQueryString :: Form a -> Maybe (QueryString a)
+-- formToQueryString FormLink = Just $ QueryStringLink
+-- fromToQueryString (Form a) = Just $ QueryString a
+-- fromToQueryString _        = Nothing
 
-instance (RequestInfo a, RequestInfo b) => RequestInfo (a,b) where
-  toPathSegments (a,b)  = toPathSegments a ++ toPathSegments b
-  fromReq = (,) <$> fromReq <*> fromReq
+instance (ToURL a, ToURL b) => ToURL (a,b) where
+  toURL (a,b)  = toURL a <> toURL b
 
-instance RequestInfo a => RequestInfo (Maybe a) where
-  toPathSegments Nothing  = []
-  toPathSegments (Just t) = toPathSegments t
-  fromReq = optionMaybe (fromReq)
+instance (ToURL a) => ToURL (Maybe a) where
+  toURL Nothing  = ""
+  toURL (Just t) = toURL t
 
-instance RequestInfo Text where
-  toPathSegments = (:[])
-  fromReq = anySegment
+instance ToURL Text where
+  toURL = id
 
-instance RequestInfo [Text] where
-  toPathSegments = id
-  fromReq = many anySegment
+--instance ToURL [Text] where
+--  toURL = T.intercalate "/"
 
-instance RequestInfo String where
-  toPathSegments = (:[]) . pack
-  fromReq = unpack <$> anySegment
+instance ToURL String where
+  toURL = pack
 
-instance RequestInfo [String] where
-  toPathSegments = id . map pack
-  fromReq = many (unpack <$> anySegment)
+-- instance ToURL [String] where
+  --toURL = toURL . map pack
 
-instance RequestInfo Int where
-  toPathSegments i = [pack $ show i]
-  fromReq = pToken (const "Int") checkIntegral
+instance ToURL Int where
+  toURL = pack . show
 
-instance RequestInfo Integer where
-  toPathSegments i = [pack $ show i]
-  fromReq = pToken (const "Integer") checkIntegral
+instance ToURL Integer where
+  toURL = pack . show
+
+instance (Monad m, FromRequest m a, FromRequest m b) => FromRequest m (a,b) where
+  requestParser  = (,) <$> requestParser <*> requestParser
+
+instance (FromRequest m a, Monad m) => FromRequest m (Maybe a) where
+  requestParser = optionMaybe (requestParser)
+
+instance Monad m => FromRequest m Text where
+  requestParser = anySegment
+
+instance Monad m => FromRequest m [Text] where
+  requestParser = many anySegment
+
+instance Monad m => FromRequest m String where
+  requestParser = unpack <$> anySegment
+
+instance Monad m => FromRequest m [String] where
+  requestParser = many (unpack <$> anySegment)
+
+instance Monad m => FromRequest m Int where
+  requestParser = pToken (const "Int") checkIntegral
+
+instance Monad m => FromRequest m Integer where
+  requestParser = pToken (const "Integer") checkIntegral
 
 checkIntegral :: Integral a => Text -> Maybe a
 checkIntegral txt =
@@ -273,28 +302,32 @@ instance ToResponse AsHtml where
 ---                 REQUESTS
 --------------------------------------------------------------------------
 
+  -- fromRequest1 :: Monad m => (Request,[(TL.Text, TL.Text)]) -> m (Maybe a)
+  -- fromRequest1 (rq,pars) = do
+
 
 -- types that can be parsed from a request, maybe
-class FromRequest a where
-  fromRequest :: (Request,[(TL.Text, TL.Text)]) -> Maybe a
+class FromRequest m a where
+  requestParser :: URLParser m a
 
-  default fromRequest :: (Generic a, GRequestInfo(Rep a)) => (Request,[(TL.Text, TL.Text)]) -> Maybe a
-  fromRequest (rq,pars) =
-    let parser = to <$> gfromRequest
-    in case (runParser parser pars "" (pathInfo rq)) of
-         Left _ -> Nothing
-         Right t -> Just t
+  default requestParser :: (Monad m, Generic a, GFromRequest m (Rep a)) => URLParser m a
+  requestParser = to <$> grequestParser
 
-class ToURL a where
+fromRequest :: (Monad m, FromRequest m a) => (Request, FormPars) -> m (Maybe a)
+fromRequest (rq, pars) = do
+  res <- runParserT requestParser (rq, pars) "" (pathInfo rq)
+  return $ case res of
+             Left _ -> Nothing
+             Right t -> Just t
+
+class ToURL  a where
   toURL :: a -> Text
 
-  default toURL :: (Generic a, GRequestInfo(Rep a)) => a -> Text
-  toURL a = let pathSegments = gtoPathSegments (from a) in
-    T.intercalate "/" $ ("" : pathSegments)
-  -- Trick to get a leading "/"
+  default toURL :: (Generic a, GToURL (Rep a)) => a -> Text
+  toURL a = "/" <> gtoURL (from a)
 
-instance FromRequest Void where
-  fromRequest _ = Nothing
+instance Monad m => FromRequest m Void where
+  requestParser = unexpected "can't produce a void"
 
 -- Key, Symbol  and :/ are for subcomponents
 instance (s ~ s') => IsLabel s (Key s') where --from bookkeeper
@@ -314,32 +347,38 @@ data (s::Symbol) :/ a where
 instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
   toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
 
-instance (KnownSymbol s, FromRequest a) => FromRequest (s :/ a) where
-  fromRequest (rq,pars) = case pathInfo rq of
+instance (Monad m, KnownSymbol s, FromRequest m a) => FromRequest m (s :/ a) where
+  requestParser = do
+    (rq, pars) <- getState
+    case pathInfo rq of
       p:ps -> let sv = symbolVal (Proxy::Proxy s) in
               if p ==  pack sv
                 then let newrq = rq {pathInfo = ps}
-                     in fmap (Key :/) $ fromRequest (newrq,pars)
-                else Nothing
-      [] -> Nothing
+                     in fmap (Key :/) $ putState (newrq, pars) >> requestParser
+                else unexpected "failure"
+      [] -> unexpected "failure"
 
 instance ToURL () where toURL _ = "/"
 
-instance FromRequest () where
-  fromRequest (rq,_) = case pathInfo rq of
-    [] -> Just ()
-    [""] -> Just ()
-    _ -> Nothing
+instance Monad m => FromRequest m () where
+  requestParser = do
+    (rq, _) <- getState
+    case pathInfo rq of
+      [] -> return ()
+      [""] -> return ()
+      _ -> unexpected "nothing"
 
 --capture any name
 data Name a = Name Text a
 
-instance FromRequest a => FromRequest (Name a) where
-  fromRequest (rq,pars) = case pathInfo rq of
+instance (Monad m, FromRequest m a) => FromRequest m (Name a) where
+  requestParser = do
+    (rq, pars) <- getState
+    case pathInfo rq of
       p:ps -> let newrq = rq {pathInfo = ps}
-              in fmap (Name p) $ fromRequest (newrq,pars)
+              in fmap (Name p) $ putState (newrq, pars) >> requestParser
+      [] -> unexpected "failure"
 
-      [] -> Nothing
 
 instance ToURL a=> ToURL (Name a)
   where toURL (Name nm x) = "/"<> nm <> toURL x
@@ -347,34 +386,38 @@ instance ToURL a=> ToURL (Name a)
 --split on method
 data GetOrPost a b = Get a | Post b
 
-instance (FromRequest a, FromRequest b) => FromRequest (GetOrPost a b) where
-  fromRequest (rq,pars) = case requestMethod rq of
-    "GET" -> fmap Get $ fromRequest (rq,pars)
-    "POST" -> fmap Post $ fromRequest (rq,pars)
+instance (Monad m, FromRequest m a, FromRequest m b) => FromRequest m (GetOrPost a b) where
+  requestParser = do
+    (rq, _) <- getState
+    case requestMethod rq of
+      "GET" -> fmap Get $ requestParser
+      "POST" -> fmap Post $ requestParser
 
 onlyPOST :: Request -> Maybe a -> Maybe a
 onlyPOST rq mv = if requestMethod rq == "POST" then mv else Nothing
 
-instance (FromRequest a, FromRequest b) => FromRequest (Either a b) where
-  fromRequest rqpars = case (fromRequest rqpars, fromRequest rqpars) of
-    (Just x, _) -> return $ Left x
-    (Nothing, Just y) -> return $ Right y
-    _ -> Nothing
+instance (Monad m, FromRequest m a, FromRequest m b) => FromRequest m (Either a b) where
+  requestParser = do
+    resL <- Just <$> requestParser <|> return Nothing
+    resR <- Just <$> requestParser <|> return Nothing
+
+    case (resL, resR) of
+      (Just x, _) -> return $ Left x
+      (Nothing, Just y) -> return $ Right y
+      _ -> unexpected "failure"
 
 newtype FormFields = FormFields [(TL.Text, TL.Text)]
 
-instance FromRequest FormFields where
-  fromRequest (_,pars) = Just $ FormFields pars
+instance Monad m => FromRequest m Request where
+  requestParser = fst <$> getState
 
-instance FromRequest a => FromRequest (a, Request) where
-  fromRequest (rq, pars) = (,) <$> fromRequest (rq, pars) <*> (Just rq)
+instance Monad m => FromRequest m FormFields where
+  requestParser = do
+    (_, pars) <- getState
+    return $ FormFields pars
 
-
-instance RequestInfo FormFields where
-  toPathSegments _ = []
-  fromReq = do
-    result <- getState
-    return $ FormFields result
+instance ToURL FormFields where
+  toURL _ = ""
 
 --------------------------------------------------------------------------
 ---                 FORM HANDLING
@@ -389,27 +432,26 @@ data Options = Options
 defaultOptions :: Options
 defaultOptions = Options id id
 
-genericFromForm :: (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
+genericFromForm :: (Generic a, PostFormG m (Rep a), Monad m) => D.Formlet Text m a
 genericFromForm def = to <$>  postFormG (from  <$> def)
 
-genericRenderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a -> Options -> View Text -> HtmlT m ()
+genericRenderForm :: (Generic a, PostFormG m (Rep a), Monad m) => Proxy a -> Options -> View Text -> HtmlT m ()
 genericRenderForm p options view =  do
   DL.errorList "" (toHtml <$> view)
   renderFormG (from <$> p) options view
 
-class FromForm a where
-  fromForm ::
-    (Monad m) => D.Formlet Text m a
+class FromForm m a where
+  fromForm :: D.Formlet Text m a
   default fromForm ::
-    (Generic a, PostFormG (Rep a), Monad m) => D.Formlet Text m a
+    (Monad m, Generic a, PostFormG m (Rep a)) => D.Formlet Text m a
   fromForm def = to <$>  postFormG (from  <$> def)
 
-  renderForm :: Monad m => Proxy a  -> View Text -> HtmlT m ()
-  default renderForm :: (Generic a, PostFormG (Rep a), Monad m) => Proxy a  -> View Text -> HtmlT m ()
+  renderForm :: Proxy a  -> View Text -> HtmlT m ()
+  default renderForm :: (Monad m, Generic a, PostFormG m (Rep a)) => Proxy a  -> View Text -> HtmlT m ()
   renderForm p = genericRenderForm p defaultOptions
 
-  getView :: Maybe a -> View Text
-  getView def = runIdentity $ D.getForm "top-level-form" $ fromForm def
+  getView :: Monad m => Maybe a -> m (View Text)
+  getView def = D.getForm "top-level-form" $ fromForm def
 
 type Label = Text
 type FieldName = Text
@@ -424,26 +466,27 @@ renderBootstrapInput typ_ attrs fieldName label view = div_ [class_ "form-group"
       [class_ "form-control", autofocus_]
     DL.errorList fieldName (toHtml <$> view)
 
-class FormField a where
-  fromFormField :: (Monad m) => D.Formlet Text m a
+class FormField m a where
+  fromFormField :: D.Formlet Text m a
 
-  renderField :: (Monad m) => Proxy a -> Text -> Text -> View Text -> HtmlT m ()
+  renderField :: Monad m => Proxy a -> Text -> Text -> View Text -> HtmlT m ()
   renderField _ = renderBootstrapInput "text" []
+
 ---------------------------------------------------------------------------------
 
-class PostFormG f where
-  postFormG :: Monad m => D.Formlet Text m (f a)
-  renderFormG :: Monad m => Proxy (f a) -> Options -> View Text -> HtmlT m ()
+class PostFormG m f where
+  postFormG :: D.Formlet Text m (f a)
+  renderFormG :: Proxy (f a) -> Options -> View Text -> HtmlT m ()
 
-instance PostFormG f => PostFormG (M1 D t f) where
+instance (Monad m, PostFormG m f) => PostFormG m (M1 D t f) where
   postFormG def = M1 <$> (postFormG $ unM1 <$> def)
   renderFormG _ = renderFormG (Proxy :: Proxy (f a))
 
-instance (PostFormG f) => PostFormG (M1 C t f) where
+instance (Monad m, PostFormG m f) => PostFormG m (M1 C t f) where
   postFormG def = M1 <$> (postFormG $ unM1 <$> def)
   renderFormG _ = renderFormG (Proxy :: Proxy (f a))
 
-instance (Selector t, FormField a) => PostFormG (M1 S t (K1 i a)) where
+instance (Monad m, Selector t, FormField m a) => PostFormG m (M1 S t (K1 i a)) where
   postFormG def = M1 .K1 <$> (fieldName D..:(fromFormField $ (unK1 . unM1  <$> def)))
    where
      val :: M1 S t (K1 i a) r
@@ -460,7 +503,7 @@ instance (Selector t, FormField a) => PostFormG (M1 S t (K1 i a)) where
      fieldName :: Text
      fieldName = T.pack $ selName val
 
-instance (PostFormG f, PostFormG g) => PostFormG (f :*: g) where
+instance (Monad m, PostFormG m f, PostFormG m g) => PostFormG m (f :*: g) where
   postFormG (Just (def1 :*: def2)) = (:*:) <$> (postFormG $ Just def1) <*> (postFormG $ Just def2)
   postFormG Nothing = (:*:) <$> (postFormG Nothing) <*> (postFormG Nothing)
 
@@ -468,10 +511,10 @@ instance (PostFormG f, PostFormG g) => PostFormG (f :*: g) where
     renderFormG (Proxy :: Proxy (f a)) options view
     renderFormG (Proxy :: Proxy (g a)) options view
 
-instance FormField Text where
+instance Monad m => FormField m Text where
   fromFormField = D.text
 
-instance FormField Bool where
+instance Monad m => FormField m Bool where
   renderField _ fieldName label view = div_ [class_ "checkbox"] $ do
     DL.label fieldName view $ do
       with (DL.inputCheckbox fieldName (toHtml <$> view))
@@ -481,13 +524,13 @@ instance FormField Bool where
 
   fromFormField = D.bool
 
-instance FormField Int where
+instance Monad m => FormField m Int where
   fromFormField = D.stringRead "must be an integer"
 
-instance FormField Double where
+instance Monad m => FormField m Double where
   fromFormField = D.stringRead "must be a double"
 
-  renderField _ =renderBootstrapInput "number" []
+  renderField _ = renderBootstrapInput "number" []
 
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
 enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])
@@ -506,7 +549,7 @@ type Email = Text
 
 -- | handler box, parametrised on a monad
 data Handler m where
-  H :: (FromRequest a, ToResponse b) => (a -> m b) -> Handler m
+  H :: (FromRequest m a, ToResponse b) => (a -> m b) -> Handler m
 
 instance Monad m => Monoid (Handler m) where
   mempty = H f where f :: Void -> m Text
@@ -528,14 +571,14 @@ makeLenses ''Youido
 newtype YouidoT auth m a = YouidoT {unYouidoT :: StateT (Youido auth m) IO a}
    deriving (Functor, Applicative, Monad, MonadIO, MonadState (Youido auth m))
 
-handle :: (FromRequest a, ToResponse b, Monad m)
+handle :: (FromRequest m a, ToResponse b, Monad m)
        => (a -> m b) -> YouidoT auth m ()
 handle f = handlers %= ((H f):)
 
 unHtmlT :: Monad m => (a -> HtmlT m ()) ->(a -> m AsHtml)
 unHtmlT f x = fmap AsHtml $ renderBST $ f x
 
-hHtmlT :: (FromRequest a, Monad m)
+hHtmlT :: (FromRequest m a, Monad m)
        => (a -> HtmlT m ()) -> YouidoT auth m ()
 hHtmlT f = handlers %= ((H $ unHtmlT f):) where
 
@@ -550,6 +593,8 @@ run (Youido [] notFound wrapperf _ _) u _ =
     (toResponse $ wrapHtml (wrapperf u) notFound)
       { code = notFound404  }
 run (Youido (H f : hs) notFound wrapperf lu p) u rq = do
-  case fromRequest rq of
+  res <- fromRequest rq
+  case res of
     Nothing -> run (Youido hs notFound wrapperf lu p) u rq
-    Just x -> toResponse . wrapHtml (wrapperf u) <$>  f x
+    Just x -> do
+      toResponse . wrapHtml (wrapperf u) <$> f x

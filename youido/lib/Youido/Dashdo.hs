@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ScopedTypeVariables,
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
    OverloadedLabels, TypeOperators, DataKinds, KindSignatures #-}
@@ -23,7 +25,7 @@ import Lens.Micro.Platform
 import Control.Monad.Reader
 import Data.IORef
 import qualified Data.Set as Set
-
+import Text.Parsec((<|>), unexpected)
 
 -- | include this once to get global JS and app UUID routes
 dashdoGlobal' :: Monad m => IO (Handler  m)
@@ -45,16 +47,18 @@ data DashdoReq = Initial
                | Submit [(TL.Text, TL.Text)]
                | Action Text [(TL.Text, TL.Text)]
 
-instance FromRequest DashdoReq where
-  fromRequest rq@(_,_) = case fromRequest rq of
-    Just (Get (Right ()))-> Just $ Initial
-    Just (Post (Left ((_ :/ Name actName (FormFields ffs) :: "action" :/ Name FormFields))))
-       -> Just $ Action actName ffs
-    Just (Post (Right (FormFields ffs)))
-       -> Just $ Submit ffs
-    Just (Get (Left ((_ :/ FormFields ffs :: "with" :/ FormFields))))
-       -> Just $ InitialWith (ffsStrict ffs)
-    Nothing -> Nothing
+instance Monad m => FromRequest m DashdoReq where
+  requestParser = do
+    res <- Just <$> requestParser <|> return Nothing
+    case res of
+      Just (Get (Right ())) -> return Initial
+      Just (Post (Left ((_ :/ Name actName (FormFields ffs) :: "action" :/ Name FormFields))))
+        -> return $ Action actName ffs
+      Just (Post (Right (FormFields ffs)))
+        -> return $ Submit ffs
+      Just (Get (Left ((_ :/ FormFields ffs :: "with" :/ FormFields))))
+        -> return $ InitialWith (ffsStrict ffs)
+      Nothing -> unexpected "failure"
 
 instance ToURL DashdoReq where
   toURL (InitialWith pars)
