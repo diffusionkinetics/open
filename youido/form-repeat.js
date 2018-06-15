@@ -1,7 +1,5 @@
-var youidoListClass = 'youido_multi_list';
 var youidoItemClass = 'youido_multi_item';
 var youidoDummyItem = 'youido_dummy_item';
-var youidoAddLoneItemClass = 'youido_add_lone_item';
 
 function youidoReplaceIndex(currentPath, pathRegexp, idx) {
   return currentPath.replace(pathRegexp, '$1.' + idx);
@@ -40,46 +38,20 @@ function youidoUpdate($items, fieldName, fieldPath) {
   youidoUpdateIndices(fieldPath, $itemsNoDummy.length);
 }
 
-function youidoAddItem(item, fieldName, fieldPath) {
-  var $thisItem = $(item);
-  var newItem = $thisItem.clone(true);
-  $thisItem.after(newItem);
-
-  var $items = $thisItem.parent().children('div');
-  youidoUpdate($items, fieldName, fieldPath);
-
-  // Hide add item button if transitioning from 0 to 1 items (1 to 2 incl. dummy)
-  if ($items.length == 2) {
-    document
-      .getElementById(fieldName + '.' + youidoAddLoneItemClass)
-      .setAttribute('style', 'display: none');
-  }
-}
-
-function youidoAddLoneItem(itemsDiv, fieldName, fieldPath) {
+function youidoAddItem(itemsDiv, fieldName, fieldPath) {
   var dummyId = fieldPath + '.' + youidoDummyItem;
   var dummy = document.getElementById(dummyId);
   var newItem = dummy.cloneNode(true);
   newItem.setAttribute('style', 'display: inherit');
   newItem.setAttribute('id', newItem.getAttribute('id').replace(dummyId, ''));
-
-  document
-    .getElementById(fieldPath + '.' + youidoAddLoneItemClass)
-    .setAttribute('style', 'display: none');
-  itemsDiv.appendChild(newItem);
-  youidoUpdate($(itemsDiv).children('div'), fieldName, fieldPath);
+  var $items = $(itemsDiv).children('div.' + youidoItemClass);
+  $items[$items.length - 1].after(newItem);
+  $items.push(newItem);
+  youidoUpdate($items, fieldName, fieldPath);
 }
 
 function youidoRemoveItem(item, fieldName, fieldPath) {
   var itemsDiv = item.parentNode;
   itemsDiv.removeChild(item);
-  var $items = $(itemsDiv).children('div');
-  youidoUpdate($items, fieldName, fieldPath);
-
-  // Display add item button when new length is 0 (== 1 incl. dummy)
-  if ($items.length === 1) {
-    document
-      .getElementById(fieldPath + '.' + youidoAddLoneItemClass)
-      .setAttribute('style', 'display: inherit');
-  }
+  youidoUpdate($(itemsDiv).children('div.' + youidoItemClass), fieldName, fieldPath);
 }

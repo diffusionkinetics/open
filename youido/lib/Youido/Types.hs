@@ -21,7 +21,7 @@ import Lucid
 import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
-import Data.List (intercalate, intersperse)
+import Data.List (intercalate)
 import Data.Foldable (traverse_)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
@@ -492,21 +492,21 @@ instance FormField Double where
   renderField _ =renderBootstrapInput "number" []
 
 renderItem :: forall m a. (FromForm a, Monad m)
-  => Proxy a -> Text -> Int -> Text -> View Text -> HtmlT m ()
-renderItem _ fieldName idx context v = do
-  let jsArgs = "(this.parentNode,'" <> fieldName <> "','" <> context
-               <> "'); return false;"
-
+  => Proxy a -> Text -> View Text -> HtmlT m ()
+renderItem _ onclickDelete v = do
   div_ [class_ "youido_multi_item well container"] $ do
     renderForm (Proxy :: Proxy a) v
-    fieldButton "Delete" $ "youidoRemoveItem" <> jsArgs
-    span_ [] $ " | "
-    fieldButton "Add new item" $ "youidoAddItem" <> jsArgs
+    fieldButton "Delete" onclickDelete
 
 fieldButton :: Monad m => Text -> Text -> HtmlT m ()
 fieldButton name onclick =
-  button_ [ type_ "button", onclick_ $ onclick ] $ do
+  button_ [ type_ "button", onclick_ onclick ] $ do
     a_ [] (toHtml name)
+
+jsCall :: Text -> [Text] -> Text
+jsCall fnName args = fnName <> "(" <> T.intercalate "," args <> ")"
+
+jsStr s = "'" <> s <> "'"
 
 instance FromForm a => FormField [a] where
   fromFormField = D.listOf fromForm
@@ -515,13 +515,10 @@ instance FromForm a => FormField [a] where
         fieldPathT = D.fromPath fieldPath
         indicesPath = fieldPath ++ [D.indicesRef]
         indicesPathT = D.fromPath indicesPath
-        indicesPathRel = D.fromPath [fieldName, D.indicesRef]
+        jsArgs = ["this.parentNode", jsStr fieldName, jsStr fieldPathT]
+        onclickDelete = jsCall "youidoRemoveItem" jsArgs <> "; return false;"
+        onclickAdd = jsCall "youidoAddItem" jsArgs <> "; return false;"
 
-        items = D.listSubViews fieldName view
-        addHidden = if length items == 0 then "" else "display: none"
-        onclick = "youidoAddLoneItem(this.parentNode, '"
-                  <> fieldName <> "', '" <> fieldPathT
-                  <> "'); return false;"
     DL.label fieldName view $ toHtml label
     div_ [class_ "youido_multi_list form-group"] $ do
 
@@ -529,23 +526,20 @@ instance FromForm a => FormField [a] where
       input_ [ style_ "display: none"
              , id_ indicesPathT
              , name_ indicesPathT
-             , value_ (D.fieldInputText indicesPathRel view)]
+             , value_ (D.fieldInputText -- NB: relative path required
+                       (D.fromPath [fieldName, D.indicesRef]) view)]
 
       -- Invisible item so that the JS knows how to render
       -- a form when the list is empty
       let
         dummyView = D.makeListSubView fieldName (-1) view
-        dummy = renderItem (Proxy :: Proxy a)
-                fieldName (-1) fieldPathT dummyView
+        dummy = renderItem (Proxy :: Proxy a) onclickDelete dummyView
       with dummy [ style_ "display: none"
                  , id_ (fieldPathT <> ".youido_dummy_item")]
-      with (fieldButton "Add new item" onclick)
-        [style_ addHidden, id_ (fieldPathT <> ".youido_add_lone_item")]
 
-      traverse_ (\(v,idx) ->
-                   let ctx = D.fromPath $ viewName v : init (viewContext v)
-                   in renderItem (Proxy :: Proxy a) fieldName idx ctx v)
-        $ zip items [0..]
+      traverse_ (renderItem (Proxy :: Proxy a) onclickDelete) $
+        D.listSubViews fieldName view
+      fieldButton "Add new item" onclickAdd
       DL.errorList fieldName (toHtml <$> view)
 
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
