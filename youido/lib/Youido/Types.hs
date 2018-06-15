@@ -22,6 +22,7 @@ import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
 import Data.List (intercalate)
+import Data.Foldable (traverse_)
 import GHC.OverloadedLabels
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
@@ -30,7 +31,7 @@ import Data.Void
 import Lens.Micro.Platform hiding (to)
 import GHC.Generics
 import Lucid.PreEscaped
-
+import Lucid.Bootstrap
 import Control.Applicative((<|>))
 
 import Text.ParserCombinators.Parsec       (optionMaybe, getState)
@@ -38,8 +39,9 @@ import Text.ParserCombinators.Parsec.Pos   (incSourceLine)
 import Text.ParserCombinators.Parsec.Prim  (unexpected, runParser, GenParser, getPosition, token, (<?>),
                                             many)
 
-import Text.Digestive.View (View)
+import Text.Digestive.View (View(..))
 import qualified Text.Digestive as D
+import qualified Text.Digestive.Form.List as D
 
 import Control.Monad.Identity (Identity, runIdentity)
 
@@ -488,6 +490,57 @@ instance FormField Double where
   fromFormField = D.stringRead "must be a double"
 
   renderField _ =renderBootstrapInput "number" []
+
+renderItem :: forall m a. (FromForm a, Monad m)
+  => Proxy a -> Text -> View Text -> HtmlT m ()
+renderItem _ onclickDelete v = do
+  div_ [class_ "youido_multi_item well container"] $ do
+    renderForm (Proxy :: Proxy a) v
+    fieldButton "Delete" onclickDelete
+
+fieldButton :: Monad m => Text -> Text -> HtmlT m ()
+fieldButton name onclick =
+  button_ [ type_ "button", onclick_ onclick ] $ do
+    a_ [] (toHtml name)
+
+jsCall :: Text -> [Text] -> Text
+jsCall fnName args = fnName <> "(" <> T.intercalate "," args <> ")"
+
+jsStr s = "'" <> s <> "'"
+
+instance FromForm a => FormField [a] where
+  fromFormField = D.listOf fromForm
+  renderField _ fieldName label view = do
+    let fieldPath = D.absolutePath fieldName view
+        fieldPathT = D.fromPath fieldPath
+        indicesPath = fieldPath ++ [D.indicesRef]
+        indicesPathT = D.fromPath indicesPath
+        jsArgs = ["this.parentNode", jsStr fieldName, jsStr fieldPathT]
+        onclickDelete = jsCall "youidoRemoveItem" jsArgs <> "; return false;"
+        onclickAdd = jsCall "youidoAddItem" jsArgs <> "; return false;"
+
+    DL.label fieldName view $ toHtml label
+    div_ [class_ "youido_multi_list form-group"] $ do
+
+      -- Invisible input holds the "indices" path with a value
+      input_ [ style_ "display: none"
+             , id_ indicesPathT
+             , name_ indicesPathT
+             , value_ (D.fieldInputText -- NB: relative path required
+                       (D.fromPath [fieldName, D.indicesRef]) view)]
+
+      -- Invisible item so that the JS knows how to render
+      -- a form when the list is empty
+      let
+        dummyView = D.makeListSubView fieldName (-1) view
+        dummy = renderItem (Proxy :: Proxy a) onclickDelete dummyView
+      with dummy [ style_ "display: none"
+                 , id_ (fieldPathT <> ".youido_dummy_item")]
+
+      traverse_ (renderItem (Proxy :: Proxy a) onclickDelete) $
+        D.listSubViews fieldName view
+      fieldButton "Add new item" onclickAdd
+      DL.errorList fieldName (toHtml <$> view)
 
 enumFieldFormlet :: (Enum a, Bounded a, Eq a, Monad m, Show a) => D.Formlet Text m a
 enumFieldFormlet = D.choice (map (\x -> (x, T.pack . show $ x)) [minBound..maxBound])
