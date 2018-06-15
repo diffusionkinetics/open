@@ -491,36 +491,60 @@ instance FormField Double where
 
   renderField _ =renderBootstrapInput "number" []
 
-renderItem :: forall m a. (FromForm a, Monad m) => Proxy a -> Text -> Int -> View Text -> HtmlT m ()
-renderItem _ fieldName idx v@(View nm ctx _ _ _ _) = do
-  let context = (viewName v) <> "."
-        <> (T.intercalate "." $ init (viewContext v))
-      js = "(this,'" <> fieldName <> "','" <> context <> "'); return false;"
+renderItem :: forall m a. (FromForm a, Monad m)
+  => Proxy a -> Text -> Int -> Text -> View Text -> HtmlT m ()
+renderItem _ fieldName idx context v = do
+  let jsArgs = "(this.parentNode,'" <> fieldName <> "','" <> context
+               <> "'); return false;"
 
   div_ [class_ "youido_multi_item well container"] $ do
     renderForm (Proxy :: Proxy a) v
-    button_ [ type_ "button",
-              class_ "remove_field_button"
-            , onclick_ $ "youidoRemoveItem" <> js] $ do
-      a_ [] "Delete"
+    fieldButton "Delete" $ "youidoRemoveItem" <> jsArgs
     span_ [] $ " | "
-    button_ [ type_ "button"
-            , class_ "add_field"
-            , onclick_ $ "youidoAddItem" <> js] $ do
-      a_ [] "Add new item"
+    fieldButton "Add new item" $ "youidoAddItem" <> jsArgs
+
+fieldButton :: Monad m => Text -> Text -> HtmlT m ()
+fieldButton name onclick =
+  button_ [ type_ "button", onclick_ $ onclick ] $ do
+    a_ [] (toHtml name)
 
 instance FromForm a => FormField [a] where
   fromFormField = D.listOf fromForm
   renderField _ fieldName label view = do
+    let fieldPath = D.absolutePath fieldName view
+        fieldPathT = D.fromPath fieldPath
+        indicesPath = fieldPath ++ [D.indicesRef]
+        indicesPathT = D.fromPath indicesPath
+        indicesPathRel = D.fromPath [fieldName, D.indicesRef]
+
+        items = D.listSubViews fieldName view
+        addHidden = if length items == 0 then "" else "display: none"
+        onclick = "youidoAddLoneItem(this.parentNode, '"
+                  <> fieldName <> "', '" <> fieldPathT
+                  <> "'); return false;"
     DL.label fieldName view $ toHtml label
     div_ [class_ "youido_multi_list form-group"] $ do
-      let items = D.listSubViews fieldName view
-      let p' = D.toPath fieldName ++ D.toPath D.indicesRef
-      let p = D.fromPath $ (viewName view) : p'
-      input_ [style_ "display: none", id_ p, name_ p,
-              value_ (D.fieldInputText (D.fromPath p') view)]
-      traverse_
-        (\(x,idx) -> renderItem (Proxy :: Proxy a) fieldName idx x)
+
+      -- Invisible input holds the "indices" path with a value
+      input_ [ style_ "display: none"
+             , id_ indicesPathT
+             , name_ indicesPathT
+             , value_ (D.fieldInputText indicesPathRel view)]
+
+      -- Invisible item so that the JS knows how to render
+      -- a form when the list is empty
+      let
+        dummyView = D.makeListSubView fieldName (-1) view
+        dummy = renderItem (Proxy :: Proxy a)
+                fieldName (-1) fieldPathT dummyView
+      with dummy [ style_ "display: none"
+                 , id_ (fieldPathT <> ".youido_dummy_item")]
+      with (fieldButton "Add new item" onclick)
+        [style_ addHidden, id_ (fieldPathT <> ".youido_add_lone_item")]
+
+      traverse_ (\(v,idx) ->
+                   let ctx = D.fromPath $ viewName v : init (viewContext v)
+                   in renderItem (Proxy :: Proxy a) fieldName idx ctx v)
         $ zip items [0..]
       DL.errorList fieldName (toHtml <$> view)
 
