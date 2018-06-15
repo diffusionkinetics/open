@@ -12,6 +12,8 @@ import Numeric.Datasets.Gapminder
 import Numeric.Datasets
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM
 import Data.List (nub)
 import Network.Wai
 import Data.Text (Text, pack, unpack)
@@ -35,7 +37,7 @@ data TodoR = ListTodos
 instance FromRequest TodoR
 instance ToURL TodoR
 
-data TodoList = TodoList { title :: Text, items :: [Todo] }
+data TodoList = TodoList { title :: Text, items :: [Todo], category :: Text }
   deriving (Show, Generic)
 
 instance FromForm TodoList
@@ -60,9 +62,11 @@ instance ToURL Countries where
   toURL (Country cnm) = "/country/"<>cnm
 
 --------------------------------------------------
-type ExampleM = StateT ExampleState IO
+type ExampleM = ReaderT (TVar ExampleState) IO
 data ExampleState = ExampleState { todoState :: TodoList }
 
+-- readTodoState :: ExampleM TodoList
+readTodoState = ask >>= fmap todoState . liftIO . readTVarIO
 
 --------------------------------------------------
 
@@ -101,7 +105,7 @@ todoListEditForm view = container_ $ do
 todoH :: TodoR -> HtmlT ExampleM ()
 
 todoH ListTodos = container_ $ do
-  TodoList titleT todosT <- gets todoState
+  TodoList titleT todosT _ <- readTodoState
   liftIO . putStrLn $ "ListTodosR: " <> show todosT
   br_ []
   h4_ (toHtml titleT)
@@ -116,14 +120,13 @@ todoH ListTodos = container_ $ do
           <> unpack nameT
 
 todoH EditTodoList = do
-  tdos <- gets todoState
-  liftIO . putStrLn $ "EditTodoList: " <> show tdos
+  tdos <- readTodoState
   todoListEditForm $ getView (Just tdos)
 
 todoH (UpdateTodoList (Form tdos)) = do
-  liftIO . putStrLn $ "UpdateTodoList: " <> show tdos
-  st <- get
-  put $ st { todoState = tdos }
+  atom <- ask
+  liftIO . atomically $
+    modifyTVar atom (\st -> st { todoState = tdos })
   todoH ListTodos
 
 todoH (UpdateTodoList (FormError v)) = do
@@ -134,6 +137,7 @@ initialTodos = TodoList "My todos"
   [ TodoItem 1 "Make todo app" False
   , TodoItem 2 "Have lunch" False
   , TodoItem 3 "Buy bread" True ]
+  "A field after a subform"
 
 sidebar = rdashSidebar "Youido Example" (return ())
     [ ("Bubbles", "fas")  *~ #bubbles :/ Initial
@@ -148,8 +152,9 @@ main :: IO ()
 main = do
   gapM <- getDataset gapminder
   js <- TIO.readFile "form-repeat.js"
+  atom <- newTVarIO $ ExampleState initialTodos
   let runIt :: Bool -> ExampleM a -> IO a
-      runIt okuser todoM = evalStateT todoM $ ExampleState initialTodos
+      runIt _ todoM = runReaderT todoM atom
 
   serveY runIt $ do
     dashdoGlobal

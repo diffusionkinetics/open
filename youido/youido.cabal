@@ -77,3 +77,4 @@ Executable youido-example
                      , datasets
                      , digestive-functors
                      , digestive-functors-lucid
+                     , stm
