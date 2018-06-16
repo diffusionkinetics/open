@@ -19,6 +19,13 @@ function youidoUpdatePaths($items, fieldName, fieldPath) {
   });
 }
 
+function youidoGetFieldPath(itemsDiv) {
+  var indices = $(itemsDiv).children("input[id$='.indices']")[0];
+  if (!!indices) {
+    return indices.id.replace(/\.indices$/, '');
+  } else return null;
+}
+
 function youidoUpdateIndices(fieldPath, newLength) {
   var newVal = '';
   for (var i=0; i < newLength; i++) {
@@ -38,7 +45,8 @@ function youidoUpdate($items, fieldName, fieldPath) {
   youidoUpdateIndices(fieldPath, $itemsNoDummy.length);
 }
 
-function youidoAddItem(itemsDiv, fieldName, fieldPath) {
+function youidoAddItem(itemsDiv, fieldName) {
+  var fieldPath = youidoGetFieldPath(itemsDiv);
   var dummyId = fieldPath + '.' + youidoDummyItem;
   var dummy = document.getElementById(dummyId);
   var newItem = dummy.cloneNode(true);
@@ -50,8 +58,9 @@ function youidoAddItem(itemsDiv, fieldName, fieldPath) {
   youidoUpdate($items, fieldName, fieldPath);
 }
 
-function youidoRemoveItem(item, fieldName, fieldPath) {
+function youidoRemoveItem(item, fieldName) {
   var itemsDiv = item.parentNode;
+  var fieldPath = youidoGetFieldPath(itemsDiv);
   itemsDiv.removeChild(item);
   youidoUpdate($(itemsDiv).children('div.' + youidoItemClass), fieldName, fieldPath);
 }

@@ -17,6 +17,7 @@ import Control.Concurrent.STM
 import Data.List (nub)
 import Network.Wai
 import Data.Text (Text, pack, unpack)
+import qualified Data.Text as T
 import Data.Monoid
 import Lens.Micro.Platform
 --import Graphics.Plotly.Lucid.hs
@@ -42,7 +43,10 @@ data TodoList = TodoList { title :: Text, items :: [Todo], category :: Text }
 
 instance FromForm TodoList
 
-data Todo = TodoItem { todoID :: Int, todo :: Text, done :: Bool }
+data TodoTag = TodoTag { tag :: Text } deriving (Show, Generic)
+instance FromForm TodoTag
+
+data Todo = TodoItem { todoID :: Int, todo :: Text, done :: Bool, tags :: [TodoTag] }
           deriving (Show, Generic)
 
 instance FromForm Todo
@@ -106,18 +110,19 @@ todoH :: TodoR -> HtmlT ExampleM ()
 
 todoH ListTodos = container_ $ do
   TodoList titleT todosT _ <- readTodoState
-  liftIO . putStrLn $ "ListTodosR: " <> show todosT
   br_ []
   h4_ (toHtml titleT)
   a_ [type_ "button", class_ "btn btn-primary", href_ . toURL $ EditTodoList]
     "Edit List"
-  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT doneT) -> do
+  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT doneT tags) -> do
     container_ $ do
       div_ $ do
         toHtml $
           show idT <> ". "
           <> (if doneT then "DONE: " else "TODO: ")
           <> unpack nameT
+          <> unpack (if length tags == 0 then ""
+                     else " (" <> T.intercalate ", " (map tag tags) <> ")")
 
 todoH EditTodoList = do
   tdos <- readTodoState
@@ -134,9 +139,9 @@ todoH (UpdateTodoList (FormError v)) = do
   todoListEditForm v
 
 initialTodos = TodoList "My todos"
-  [ TodoItem 1 "Make todo app" False
-  , TodoItem 2 "Have lunch" False
-  , TodoItem 3 "Buy bread" True ]
+  [ TodoItem 1 "Make todo app" False [TodoTag "dev", TodoTag "work"]
+  , TodoItem 2 "Have lunch" False [TodoTag "personal"]
+  , TodoItem 3 "Buy bread" True []]
   "A field after a subform"
 
 sidebar = rdashSidebar "Youido Example" (return ())
