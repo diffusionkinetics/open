@@ -33,7 +33,7 @@ runStan myModel myData optimize {method = Newton}
 
 {-# LANGUAGE TypeFamilies #-}
 
-module Stan.Run (runStan, Sample (..), Optimize (..), sample, optimize, StanMethod (..), OptMethod (..)) where
+module Stan.Run (runStan, runStanFile, Sample (..), Optimize (..), sample, optimize, StanMethod (..), OptMethod (..)) where
 
 import Stan.Data
 import Stan.AST
@@ -125,13 +125,31 @@ runStan stans sData meth = do
     withCurrentDirectory stTmpDir $ do
       runStanFiles mdlNm dataFile meth
 
+-- | Run a stan file
+runStanFile :: StanMethod a
+           => String -- ^ The Stan model
+           -> StanData -- ^ The data file, written using Stan.Data
+           -> a -- ^ the method to run with
+           -> IO (StanReturns a) -- ^ the output from that method
+runStanFile stans sData meth = do
+    stTmpDir <- getStanTempDirectory
+    dataFile <- writeStanDataFile stTmpDir sData
+    let mdlNm' = 's': (show $ abs $ hash stans)
+    mdlNm <- compileStanFile stTmpDir mdlNm' stans
+    withCurrentDirectory stTmpDir $ do
+      runStanFiles mdlNm dataFile meth
+
 compileStanModel :: FilePath -> [Stan] ->  IO FilePath
 compileStanModel stTmpDir ss = do
   let mdlNm = 's': (show $ abs $ hash ss)
-      stanFile = stTmpDir </> mdlNm <.> "stan"
+  compileStanFile stTmpDir mdlNm $ ppStans ss
+
+compileStanFile :: FilePath -> String -> String -> IO FilePath
+compileStanFile stTmpDir mdlNm stanFl = do
+  let stanFile = stTmpDir </> mdlNm <.> "stan"
   ex <- doesFileExist (stTmpDir </> mdlNm)
   unless ex $ do
-    writeFile stanFile $ ppStans ss
+    writeFile stanFile stanFl
     standir <- findStanDir
     withCurrentDirectory standir $ do
       let cmd = "make " ++ stTmpDir </> mdlNm
