@@ -512,10 +512,9 @@ instance FromForm a => FormField [a] where
   fromFormField = D.listOf fromForm
   renderField _ fieldName label view = do
     let fieldPath = D.absolutePath fieldName view
-        fieldPathT = D.fromPath fieldPath
         indicesPath = fieldPath ++ [D.indicesRef]
         indicesPathT = D.fromPath indicesPath
-        jsArgs = ["this.parentNode", jsStr fieldName, jsStr fieldPathT]
+        jsArgs = ["this.parentNode", jsStr fieldName]
         onclickDelete = jsCall "youidoRemoveItem" jsArgs <> "; return false;"
         onclickAdd = jsCall "youidoAddItem" jsArgs <> "; return false;"
 
@@ -535,7 +534,7 @@ instance FromForm a => FormField [a] where
         dummyView = D.makeListSubView fieldName (-1) view
         dummy = renderItem (Proxy :: Proxy a) onclickDelete dummyView
       with dummy [ style_ "display: none"
-                 , id_ (fieldPathT <> ".youido_dummy_item")]
+                 , id_ (D.fromPath fieldPath <> ".youido_dummy_item")]
 
       traverse_ (renderItem (Proxy :: Proxy a) onclickDelete) $
         D.listSubViews fieldName view
