@@ -83,10 +83,10 @@ hyphenate =
     splitter = dropInitBlank . keepDelimsL . whenElt $ isUpper
 
 class GToURL f where
-  gtoURL   :: f url -> Text
+  gtoURL   :: f url -> [Text]
 
 instance GToURL U1 where
-  gtoURL U1 = ""
+  gtoURL U1 = [""]
 
 instance GToURL a => GToURL (D1 c a) where
   gtoURL = gtoURL . unM1
@@ -95,7 +95,7 @@ instance GToURL a => GToURL (S1 c a) where
   gtoURL = gtoURL . unM1
 
 instance forall c a. (GToURL a, Constructor c) => GToURL (C1 c a) where
-  gtoURL m@(M1 x) = (hyphenate . conName) m <> "/" <> gtoURL x
+  gtoURL m@(M1 x) = (hyphenate . conName) m : gtoURL x
 
 instance (GToURL a, GToURL b) => GToURL (a :*: b) where
   gtoURL (a :*: b) = gtoURL a <> gtoURL b
@@ -105,7 +105,7 @@ instance (GToURL a, GToURL b) => GToURL (a :+: b) where
   gtoURL (R1 x) = gtoURL x
 
 instance ToURL a => GToURL (K1 i a) where
-  gtoURL = toURL . unK1
+  gtoURL = toURLSegments . unK1
 
 class GFromRequest m f where
   grequestParser :: URLParser m (f url)
@@ -135,7 +135,7 @@ instance FromRequest m a => GFromRequest m (K1 i a) where
 
 -- it's instances all the way down
 instance ToURL (Form a) where
-  toURL _ = ""
+  toURLSegments _ = [""]
 
 instance (Monad m, FromForm m a) => FromRequest m (Form a) where
   requestParser = do
@@ -176,29 +176,29 @@ instance (Monad m, FromForm m a) => FromRequest m (Form a) where
 -- fromToQueryString _        = Nothing
 
 instance (ToURL a, ToURL b) => ToURL (a,b) where
-  toURL (a,b)  = toURL a <> toURL b
+  toURLSegments (a,b)  = toURLSegments a <> toURLSegments b
 
 instance (ToURL a) => ToURL (Maybe a) where
-  toURL Nothing  = ""
-  toURL (Just t) = toURL t
+  toURLSegments Nothing  = []
+  toURLSegments (Just t) = toURLSegments t
 
 instance ToURL Text where
-  toURL = id
+  toURLSegments = (:[])
 
 --instance ToURL [Text] where
---  toURL = T.intercalate "/"
+--  toURLSegments = T.intercalate "/"
 
 instance ToURL String where
-  toURL = pack
+  toURLSegments = (:[]) . pack
 
 -- instance ToURL [String] where
-  --toURL = toURL . map pack
+  --toURLSegments = toURLSegments . map pack
 
 instance ToURL Int where
-  toURL = pack . show
+  toURLSegments = (:[]) . pack . show
 
 instance ToURL Integer where
-  toURL = pack . show
+  toURLSegments = (:[]) . pack . show
 
 instance (Monad m, FromRequest m a, FromRequest m b) => FromRequest m (a,b) where
   requestParser  = (,) <$> requestParser <*> requestParser
@@ -323,10 +323,13 @@ fromRequest (rq, pars) = do
              Right t -> Just t
 
 class ToURL  a where
-  toURL :: a -> Text
+  toURLSegments :: a -> [Text]
 
-  default toURL :: (Generic a, GToURL (Rep a)) => a -> Text
-  toURL a = "/" <> gtoURL (from a)
+  default toURLSegments :: (Generic a, GToURL (Rep a)) => a -> [Text]
+  toURLSegments a = gtoURL (from a)
+
+toURL :: (ToURL a) => a -> Text
+toURL x = T.intercalate "/" ("" : toURLSegments x)
 
 instance Monad m => FromRequest m Void where
   requestParser = unexpected "can't produce a void"
@@ -347,7 +350,7 @@ data (s::Symbol) :/ a where
   (:/) :: Key s -> a -> s :/ a
 
 instance (KnownSymbol s, ToURL a) => ToURL (s :/ a) where
-  toURL (_ :/ a) = "/" <> (pack $ symbolVal (Proxy::Proxy s)) <> toURL a
+  toURLSegments (_ :/ a) = (pack $ symbolVal (Proxy::Proxy s)) : toURLSegments a
 
 instance (Monad m, KnownSymbol s, FromRequest m a) => FromRequest m (s :/ a) where
   requestParser = do
@@ -360,7 +363,7 @@ instance (Monad m, KnownSymbol s, FromRequest m a) => FromRequest m (s :/ a) whe
                 else unexpected "failure"
       [] -> unexpected "failure"
 
-instance ToURL () where toURL _ = "/"
+instance ToURL () where toURLSegments _ = [""]
 
 instance Monad m => FromRequest m () where
   requestParser = do
@@ -383,7 +386,7 @@ instance (Monad m, FromRequest m a) => FromRequest m (Name a) where
 
 
 instance ToURL a=> ToURL (Name a)
-  where toURL (Name nm x) = "/"<> nm <> toURL x
+  where toURLSegments (Name nm x) = nm : toURLSegments x
 
 --split on method
 data GetOrPost a b = Get a | Post b
@@ -419,7 +422,7 @@ instance Monad m => FromRequest m FormFields where
     return $ FormFields pars
 
 instance ToURL FormFields where
-  toURL _ = ""
+  toURLSegments _ = []
 
 --------------------------------------------------------------------------
 ---                 FORM HANDLING
