@@ -61,9 +61,9 @@ instance Monad m => FromRequest m DashdoReq where
       Nothing -> unexpected "failure"
 
 instance ToURL DashdoReq where
-  toURL (InitialWith pars)
-    = "/with?"<>(intercalate "&" $ map (\(k,v)->k<>"="<>v) pars)
-  toURL _ = "/"
+  toURLSegments (InitialWith pars)
+    = ["with?"<>(intercalate "&" $ map (\(k,v)->k<>"="<>v) pars)]
+  toURLSegments _ = [""]
 
 
 dashdoHandler' :: forall s m t auth. (KnownSymbol s, MonadIO m, Show t)
