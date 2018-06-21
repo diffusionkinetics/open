@@ -29,7 +29,7 @@ parseForm x ((fnm,f):nfs) pars =                  -- x=initial d (accumulator)
 {-parseForm x _ [] = x
 parseForm x ffs pars@((k,v):parsTail) =
   let
-    currentKeyIsList = "[]" `isSuffixOf` (TL.unpack k)
+    currentKeyIsList = "[]" `isSuffixOf` (TL.unpack k)x
 
     lookupKey =
       if not currentKeyIsList
