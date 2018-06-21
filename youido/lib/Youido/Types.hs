@@ -534,7 +534,7 @@ instance Monad m => FormField m Double where
 
   renderField _ = renderBootstrapInput "number" []
 
-renderItem :: forall m a. (FromForm a, Monad m)
+renderItem :: forall m a. (FromForm m a, Monad m)
   => Proxy a -> Text -> View Text -> HtmlT m ()
 renderItem _ onclickDelete v = do
   div_ [class_ "youido_multi_item well container"] $ do
@@ -551,7 +551,7 @@ jsCall fnName args = fnName <> "(" <> T.intercalate "," args <> ")"
 
 jsStr s = "'" <> s <> "'"
 
-instance FromForm a => FormField [a] where
+instance (FromForm m a, Monad m) => FormField m [a] where
   fromFormField = D.listOf fromForm
   renderField _ fieldName label view = do
     let fieldPath = D.absolutePath fieldName view
