@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ScopedTypeVariables,
-   ExtendedDefaultRules, FlexibleContexts, TemplateHaskell,
-   OverloadedLabels, TypeOperators, DataKinds, DeriveGeneric #-}
+   ExtendedDefaultRules, FlexibleContexts, TemplateHaskell, MultiParamTypeClasses,
+   OverloadedLabels, TypeOperators, DataKinds, DeriveGeneric, FlexibleInstances #-}
 
 import Youido.Serve
 import Youido.Types
@@ -35,36 +35,30 @@ data TodoR = ListTodos
            | UpdateTodoList (Form TodoList)
   deriving (Show, Generic)
 
-instance FromRequest TodoR
+instance  Monad m => FromRequest m TodoR
 instance ToURL TodoR
 
 data TodoList = TodoList { title :: Text, items :: [Todo], category :: Text }
   deriving (Show, Generic)
 
-instance FromForm TodoList
+instance  Monad m => FromForm m TodoList
 
 data TodoTag = TodoTag { tag :: Text } deriving (Show, Generic)
-instance FromForm TodoTag
+instance  Monad m => FromForm m TodoTag
 
 data Todo = TodoItem { todoID :: Int, todo :: Text, done :: Bool, tags :: [TodoTag] }
           deriving (Show, Generic)
 
-instance FromForm Todo
+instance Monad m => FromForm m Todo
 
 --------------------------------------------------
 data Countries = Countries
                | Country Text
+               deriving (Show, Generic)
 
-instance FromRequest Countries where
-  fromRequest (rq,_) = case pathInfo rq of
-    "countries":_ -> Just Countries
-    "country":cnm:_ -> Just $ Country cnm
-    _ -> Nothing
+instance  Monad m => FromRequest m Countries 
 
-instance ToURL Countries where
-  toURL Countries = "/countries"
-  toURL (Country cnm) = "/country/"<>cnm
-
+instance ToURL Countries 
 --------------------------------------------------
 type ExampleM = ReaderT (TVar ExampleState) IO
 data ExampleState = ExampleState { todoState :: TodoList }
@@ -126,7 +120,7 @@ todoH ListTodos = container_ $ do
 
 todoH EditTodoList = do
   tdos <- readTodoState
-  todoListEditForm $ getView (Just tdos)
+  todoListEditForm =<< (getView (Just tdos))
 
 todoH (UpdateTodoList (Form tdos)) = do
   atom <- ask
