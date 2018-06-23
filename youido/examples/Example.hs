@@ -17,6 +17,7 @@ import Control.Concurrent.STM
 import Data.List (nub)
 import Network.Wai
 import Data.Text (Text, pack, unpack)
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Data.Monoid
 import Lens.Micro.Platform
@@ -38,7 +39,11 @@ data TodoR = ListTodos
 instance  Monad m => FromRequest m TodoR
 instance ToURL TodoR
 
-data TodoList = TodoList { title :: Text, items :: [Todo], category :: Text }
+data TodoList = TodoList { 
+  title :: Text,
+  items :: [Todo],
+  category :: Text
+  }
   deriving (Show, Generic)
 
 instance  Monad m => FromForm m TodoList
@@ -46,10 +51,20 @@ instance  Monad m => FromForm m TodoList
 data TodoTag = TodoTag { tag :: Text } deriving (Show, Generic)
 instance  Monad m => FromForm m TodoTag
 
-data Todo = TodoItem { todoID :: Int, todo :: Text, done :: Bool, tags :: [TodoTag] }
+data Todo = TodoItem {
+ todoID :: Int, 
+ todo :: Text,
+ assignee :: Int, -- employee ID, should be newtype around Int
+ done :: Bool,
+ tags :: [TodoTag] 
+ }
           deriving (Show, Generic)
 
 instance Monad m => FromForm m Todo
+
+getEmployees :: IO [(Int, Text)] -- in the IO monad to simulate a database call
+getEmployees = return [(1, "Jim"), (2, "Sam"), (3, "Lisa")]
+
 
 --------------------------------------------------
 data Countries = Countries
@@ -104,17 +119,20 @@ todoH :: TodoR -> HtmlT ExampleM ()
 
 todoH ListTodos = container_ $ do
   TodoList titleT todosT _ <- readTodoState
+  employees <- liftIO $ getEmployees
   br_ []
   h4_ (toHtml titleT)
   a_ [type_ "button", class_ "btn btn-primary", href_ . toURL $ EditTodoList]
     "Edit List"
-  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT doneT tags) -> do
+  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT assignT doneT tags) -> do
+    let employee = fromMaybe "unknown" $ lookup assignT employees
     container_ $ do
       div_ $ do
         toHtml $
           show idT <> ". "
           <> (if doneT then "DONE: " else "TODO: ")
           <> unpack nameT
+          <> " (" <> unpack employee <> ") " 
           <> unpack (if length tags == 0 then ""
                      else " (" <> T.intercalate ", " (map tag tags) <> ")")
 
@@ -133,9 +151,9 @@ todoH (UpdateTodoList (FormError v)) = do
   todoListEditForm v
 
 initialTodos = TodoList "My todos"
-  [ TodoItem 1 "Make todo app" False [TodoTag "dev", TodoTag "work"]
-  , TodoItem 2 "Have lunch" False [TodoTag "personal"]
-  , TodoItem 3 "Buy bread" True []]
+  [ TodoItem 1 "Make todo app" 1 False [TodoTag "dev", TodoTag "work"]
+  , TodoItem 2 "Have lunch" 2 False [TodoTag "personal"]
+  , TodoItem 3 "Buy bread" 3 True []]
   "A field after a subform"
 
 sidebar = rdashSidebar "Youido Example" (return ())
