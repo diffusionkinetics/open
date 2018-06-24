@@ -60,7 +60,7 @@ newtype Assignee = Assignee Int deriving (Generic, Show, Eq, Num)
 instance MonadIO m => FormField m Assignee where
   fromFormField def = D.monadic $ liftIO $ do
     employees <- getEmployees
-    return $ D.choice employees Nothing
+    return $ D.choice employees def
 
   renderField _ fieldName label view = div_ [class_ "form-group"] $ do
     DL.label fieldName view (toHtml label)
