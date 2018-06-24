@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ScopedTypeVariables,
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell, MultiParamTypeClasses,
    OverloadedLabels, TypeOperators, DataKinds, DeriveGeneric, FlexibleInstances #-}
@@ -25,44 +26,59 @@ import Lens.Micro.Platform
 
 import Dashdo.Elements
 import Dashdo.FlexibleInput
-import Dashdo.Types
+import Dashdo.Types hiding (FormField)
 import Data.Proxy
 import GHC.Generics
 import Text.Digestive.View (View)
 import qualified Data.Text.IO as TIO
+
+import qualified Text.Digestive as D
+import qualified Text.Digestive.Lucid.Html5 as DL
 
 data TodoR = ListTodos
            | EditTodoList
            | UpdateTodoList (Form TodoList)
   deriving (Show, Generic)
 
-instance  Monad m => FromRequest m TodoR
+instance MonadIO m => FromRequest m TodoR
 instance ToURL TodoR
 
-data TodoList = TodoList { 
+data TodoList = TodoList {
   title :: Text,
   items :: [Todo],
   category :: Text
   }
   deriving (Show, Generic)
 
-instance  Monad m => FromForm m TodoList
+instance MonadIO m => FromForm m TodoList
 
 data TodoTag = TodoTag { tag :: Text } deriving (Show, Generic)
 instance  Monad m => FromForm m TodoTag
 
+newtype Assignee = Assignee Int deriving (Generic, Show, Eq, Num)
+
+instance MonadIO m => FormField m Assignee where
+  fromFormField def = D.monadic $ liftIO $ do
+    employees <- getEmployees
+    return $ D.choice employees Nothing
+
+  renderField _ fieldName label view = div_ [class_ "form-group"] $ do
+    DL.label fieldName view (toHtml label)
+    with (DL.inputSelect fieldName (toHtml <$> view)) -- DL.inputWithType typ_ attrs fieldName view)
+      [class_ "form-control", autofocus_]
+    DL.errorList fieldName (toHtml <$> view)
+
 data Todo = TodoItem {
- todoID :: Int, 
+ todoID :: Int,
  todo :: Text,
- assignee :: Int, -- employee ID, should be newtype around Int
+ assignee :: Assignee,
  done :: Bool,
- tags :: [TodoTag] 
- }
-          deriving (Show, Generic)
+ tags :: [TodoTag]
+ } deriving (Show, Generic)
 
-instance Monad m => FromForm m Todo
+instance MonadIO m => FromForm m Todo
 
-getEmployees :: IO [(Int, Text)] -- in the IO monad to simulate a database call
+getEmployees :: IO [(Assignee, Text)] -- in the IO monad to simulate a database call
 getEmployees = return [(1, "Jim"), (2, "Sam"), (3, "Lisa")]
 
 
@@ -71,9 +87,9 @@ data Countries = Countries
                | Country Text
                deriving (Show, Generic)
 
-instance  Monad m => FromRequest m Countries 
+instance MonadIO m => FromRequest m Countries
 
-instance ToURL Countries 
+instance ToURL Countries
 --------------------------------------------------
 type ExampleM = ReaderT (TVar ExampleState) IO
 data ExampleState = ExampleState { todoState :: TodoList }
@@ -109,7 +125,7 @@ bubblesDD gapM = do
 
 --------------------------------------------------
 
-todoListEditForm :: Monad m => View Text -> HtmlT m ()
+todoListEditForm :: MonadIO m => View Text -> HtmlT m ()
 todoListEditForm view = container_ $ do
   form_ [method_ "post", action_ (toURL $ UpdateTodoList FormLink)] $ do
     renderForm (Proxy :: Proxy TodoList) view
