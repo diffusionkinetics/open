@@ -74,6 +74,7 @@ instance (TableSelectors a, TableSelectors b) => TableSelectors (a :*: b) where
 instance TableSelectors U1 where
   selNames _ = []
   
+{-
 data Test = Test{
   foo :: String,
   bar ::String} deriving Generic
@@ -85,5 +86,7 @@ b :: [Html ()]
 
 b = toHtmlRow $ Test "hello" "world"
 g = from $ Test "hello" "world"
+-}
+
 
 
