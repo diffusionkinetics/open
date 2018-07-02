@@ -30,6 +30,7 @@ Library
                  , Lucid.DataTables
                  , Lucid.Rdash
                  , Lucid.Leaflet
+                 , Lucid.Tables
    Build-depends:
                  base                    >= 4.6 && < 5
                , aeson
