@@ -1,11 +1,15 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings, ExistentialQuantification, ScopedTypeVariables,
    ExtendedDefaultRules, FlexibleContexts, TemplateHaskell, MultiParamTypeClasses,
-   OverloadedLabels, TypeOperators, DataKinds, DeriveGeneric, FlexibleInstances #-}
+   OverloadedLabels, TypeOperators, DataKinds, DeriveGeneric,
+   FlexibleInstances, TypeApplications, GeneralizedNewtypeDeriving #-}
+
+module Main where
 
 import Youido.Serve
 import Youido.Types
 import Youido.Dashdo
+import Youido.Utils
+import SumTypeExample
 import Lucid
 import Lucid.Bootstrap
 import Lucid.Rdash
@@ -21,6 +25,7 @@ import Data.Text (Text, pack, unpack)
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Data.Monoid
+import qualified Data.Map as M
 import Lens.Micro.Platform
 --import Graphics.Plotly.Lucid.hs
 
@@ -29,8 +34,11 @@ import Dashdo.FlexibleInput
 import Dashdo.Types hiding (FormField)
 import Data.Proxy
 import GHC.Generics
-import Text.Digestive.View (View)
+import Text.Digestive.View
+import Text.Digestive.Form hiding (Form)
+import Text.Digestive.Form.Internal hiding (Form)
 import qualified Data.Text.IO as TIO
+import Data.Functor.Identity
 
 import qualified Text.Digestive as D
 import qualified Text.Digestive.Lucid.Html5 as DL
@@ -58,11 +66,11 @@ instance  Monad m => FromForm m TodoTag
 newtype Assignee = Assignee Int deriving (Generic, Show, Eq, Num)
 
 instance MonadIO m => FormField m Assignee where
-  fromFormField def = D.monadic $ liftIO $ do
+  fromFormField chs def = D.monadic $ liftIO $ do
     employees <- getEmployees
-    return $ D.choice employees def
+    return . D.choice employees $ def
 
-  renderField _ fieldName label view = div_ [class_ "form-group"] $ do
+  renderField _ _ fieldName label view = div_ [class_ "form-group"] $ do
     DL.label fieldName view (toHtml label)
     with (DL.inputSelect fieldName (toHtml <$> view)) -- DL.inputWithType typ_ attrs fieldName view)
       [class_ "form-control", autofocus_]
@@ -92,7 +100,7 @@ instance MonadIO m => FromRequest m Countries
 instance ToURL Countries
 --------------------------------------------------
 type ExampleM = ReaderT (TVar ExampleState) IO
-data ExampleState = ExampleState { todoState :: TodoList }
+data ExampleState = ExampleState { todoState :: TodoList, quiz :: Quiz }
 
 -- readTodoState :: ExampleM TodoList
 readTodoState = ask >>= fmap todoState . liftIO . readTVarIO
@@ -148,7 +156,7 @@ todoH ListTodos = container_ $ do
           show idT <> ". "
           <> (if doneT then "DONE: " else "TODO: ")
           <> unpack nameT
-          <> " (" <> unpack employee <> ") " 
+          <> " (" <> unpack employee <> ") "
           <> unpack (if length tags == 0 then ""
                      else " (" <> T.intercalate ", " (map tag tags) <> ")")
 
@@ -166,16 +174,54 @@ todoH (UpdateTodoList (FormError v)) = do
   liftIO . putStrLn $ "UpdateTodoList error: " <> show (FormError v)
   todoListEditForm v
 
+--------------------------------------------------
+
+readQuiz = fmap quiz . liftIO . readTVarIO =<< ask
+
+quizH ShowQuiz = do
+  Quiz nm favCol <- readQuiz
+  br_ []
+  h4_ (toHtml nm)
+  a_ [type_ "button", class_ "btn btn-primary", href_ $ toURL EditQuiz] "Edit"
+  container_ $ do
+    toHtml $ "Favourite colour: " <> show favCol
+
+quizH EditQuiz = do
+  q <- readQuiz
+  liftIO . putStrLn $ "\n ****** Getting view for quiz\n"
+  quizEditForm (Just q) =<< getView (Just q)
+
+quizH (UpdateQuiz (Form q)) = do
+  liftIO . putStrLn $ "UpdateQuiz:" <> show q
+  state <- ask
+  liftIO . atomically $
+    modifyTVar state $ \st -> st { quiz = q }
+  quizH ShowQuiz
+
+quizEditForm :: Monad m => Maybe Quiz -> View Text -> HtmlT m ()
+quizEditForm mdef view = container_ $ do
+  form_ [method_ "post", action_ (toURL $ UpdateQuiz FormLink)] $ do
+    renderSumForm Nothing mdef view
+    button_ [type_ "submit"] "Save"
+
+frm = fromForm @IO @Quiz
+getf ch def = getForm "xyz" $ frm ch def
+-- postf x = "xyz" (frm x)
+--------------------------------------------------
+
 initialTodos = TodoList "My todos"
   [ TodoItem 1 "Make todo app" 1 False [TodoTag "dev", TodoTag "work"]
   , TodoItem 2 "Have lunch" 2 False [TodoTag "personal"]
   , TodoItem 3 "Buy bread" 3 True []]
   "A field after a subform"
 
+initialQuiz = Quiz "Someone" $ Blue "navy"
+
 sidebar = rdashSidebar "Youido Example" (return ())
     [ ("Bubbles", "fas")  *~ #bubbles :/ Initial
     , ("Counties", "fas") *~ Countries
-    , ("Todos", "fas") *~ ListTodos ]
+    , ("Todos", "fas") *~ ListTodos
+    , ("Sum Types", "fas") *~ ShowQuiz ]
 
 inHeader :: Text -> Html ()
 inHeader js = do
@@ -185,7 +231,7 @@ main :: IO ()
 main = do
   gapM <- getDataset gapminder
   js <- TIO.readFile "form-repeat.js"
-  atom <- newTVarIO $ ExampleState initialTodos
+  atom <- newTVarIO $ ExampleState initialTodos initialQuiz
   let runIt :: Bool -> ExampleM a -> IO a
       runIt _ todoM = runReaderT todoM atom
 
@@ -197,3 +243,4 @@ main = do
     wrapper .= \_ -> rdashWrapper "Youido Example" (inHeader js) sidebar
     hHtmlT $ countryH gapM
     hHtmlT todoH
+    hHtmlT quizH

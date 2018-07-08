@@ -30,6 +30,7 @@ library
                      Youido.Serve
                      Youido.Dashdo
                      Youido.Authentication
+                     Youido.Utils
   build-depends:       base >= 4.6 && < 5
                      , text
                      , lucid
@@ -60,7 +61,9 @@ library
                      , transformers
 
 Executable youido-example
-  main-is: examples/Example.hs
+  hs-source-dirs: examples
+  main-is: Example.hs
+  other-modules: SumTypeExample
   if flag(example)
            Buildable:     True
   else
@@ -79,3 +82,4 @@ Executable youido-example
                      , digestive-functors
                      , digestive-functors-lucid
                      , stm
+                     , containers
