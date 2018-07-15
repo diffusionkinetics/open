@@ -76,10 +76,15 @@ instance MonadIO m => FormField m Assignee where
       [class_ "form-control", autofocus_]
     DL.errorList fieldName (toHtml <$> view)
 
+data Priority = None | Low | High | Custom { note :: Text, priorityNumber :: Int }
+  deriving (Show, Generic)
+instance (Monad m) => FormField m Priority
+
 data Todo = TodoItem {
  todoID :: Int,
  todo :: Text,
  assignee :: Assignee,
+ priority :: Priority,
  done :: Bool,
  tags :: [TodoTag]
  } deriving (Show, Generic)
@@ -133,10 +138,10 @@ bubblesDD gapM = do
 
 --------------------------------------------------
 
-todoListEditForm :: MonadIO m => View Text -> HtmlT m ()
-todoListEditForm view = container_ $ do
+todoListEditForm :: MonadIO m => Maybe TodoList -> View Text -> HtmlT m ()
+todoListEditForm mdef view = container_ $ do
   form_ [method_ "post", action_ (toURL $ UpdateTodoList FormLink)] $ do
-    renderForm (Proxy :: Proxy TodoList) view
+    renderSumForm Nothing mdef view
     button_ [type_ "submit"] "Save"
 
 todoH :: TodoR -> HtmlT ExampleM ()
@@ -148,7 +153,7 @@ todoH ListTodos = container_ $ do
   h4_ (toHtml titleT)
   a_ [type_ "button", class_ "btn btn-primary", href_ . toURL $ EditTodoList]
     "Edit List"
-  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT assignT doneT tags) -> do
+  widget_ . widgetBody_ $ forM_ todosT $ \(TodoItem idT nameT assignT priorityT doneT tags) -> do
     let employee = fromMaybe "unknown" $ lookup assignT employees
     container_ $ do
       div_ $ do
@@ -157,12 +162,13 @@ todoH ListTodos = container_ $ do
           <> (if doneT then "DONE: " else "TODO: ")
           <> unpack nameT
           <> " (" <> unpack employee <> ") "
+          <> " [Priority: " <> show priorityT <> "]"
           <> unpack (if length tags == 0 then ""
                      else " (" <> T.intercalate ", " (map tag tags) <> ")")
 
 todoH EditTodoList = do
   tdos <- readTodoState
-  todoListEditForm =<< (getView (Just tdos))
+  todoListEditForm (Just tdos) =<< (getView (Just tdos))
 
 todoH (UpdateTodoList (Form tdos)) = do
   atom <- ask
@@ -172,19 +178,25 @@ todoH (UpdateTodoList (Form tdos)) = do
 
 todoH (UpdateTodoList (FormError v)) = do
   liftIO . putStrLn $ "UpdateTodoList error: " <> show (FormError v)
-  todoListEditForm v
+  todoListEditForm Nothing v
 
 --------------------------------------------------
 
 readQuiz = fmap quiz . liftIO . readTVarIO =<< ask
 
 quizH ShowQuiz = do
-  Quiz nm favCol <- readQuiz
+  Quiz nm favCol r <- readQuiz
   br_ []
   h4_ (toHtml nm)
   a_ [type_ "button", class_ "btn btn-primary", href_ $ toURL EditQuiz] "Edit"
+  br_ []
+  a_ [type_ "button", class_ "btn btn-default", href_ $ toURL NewQuiz] "New"
   container_ $ do
-    toHtml $ "Favourite colour: " <> show favCol
+    toHtml $ "Favourite colour: " <> show favCol <> ", " <> show r
+
+quizH NewQuiz = do
+  liftIO . putStrLn $ "* New quiz *"
+  quizEditForm Nothing =<< getView (Nothing :: Maybe Quiz)
 
 quizH EditQuiz = do
   q <- readQuiz
@@ -198,24 +210,25 @@ quizH (UpdateQuiz (Form q)) = do
     modifyTVar state $ \st -> st { quiz = q }
   quizH ShowQuiz
 
+quizH (UpdateQuiz (FormError v)) = do
+  liftIO . putStrLn $ "UpdateQuiz error: " <> show (FormError v)
+  quizEditForm Nothing v
+
 quizEditForm :: Monad m => Maybe Quiz -> View Text -> HtmlT m ()
 quizEditForm mdef view = container_ $ do
   form_ [method_ "post", action_ (toURL $ UpdateQuiz FormLink)] $ do
     renderSumForm Nothing mdef view
     button_ [type_ "submit"] "Save"
 
-frm = fromForm @IO @Quiz
-getf ch def = getForm "xyz" $ frm ch def
--- postf x = "xyz" (frm x)
 --------------------------------------------------
 
 initialTodos = TodoList "My todos"
-  [ TodoItem 1 "Make todo app" 1 False [TodoTag "dev", TodoTag "work"]
-  , TodoItem 2 "Have lunch" 2 False [TodoTag "personal"]
-  , TodoItem 3 "Buy bread" 3 True []]
+  [ TodoItem 1 "Make todo app" 1 High False [TodoTag "dev", TodoTag "work"]
+  , TodoItem 2 "Have lunch" 2 None False [TodoTag "personal"]
+  , TodoItem 3 "Buy bread" 3 (Custom "eventually" 1) True []]
   "A field after a subform"
 
-initialQuiz = Quiz "Someone" $ Blue "navy"
+initialQuiz = Quiz "A quiz" (Blue "navy" "extra thoughts") PreferNotToSay
 
 sidebar = rdashSidebar "Youido Example" (return ())
     [ ("Bubbles", "fas")  *~ #bubbles :/ Initial
@@ -230,7 +243,7 @@ inHeader js = do
 main :: IO ()
 main = do
   gapM <- getDataset gapminder
-  js <- TIO.readFile "form-repeat.js"
+  js <- mconcat <$> traverse TIO.readFile ["form-repeat.js", "sum-select.js"]
   atom <- newTVarIO $ ExampleState initialTodos initialQuiz
   let runIt :: Bool -> ExampleM a -> IO a
       runIt _ todoM = runReaderT todoM atom

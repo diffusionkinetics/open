@@ -21,9 +21,8 @@ import qualified Data.Text as T
 import Data.Text (Text, pack, unpack)
 import Data.Text.Read(signed, decimal)
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TLE
 import qualified Data.Text.Encoding as T
-import Data.Maybe (maybeToList, isNothing)
+import Data.Maybe (maybeToList)
 import Control.Monad.State.Strict
 import Data.Monoid
 import GHC.TypeLits
@@ -32,9 +31,8 @@ import Lucid
 import Data.Aeson hiding (defaultOptions)
 import Data.List.Split (split, dropInitBlank, keepDelimsL, whenElt)
 import Data.Char (toLower, isUpper)
-import Data.List (intercalate, find)
+import Data.List (intercalate, partition)
 import Data.Foldable (traverse_)
-import Data.Functor.Identity
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import GHC.OverloadedLabels
@@ -54,8 +52,9 @@ import Text.ParserCombinators.Parsec.Prim  (unexpected, getPosition, (<?>), many
 
 import Text.Digestive.View (View(..))
 import qualified Text.Digestive as D
-import qualified Text.Digestive.Form.List as D
 import qualified Text.Digestive.Form.Internal as D
+import qualified Text.Digestive.Types as D (FormInput(..))
+import qualified Text.Digestive.Form.List as D
 import qualified Text.Digestive.Lucid.Html5 as DL
 
 --------------------------------------------------------------------------
@@ -140,9 +139,39 @@ instance FromRequest m a => GFromRequest m (K1 i a) where
 instance ToURL (Form a) where
   toURLSegments _ = [""]
 
+-- Map from form paths to (datatype name, constructor name)
+-- Instructs formtree builder (fromForm* funcs) which path in the sum to build
+type SumChoices = Map Text Text
+notSelectedValue = "#not-selected" :: Text
+renderCtorKey = "#render-now" :: Text
+
+mkSumChoices :: [(TL.Text, TL.Text)] -> SumChoices
+mkSumChoices = M.fromList
+  . map (\(k,v) -> (TL.toStrict . snd $ TL.breakOnEnd "youido-sums." k,
+                    TL.toStrict v))
+  . filter (\(k,v) -> "youido-sums." `TL.isPrefixOf` k
+                      && not (".-1." `TL.isInfixOf` k)) -- no dummy list
+
+-- Manually inserts errors for sum types where no selection was made
+withSelectionErrors :: View Text -> SumChoices -> View Text
+withSelectionErrors v@(View _ _ _ _ es _) choices =
+  v { viewErrors = selErrs ++ es }
+  where selErrs =
+          map (\(k,v) -> (D.toPath k, "Selection required"))
+          . M.toList $ M.filter ((==) notSelectedValue) choices
+
+annotateWithSumChoices :: View Text -> SumChoices -> View Text
+annotateWithSumChoices v@(View _ _ _ input es _) choices =
+  v { viewInput = selInput ++ input
+    , viewErrors = selErrs ++ es }
+  where selInput = map (\(k,v) -> (D.toPath k ++ ["#choice"], D.TextInput v)) selected
+        selErrs = map (\(k,v) -> (D.toPath k, "Selection required")) notSelected
+        (selected, notSelected) = partition (\(k,v) -> v /= notSelectedValue) $ M.toList choices
+
 instance (Monad m, FromForm m a) => FromRequest m (Form a) where
   requestParser = do
     result <- formResult
+    traceM $ "**** result errors: " <> show (viewErrors $ fst result)
     return $ case result of
         (_, Just x) -> Form x
         (view, Nothing) -> FormError view
@@ -156,26 +185,19 @@ instance (Monad m, FromForm m a) => FromRequest m (Form a) where
       lookupPath pars path = maybeToList $ D.TextInput <$> TL.toStrict <$> lookup (TL.fromStrict (D.fromPath path)) pars
 
       runPostForm :: [(TL.Text, TL.Text)] -> m (View Text, Maybe a)
-      runPostForm pars =
-        trace (show pars) $
-        D.postForm "top-level-form" (formWith pars) (postFormHandler pars)
+      runPostForm pars = do
+        (v, answer) <- D.postForm "top-level-form" form (postFormHandler pars)
+        let v' = annotateWithSumChoices v choices
+        return (v', if null (viewErrors v') then answer else Nothing)
         where
           postFormHandler :: (Monad m) => [(TL.Text, TL.Text)] -> D.FormEncType -> m (D.Env m)
-          postFormHandler pars D.UrlEncoded = do
-            traceM $ TL.unpack (TL.intercalate "\n" (map (\(t,s) -> "(" <> t <> ", " <> s <> ")") pars))
-            return $ \path -> (return $ lookupPath pars path)
+          postFormHandler pars D.UrlEncoded = return $ \path -> (return $ lookupPath pars path)
           postFormHandler pars D.MultiPart = return $ const (return [])
-
-          formWith :: [(TL.Text, TL.Text)] -> D.Form Text m a
-          formWith pars =
-            let sums = M.fromList $
-                  map (\(k,v) -> (TL.toStrict . snd $ TL.breakOnEnd "youido-sums." k,
-                                  TL.toStrict v))
-                  . filter (\(k,v) -> "youido-sums." `TL.isPrefixOf` k) $ pars
-            in trace ("parsed sums: " <> show sums) $ fromForm (Just sums) Nothing
-
-getList :: TL.Text -> [(TL.Text, TL.Text)] -> [TL.Text]
-getList k = map snd . filter (\x -> fst x == k)
+          choices = mkSumChoices pars
+          opts = FromFormOptions $
+                 Just (SumOptions (M.filter ((/=) notSelectedValue) choices) Nothing "")
+          form :: D.Form Text m a
+          form = fromForm' opts Nothing
 
 instance (ToURL a, ToURL b) => ToURL (a,b) where
   toURLSegments (a,b)  = toURLSegments a <> toURLSegments b
@@ -430,55 +452,76 @@ instance ToURL FormFields where
 ---                 FORM HANDLING
 --------------------------------------------------------------------------
 
+-- TODO: make sumCtor and viewOf an Either, or can they both be present?
+-- TODO: rename to something like RenderOptions
 data Options a = Options
   {
     fieldLabelModifier :: Text -> Text
   , constructorTagModifier :: Text -> Text
-  , sumConstructor :: Maybe Text
-  , ctorMap :: Map Text Text
-  , viewOf :: Maybe a
+  , sumConstructor :: Maybe Text -- | Rennders specifc ctor
+  , ctorMap :: SumChoices -- | (maybe.context.)fieldName -> Constructor
+  , viewOf :: Maybe a -- | Renders `a` when present
   }
 
 instance Functor Options where
   fmap f o = o { viewOf = f <$> viewOf o }
 
--- for the many generic instance functions which don't need the viewOf element
 nextOpts :: Options a -> Options b
 nextOpts o = o { viewOf = Nothing }
 
 defaultOptions :: Options a
 defaultOptions = Options id id Nothing M.empty Nothing
 
+data SumOptions = SumOptions
+  { sumChoices :: SumChoices
+  , currentlyBuildingCtor :: Maybe Text
+  , currentContext :: Text
+  } deriving Show
+
+data FromFormOptions = FromFormOptions
+  { sumOpts :: Maybe SumOptions
+  } deriving Show
+
+mkSumOpts ch ctor = FromFormOptions $ Just (SumOptions ch (Just ctor) "") -- TODO: fix
+mkSumOptsCtx ch ctor ctx = FromFormOptions $ Just (SumOptions ch (Just ctor) ctx)
+
+defaultFromFormOpts = FromFormOptions Nothing
+
 genericFromForm :: (Generic a, PostFormG m (Rep a), Monad m)
-                => Maybe SumChoices -> D.Formlet Text m a
-genericFromForm ch def = to <$>  postFormG ch (from  <$> def)
+  => FromFormOptions -> D.Formlet Text m a
+genericFromForm opts def = to <$>  postFormG opts (from  <$> def)
 
 genericRenderForm :: (Generic a, PostFormG m (Rep a), Monad m)
-                  => Proxy a -> Options a -> View Text -> HtmlT m ()
+  => Proxy a -> Options a -> View Text -> HtmlT m ()
 genericRenderForm p options view =  do
   DL.errorList "" (toHtml <$> view)
   renderFormG (from <$> p) (from <$> options) view
 
 renderSumForm :: forall a m. (Monad m, Generic a, PostFormG m (Rep a))
-              => Maybe (Options a) -> Maybe a -> View Text -> HtmlT m ()
+  => Maybe (Options a) -> Maybe a -> View Text -> HtmlT m ()
 renderSumForm mopts mdef v = do
   let opts = (maybe defaultOptions id mopts) { viewOf = mdef}
   genericRenderForm (Proxy :: Proxy a) opts v
 
 class FromForm m a where
-  fromForm :: Maybe SumChoices -> D.Formlet Text m a
-  default fromForm ::
-    (Monad m, Generic a, PostFormG m (Rep a)) => Maybe SumChoices -> D.Formlet Text m a
-  fromForm ch def = to <$>  postFormG ch (from  <$> def)
+  fromForm' :: FromFormOptions -> D.Formlet Text m a
+  default fromForm' ::
+    (Monad m, Generic a, PostFormG m (Rep a)) => FromFormOptions -> D.Formlet Text m a
+  fromForm' = genericFromForm
+
+  fromForm :: D.Formlet Text m a
+  fromForm = fromForm' defaultFromFormOpts
+
+  renderForm' :: Proxy a -> Options a -> View Text -> HtmlT m ()
+  default renderForm' :: (Monad m, Generic a, PostFormG m (Rep a))
+                     => Proxy a -> Options a -> View Text -> HtmlT m ()
+  renderForm' = genericRenderForm
 
   renderForm :: Proxy a -> View Text -> HtmlT m ()
-  default renderForm :: (Monad m, Generic a, PostFormG m (Rep a))
-                     => Proxy a -> View Text -> HtmlT m ()
-
-  renderForm p = genericRenderForm p defaultOptions
+  renderForm p = renderForm' p defaultOptions
 
   getView :: Monad m => Maybe a -> m (View Text)
-  getView def = D.getForm "top-level-form" $ fromForm Nothing def
+  getView def = D.getForm "top-level-form" $ fromForm def
 
 type Label = Text
 type FieldName = Text
@@ -496,54 +539,53 @@ renderBootstrapInput typ_ attrs fieldName label view = div_ [class_ "form-group"
 ---------------------------------------------------------------------------------
 
 class PostFormG m f where
-  postFormG :: Maybe SumChoices -> D.Formlet Text m (f a)
+  postFormG :: FromFormOptions -> D.Formlet Text m (f a)
   renderFormG :: Proxy (f a) -> Options (f a) -> View Text -> HtmlT m ()
 
 instance (Monad m, PostFormG m f) => PostFormG m (M1 D t f) where
-  postFormG ch def = M1 <$> (postFormG ch $ unM1 <$> def)
+  postFormG opts def = M1 <$> (postFormG opts $ unM1 <$> def)
   renderFormG _ opts = renderFormG (Proxy :: Proxy (f a)) (unM1 <$> opts)
 
 instance (Monad m, Constructor c, PostFormG m f) => PostFormG m (M1 C c f) where
-  postFormG ch def = M1 <$> (postFormG ch $ unM1 <$> def)
+  postFormG opts def = M1 <$> (postFormG opts $ unM1 <$> def)
   renderFormG _ opts = renderFormG (Proxy :: Proxy (f a)) (unM1 <$> opts)
 
 instance {-# OVERLAPS #-} (Monad m, Constructor c) => PostFormG m (M1 C c U1) where
-  postFormG ch def = M1 <$> cname  D..: (const U1 <$> D.optionalText Nothing)
-    where cname = pack $ conName (undefined :: M1 C c U1 ())
-  renderFormG _ opts v = do
-    traceM . unpack $ "renderFieldG #D1, viewpaths: " <> T.intercalate ", " (map D.fromPath $ D.debugViewPaths v)
-    div_ [style_ "display: inherit"] $ "C1 fld: " <> toHtml cname <> " (pfg M1 C U1)"
-    where cname = pack $ conName (undefined :: M1 C c U1 ())
+  postFormG _ _ = pure $ M1 U1
+  renderFormG _ opts v = span_ [class_ $ "youido-u1" <> " youido-u1-" <> cname] ""
+    where cname = pack $ conName (undefined :: M1 C c U1 p)
 
 instance (Monad m, Selector t, FormField m a) => PostFormG m (M1 S t (K1 i a)) where
-  postFormG ch def = do
-    trace (show $ "postFormG#S1-K1 for field " <> show fieldName <> ", cons " <> show mctor) $
-      M1 .K1 <$> fieldName D..: (fromFormField mctor $ unK1 . unM1  <$> def)
+  postFormG opts def =
+    trace (show $ "***** postFormG#S1-K1 for field " <> show fieldName
+           <> ", cons " <> show mctor
+           <> ", \n >>>lookup map: " <> show mchoices
+          ) $
+      M1 . K1 <$> subformNm D..: (fromFormField opts' $ unK1 . unM1  <$> def)
    where
-     val :: M1 S t (K1 i a) r
-     val = undefined
-     fieldName :: Text
-     fieldName = T.pack $ selName val
-     mctor = M.lookup fieldName =<< ch
+     fieldName = T.pack $ selName (undefined :: (M1 S t (K1 i a) r))
+     mchoices = sumChoices <$> sumOpts opts
+     ctx = maybe "" (\c -> let cc = currentContext c in
+                        if "." `T.isSuffixOf` cc || cc == "" then cc else cc <> ".") $ sumOpts opts
+     k = ctx <> fieldName
+     mctor = trace ("<<<>>>> k: " <> unpack k) (M.lookup k) =<< mchoices -- only place choices is used
+     subformNm = if fieldName /= "" then fieldName else "none"
+     newCtx = ctx <> fieldName
+     opts' = opts {sumOpts = Just $ SumOptions (maybe M.empty id mchoices) mctor newCtx}
 
-  renderFormG _ options view = do
-    traceM $ show view
-    traceM $ show $ preV view
+  renderFormG _ options view =
     renderField (Proxy :: Proxy a) (unK1 . unM1 <$> options)
       fieldName (fieldLabelModifier options $ fieldName) view
    where
-     val :: M1 S t (K1 i a) r
-     val = undefined
-
-     fieldName :: Text
-     fieldName = T.pack $ selName val
+     fieldName = T.pack $ selName (undefined :: M1 S t (K1 i a) r)
 
 debugPaths :: View Text -> Text
 debugPaths = T.intercalate ", " . map D.fromPath . D.debugViewPaths
 
 instance (Monad m, PostFormG m f, PostFormG m g) => PostFormG m (f :*: g) where
-  postFormG ch (Just (def1 :*: def2)) = (:*:) <$> (postFormG ch $ Just def1) <*> (postFormG ch $ Just def2)
-  postFormG ch Nothing = (:*:) <$> (postFormG ch Nothing) <*> (postFormG ch Nothing)
+  postFormG opts (Just (def1 :*: def2)) =
+    (:*:) <$> (postFormG opts $ Just def1) <*> (postFormG opts $ Just def2)
+  postFormG opts Nothing = (:*:) <$> (postFormG opts Nothing) <*> (postFormG opts Nothing)
 
   renderFormG _ options view = do
     traceM . unpack $ "renderFormG @(f :+: g), viewpaths: " <> debugPaths view
@@ -554,23 +596,23 @@ instance (Monad m, PostFormG m f, PostFormG m g) => PostFormG m (f :*: g) where
               _ -> (options {viewOf = Nothing}, options {viewOf = Nothing})
 
 instance (Monad m, HasConName f, HasConName g, PostFormG m f, PostFormG m g) => PostFormG m (f :+: g) where
-  postFormG ch (Just (L1 def)) = L1 <$> (postFormG ch (Just def))
-  postFormG ch (Just (R1 def)) = R1 <$> (postFormG ch (Just def))
-  postFormG ch Nothing = L1 <$> postFormG ch Nothing --TODO: fix needed?
-  -- postFormG Nothing = R1 <$> postFormG Nothing
-  renderFormG _ opts v@(View _ _ form _ _ _) = do
-    traceM $ "renderFormG #f:+:g, rendering for ctor " <> (show $ sumConstructor opts)
-    let mctor = (\c -> (c, hasConName @f c)) <$> sumConstructor opts
-    case mctor of
-      Just (c, CtorFoundDirect _) -> -- take subview only on this case?
-        renderFormG (Proxy :: Proxy (f ())) (nextOpts opts) v -- (D.subView c v)
-      Just (c, CtorFoundNested _) ->
-        renderFormG (Proxy :: Proxy (f ())) (nextOpts opts) v --(D.subView ctor v)
-      Just (c, CtorNotFound) ->renderFormG (Proxy :: Proxy (g ())) (nextOpts opts) v
-       -- case hasConName @g c of
-          -- (CtorFoundDirect _) -> renderFormG (Proxy :: Proxy (g ())) opts (D.subView c v)
-          -- _ -> renderFormG (Proxy :: Proxy (g ())) opts v
-      Nothing -> error $ "renderFormG on :+:, ctor not found: " <> (unpack . preV $ v) <> " ** " <> show v
+  postFormG opts (Just (L1 def)) = L1 <$> postFormG opts (Just def)
+  postFormG opts (Just (R1 def)) = R1 <$> postFormG opts (Just def)
+  postFormG opts@(FromFormOptions (Just (SumOptions _ (Just ctor) _))) Nothing =
+    if hasConName @f ctor
+    then L1 <$> postFormG @m @f opts Nothing
+    else if hasConName @g ctor
+         then R1 <$> postFormG @m @g opts Nothing
+         else error $ "fromSumFormG, ctor not found: " <> unpack ctor
+  postFormG opts@(FromFormOptions (Just (SumOptions _ Nothing _))) Nothing =
+    error "possible youido bug: currentlyBuildingCtor opt must be present to build sum type"
+
+  renderFormG _ opts v = do
+    case (\c -> (hasConName @f c, hasConName @g c)) <$> sumConstructor opts of
+      Just (True, _) -> renderFormG (Proxy :: Proxy (f ())) (nextOpts opts) v
+      Just (_, True) -> renderFormG (Proxy :: Proxy (g ())) (nextOpts opts) v
+      Just (False, False) -> DL.errorList "Selection is required" (toHtml <$> v)
+      Nothing -> error "Youido bug: absent sumConstructor opt is required to render sum type"
 
 preV :: View Text -> Text
 preV (View nm ctx frm inp errs med) = mconcat
@@ -579,105 +621,129 @@ preV (View nm ctx frm inp errs med) = mconcat
 --------------------
 
 class FormField m a where
-  fromFormField :: Maybe Text -> D.Formlet Text m a
+  fromFormField :: FromFormOptions -> D.Formlet Text m a
   renderField :: (Monad m) => Proxy a -> Options a -> Text -> Text -> View Text -> HtmlT m ()
 
-  default fromFormField :: (Monad m, Generic a, FormFieldG m (Rep a)) => Maybe Text -> D.Formlet Text m a
+  default fromFormField :: (Monad m, Generic a, FormFieldG m (Rep a))
+                        => FromFormOptions -> D.Formlet Text m a
   fromFormField = fromFormFieldG'
 
-  default renderField :: (Monad m, Generic a, FormFieldG m (Rep a)) => Proxy a -> Options a -> Text -> Text -> View Text -> HtmlT m ()
+  default renderField :: (Monad m, Generic a, FormFieldG m (Rep a))
+                      => Proxy a -> Options a -> Text -> Text -> View Text -> HtmlT m ()
   renderField = renderFieldG'
 
 fromFormFieldG' :: forall a m. (Monad m, Generic a, FormFieldG m (Rep a))
-                => Maybe Text -> D.Formlet Text m a
+  => FromFormOptions -> D.Formlet Text m a
 fromFormFieldG' mctor mdef = to <$> fromFormFieldG mctor (from <$> mdef)
 
 renderFieldG' :: forall a s m. (Monad m, Generic a, FormFieldG m (Rep a))
-              => Proxy a -> Options a -> Text -> Text -> View Text -> HtmlT m ()
+  => Proxy a -> Options a -> Text -> Text -> View Text -> HtmlT m ()
 renderFieldG' _ opts = renderFieldG (Proxy :: Proxy (Rep a ())) (from <$> opts)
 
 class FromFormSumG m f where
-  fromFormSumG :: Text -> D.Formlet Text m (f p)
+  fromFormSumG :: FromFormOptions -> D.Formlet Text m (f p)
 
 instance (Monad m, FromFormSumG m f) => FromFormSumG m (D1 d f) where
   fromFormSumG ctor mdef = M1 <$> fromFormSumG ctor (unM1 <$> mdef)
 
-instance (Monad m, HasConName f, FromFormSumG m f, FromFormSumG m g) => FromFormSumG m (f :+: g) where
-  fromFormSumG :: Text -> D.Formlet Text m ((f :+: g) p)
+instance (Monad m, HasConName f, HasConName g, FromFormSumG m f, FromFormSumG m g) => FromFormSumG m (f :+: g) where
+  fromFormSumG :: FromFormOptions -> D.Formlet Text m ((f :+: g) p)
   fromFormSumG ctor (Just (L1 def)) = L1 <$> fromFormSumG ctor (Just def)
   fromFormSumG ctor (Just (R1 def)) = R1 <$> fromFormSumG ctor (Just def)
-  fromFormSumG ctor Nothing =
-    case hasConName @f ctor of
-      CtorFoundDirect _ ->
-        L1 <$> fromFormSumG @m @f ctor Nothing
-      CtorFoundNested _ ->
-        L1 <$> fromFormSumG @m @f ctor Nothing
-      CtorNotFound ->
-        R1 <$> fromFormSumG @m @g ctor Nothing
-    -- error $ "fromSumFormG on :+:, " <> (unpack . preV $ v) <> " ** " <> show v
+  fromFormSumG opts@(FromFormOptions (Just (SumOptions _ (Just ctor) _))) Nothing =
+    if hasConName @f ctor
+    then L1 <$> fromFormSumG @m @f opts Nothing
+    else if hasConName @g ctor
+         then R1 <$> fromFormSumG @m @g opts Nothing
+         else error $ "fromSumFormG, ctor not found: " <> unpack ctor
 
-instance {-# OVERLAPPING #-} (Monad m, Constructor c) => FromFormSumG m (C1 c U1) where
-  fromFormSumG ctor def = M1 <$> (const U1 <$> D.optionalText Nothing)
-    where cname = pack $ conName (undefined :: C1 c U1 ())
+instance {-# OVERLAPPING #-} (Monad m) => FromFormSumG m (C1 c U1) where
+  fromFormSumG _ def = pure $ M1 U1
 
-instance {-# OVERLAPPABLE #-} (Monad m, PostFormG m f, Constructor c) => FromFormSumG m (C1 c f) where
-  fromFormSumG ctor def = M1 <$> postFormG (Just $ M.fromList [("",ctor)]) (unM1 <$> def)
-    where cname = pack $ conName (undefined :: C1 c U1 ())
-
--- Map from form paths to (datatype name, constructor name)
--- Instructs formtree builder (fromForm* funcs) which path in the sum to build
-type SumChoices = Map Text Text
+instance {-# OVERLAPPABLE #-} (Monad m, PostFormG m f) => FromFormSumG m (C1 c f) where
+  fromFormSumG opts def = M1 <$> postFormG opts (unM1 <$> def)
 
 class FormFieldG m f where
-  fromFormFieldG :: Maybe Text -> Maybe (f p) -> D.Form Text m (f p)
+  fromFormFieldG :: FromFormOptions -> Maybe (f p) -> D.Form Text m (f p)
   renderFieldG :: (Monad m) => Proxy (f p) -> Options (f p) -> Text -> Text -> View Text -> HtmlT m ()
 
--- This instance is only intended for sum types
-instance (Monad m, FromFormSumG m f, PostFormG m f, GetConNameG f, EnumCtors f, Datatype d) => FormFieldG m (D1 d f) where
-  fromFormFieldG mctor mdef = trace (show mctor) $
-    case mdef of -- default value takes precedence over ctor
-      Just x -> fromFormSumG (getConNameG x) mdef
-      Nothing -> case mctor of
-        Just ctor -> fromFormSumG ctor Nothing
-          -- No default and no choice made => indicate this with an unused dummy form
-        _ -> D.disable $ "disabled" D..: fromFormSumG (head $ enumCtors @f) Nothing
-    where nm = pack $ datatypeName (undefined :: D1 d f ())
+mkSumViews :: forall f m. (FormFieldG m f, Monad m)
+           => SumChoices -> D.Path -> [Text] -> m [View Text]
+mkSumViews chs subviewPath ctors =
+  let newCtx = D.fromPath . tail . tail $ subviewPath in -- drops "dummy" and view name
+  traverse (\c -> D.getForm (D.fromPath subviewPath)
+                  $ fromFormFieldG @m @f (mkSumOptsCtx chs c newCtx) Nothing) ctors
 
-  renderFieldG _ opts fldNm label v@(View n ctx frm inps es meth) = do
+findChoice :: D.Path -> [(D.Path, D.FormInput)] -> Maybe Text
+findChoice path input =
+  case filter (\(k,_) -> k == choicePath) input of
+    [(_,D.TextInput ctor)] -> Just ctor
+    _ -> Nothing
+  where choicePath = path ++ ["#choice"]
+
+instance (Monad m, PostFormG m f,
+          GetConNameG f, HasConName f, EnumCtors f, Datatype d, f ~ (g :+: h))
+         => FormFieldG m (D1 d f) where
+  fromFormFieldG opts@(FromFormOptions (Just (SumOptions ch mctor ctx))) mdef =
+    case mdef of -- default value takes precedence over ctor
+      Just x -> postFormG (mkSumOptsCtx ch (getConNameG x) ctx) mdef
+      Nothing -> case mctor of
+        Just ctor -> postFormG (mkSumOptsCtx ch ctor ctx) Nothing
+          -- No default and no choice made => a dummy form is required
+        _ -> "disabled" D..: postFormG (mkSumOptsCtx ch (head $ enumCtors @f) ctx) Nothing
+    where nm = pack $ datatypeName (undefined :: D1 d f ())
+  fromFormFieldG (FromFormOptions Nothing) _ =
+    error "possible youido bug: options required for rendering a sum type form"
+
+  renderFieldG _ opts fldNm label v@(View viewNm ctx _ input es _) = do
     let dtNm = pack $ datatypeName (undefined :: D1 d f ())
         ctors = enumCtors @f
-        sumcon = getConNameG <$> viewOf opts
-        onclick = jsCall "youido-select-constructor" []
-    views <- lift $ mkSumViews @(D1 d f) n dtNm ctors
-    traceM $ "renderFieldG #D1, datatype: " <> show dtNm <> ", ctors: " <> show ctors
+        onselect = jsCall "youidoSelectConstructor"
+                   ["this", jsStr viewNm, jsStr (D.fromPath ctx), jsStr fldNm]
+        defaultOpt =  "Select one..." :: Text
+        selectedOpt = maybe defaultOpt id sumCtor
+        selAttr = \ctor -> if ctor == selectedOpt then [selected_ "true"] else []
+        fieldPath = viewNm : ctx ++ [fldNm]
+        sumCtor = (getConNameG <$> viewOf opts) <|> findChoice (tail fieldPath) input
+        fieldRef = D.fromPath fieldPath
+        ctorChoiceInputId = D.fromPath $ "youido-sums" : tail fieldPath
+        subviewPath = "dummy" : fieldPath
+
+    views <- lift $ mkSumViews @(D1 d f) (ctorMap opts) subviewPath ctors
+    traceM $ "renderFieldG #D1, datatype: " <> show dtNm <> ", ctors: " <> show ctors <> ", ctor: " <> show sumCtor
     traceM . unpack $ "renderFieldG #D1, view: " <> preV v
     traceM $ "renderFieldG #D1, viewpaths: " <> show (map D.fromPath $ D.debugViewPaths v)
-    div_ [class_ "container"] $ do
-      DL.label dtNm v $ toHtml fldNm
-      -- render select dropdown for each constructor
-      -- TODO: add disabled 'Select one..' default
-      select_ [onchange_ "youido-select-constructor(this)"] $
-        traverse_ (option_ [] . toHtml) ctors
-      -- render all possible sum paths invisibly, but only 0 or 1 will be shown
+
+    div_ [class_ "form-group"] $ do
+      DL.label fldNm v $ toHtml label
+      select_ [onchange_ onselect, class_ "form-control"] $ do
+        option_ (selAttr defaultOpt ++ [disabled_ "true", value_ defaultOpt]) $ toHtml defaultOpt
+        flip traverse_ ctors $ \c -> option_ (selAttr c) $ toHtml c
+      DL.errorList fldNm (toHtml <$> v)
+
+      input_ [ style_ "display: none"
+             , id_ ctorChoiceInputId
+             , name_ ctorChoiceInputId
+             , value_ $ maybe notSelectedValue id sumCtor]
+
       flip traverse_ (zip ctors views) $ \(ctor, sumv) ->
-        let dummy = renderFormG (Proxy :: Proxy (f ()))
-                    (opts {sumConstructor = Just ctor, viewOf = Nothing}) sumv
-        in with dummy [style_ "display: none", data_ "constructor" ctor]
+        div_ [ style_ "display: none"
+             , class_ $ if hasU1ConName @f ctor then "youido-u1-container" else ""
+             , id_ ("youido-sum-dummy-" <> fieldRef <> "." <> ctor)
+             , data_ "constructor" ctor] $
+          renderFormG (Proxy :: Proxy (f ()))
+            (opts {sumConstructor = Just ctor, viewOf = Nothing}) sumv
 
-      -- Render the 'real' form if one has been selected
-      case sumcon of
-        Just con -> do
-          traceM $ "rendering real form for sum" <> show sumcon
+      div_ [ class_ "well container"
+           , id_ $ "youido-sum-real-container-" <> fieldRef
+           , style_ $ if null sumCtor || maybe False (hasU1ConName @f) sumCtor
+                      then "display:none" else ""] $
+        flip traverse_ sumCtor $ \con -> do
+          traceM $ "rendering real form for sum" <> show sumCtor
           traverse_ (traceM . show) $ map show (D.subViews v)
-          when (not $ D.viewDisabled "disabled" v) $
-            renderFormG (Proxy :: Proxy (f ())) (opts {sumConstructor = Just "Blue",
-                                                      viewOf = Nothing}) (D.subView fldNm v)
-        Nothing -> error "no ctor found to render"
-
-mkSumViews :: forall f m. (FromFormSumG m f, FormFieldG m f, Monad m)
-           => Text -> Text -> [Text] -> m [View Text]
-mkSumViews viewNm adtNm ctors =
-  traverse (\c -> D.getForm viewNm $ fromFormFieldG @m @f (Just c) Nothing) ctors
+          renderFormG (Proxy :: Proxy (f ()))
+            (opts {sumConstructor = Just con, viewOf = Nothing})
+            $ D.subView fldNm v
 
 instance Monad m => FormField m Text where
   fromFormField _ = D.text
@@ -703,10 +769,10 @@ instance Monad m => FormField m Double where
   renderField _ _ = renderBootstrapInput "number" []
 
 renderItem :: forall m a. (FromForm m a, Monad m)
-  => Proxy a -> Text -> View Text -> HtmlT m ()
-renderItem _ onclickDelete v = do
+  => Proxy a -> Options a -> Text -> View Text -> HtmlT m ()
+renderItem p opts onclickDelete v = do
   div_ [class_ "youido_multi_item well container"] $ do
-    renderForm (Proxy :: Proxy a) v
+    renderForm' p opts v
     fieldButton "Delete" onclickDelete
 
 fieldButton :: Monad m => Text -> Text -> HtmlT m ()
@@ -719,9 +785,29 @@ jsCall fnName args = fnName <> "(" <> T.intercalate "," args <> ")"
 
 jsStr s = "'" <> s <> "'"
 
+-- copied from Text.Digestive.Form because it's not exported
+listIndices :: (Monad m, Monoid v) => [Int] -> D.Form v m [Int]
+listIndices = fmap D.parseIndices . D.text . Just . D.unparseIndices
+
 instance (FromForm m a, Monad m) => FormField m [a] where
-  fromFormField _ = D.listOf $ fromForm Nothing
-  renderField _ _ fieldName label view = do
+  fromFormField opts def =
+    -- opts should contain the field name of this list
+    -- then on each list item we should add the index to 'current context'
+    D.List defList (D.indicesRef D..: listIndices ixs) -- fromForm' opts
+    where ixs = case def of
+            Nothing -> trace "!!!!!!!! list def is Nothing" [0]
+            Just xs -> trace ("!!!!!!! list def is length " <> show (length xs))[0 .. length xs - 1]
+          defItems = maybe [] (map Just) def
+          defList = D.DefaultList
+                     (fromForm' (withCtx (-1)) Nothing)
+                     (map (\(defItem,i) -> fromForm' (withCtx i) defItem) $ zip defItems ixs)
+          ctx = maybe "" currentContext $ sumOpts opts
+          curCtx = if ctx /= "" then ctx <> "." else ""
+          withCtx n = (opts { sumOpts =
+                             (\o -> o{ currentContext = curCtx <> pack (show n)})
+                             <$> (sumOpts opts)
+                           })
+  renderField _ opts fieldName label view = do
     let fieldPath = D.absolutePath fieldName view
         indicesPath = fieldPath ++ [D.indicesRef]
         indicesPathT = D.fromPath indicesPath
@@ -743,12 +829,15 @@ instance (FromForm m a, Monad m) => FormField m [a] where
       -- a form when the list is empty
       let
         dummyView = D.makeListSubView fieldName (-1) view
-        dummy = renderItem (Proxy :: Proxy a) onclickDelete dummyView
+        dummy = renderItem (Proxy :: Proxy a) (nextOpts opts) onclickDelete dummyView
       with dummy [ style_ "display: none"
                  , id_ (D.fromPath fieldPath <> ".youido_dummy_item")]
 
-      traverse_ (renderItem (Proxy :: Proxy a) onclickDelete) $
-        D.listSubViews fieldName view
+      let subviews = D.listSubViews fieldName view
+          viewsOf = map Just <$> (viewOf opts)
+      flip traverse_ (zip subviews (maybe (repeat Nothing) id viewsOf)) $ \(subv, viewof) ->
+        renderItem (Proxy :: Proxy a) (opts {viewOf = viewof}) onclickDelete subv
+
       fieldButton "Add new item" onclickAdd
       DL.errorList fieldName (toHtml <$> view)
 

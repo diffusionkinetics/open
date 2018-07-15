@@ -1,7 +1,6 @@
 {-# LANGUAGE KindSignatures, TypeApplications, TypeOperators,
   ScopedTypeVariables, FlexibleInstances, AllowAmbiguousTypes,
-  DefaultSignatures, FlexibleContexts, OverloadedStrings,
-  TypeFamilies, MultiParamTypeClasses, DeriveGeneric #-} --TODO: get rid of this row
+  DefaultSignatures, FlexibleContexts, OverloadedStrings #-}
 
 module Youido.Utils where
 
@@ -13,33 +12,31 @@ import           GHC.Generics
 
 --------------------------------------------------
 
-data SumPart = SumLeft | SumRight | Unknown deriving Show
-
 data CtorSearchResult =
     CtorNotFound
-  | CtorFoundNested SumPart
-  | CtorFoundDirect SumPart
+  | CtorFoundLeft
+  | CtorFoundRight
   deriving Show
 
 class HasConName (f :: * -> *) where
-  hasConName :: Text -> CtorSearchResult
+  hasConName :: Text -> Bool
+  hasU1ConName :: Text -> Bool
 
 instance (HasConName f) => HasConName (D1 d f) where
   hasConName = hasConName @f
+  hasU1ConName = hasU1ConName @f
 
-instance (Constructor c) => HasConName (C1 c f) where
-  hasConName con =
-    let cnm = pack $ conName (undefined :: C1 c f ())
-    in if cnm == con then CtorFoundDirect Unknown else CtorNotFound
+instance {-# OVERLAPPABLE #-} (Constructor c) => HasConName (C1 c f) where
+  hasConName = (==) . pack $ conName (undefined :: C1 c f ())
+  hasU1ConName _ = False
+
+instance {-# OVERLAPS #-} (Constructor c) => HasConName (C1 c U1) where
+  hasConName = (==) . pack $ conName (undefined :: C1 c U1 ())
+  hasU1ConName = hasConName @(C1 c U1)
 
 instance (HasConName f, HasConName g) => HasConName (f :+: g) where
-  hasConName con = case hasConName @f con of
-    CtorFoundDirect _ -> CtorFoundDirect SumLeft
-    CtorFoundNested _ -> CtorFoundNested SumLeft
-    CtorNotFound -> case hasConName @g con of
-      CtorFoundDirect _ -> CtorFoundDirect SumRight
-      CtorFoundNested _ -> CtorFoundNested SumRight
-      CtorNotFound -> CtorNotFound
+  hasConName c = hasConName @f c || hasConName @g c
+  hasU1ConName c = hasU1ConName @f c || hasU1ConName @g c
 
 --------------------------------------------------
 
