@@ -54,7 +54,7 @@ import Data.Foldable (toList)
 --   runStan called with this method will return @Map.Map String [Double]@,
 --   with one element in each list per sample from the MCMC chain
 data Sample = Sample
-  { numSamples :: Int
+  { numIterations :: Int
   , numWarmup :: Int
   , thin :: Int
   }
