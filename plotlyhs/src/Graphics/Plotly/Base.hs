@@ -111,6 +111,21 @@ data Sizemode = Diameter | Area deriving (Show, Eq)
 instance ToJSON Sizemode where
   toJSON = toJSON . map toLower . show
 
+-- | Marker line specification
+data MarkerLine = MarkerLine
+  { _markerlinewidth :: Maybe (ListOrElem Double)
+  , _markerlinecolor :: Maybe (ListOrElem Value)
+  } deriving (Generic, Eq)
+
+makeLenses ''MarkerLine
+
+instance ToJSON MarkerLine where
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "markerline" . unLens}
+
+-- | default marker line specification
+defMarkerLine :: MarkerLine
+defMarkerLine = MarkerLine Nothing Nothing
+
 -- | Marker specification
 data Marker = Marker
   { _size :: Maybe (ListOrElem Value)
@@ -120,6 +135,7 @@ data Marker = Marker
   , _markercolors :: Maybe (ListOrElem Value) -- for pie charts
   , _symbol :: Maybe (ListOrElem Symbol)
   , _opacity :: Maybe Double
+  , _markerline :: Maybe MarkerLine
   } deriving (Generic, Eq)
 
 makeLenses ''Marker
@@ -129,7 +145,7 @@ instance ToJSON Marker where
 
 -- | default marker specification
 defMarker :: Marker
-defMarker  = Marker Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defMarker  = Marker Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 
 -- | Dash type specification
