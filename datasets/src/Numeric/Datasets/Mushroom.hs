@@ -48,7 +48,8 @@ import GHC.Generics
 import Control.Applicative
 
 data MushroomEntry = MushroomEntry {
-    capShape :: CapShape
+    classification :: Classification
+  , capShape :: CapShape
   , capSurface :: CapSurface
   , capColor :: CapColor
   , bruises :: Bool
@@ -72,11 +73,11 @@ data MushroomEntry = MushroomEntry {
   , habitat :: Habitat  } deriving (Show, Read, Generic)
 
 instance FromRecord MushroomEntry where
-  parseRecord v = undefined -- MushroomEntry <$>    -- | !!!!!!!!!!!!!!!!!
+  parseRecord v = undefined --  MushroomEntry <$> (charToClassification <$> v .! 0) 
 
-data Class = Poisonous | Edible deriving (Eq, Show, Ord, Enum, Bounded, Generic)
-charToClass :: Char -> Class
-charToClass = \case 
+data Classification = Poisonous | Edible deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToClassification :: Char -> Classification
+charToClassification = \case 
   'p' -> Poisonous
   _ -> Edible
 
