@@ -174,26 +174,102 @@ charToStalkRoot c = case c of
   
 -- 12. stalk-surface-above-ring: fibrous=f,scaly=y,silky=k,smooth=s
 data StalkSurfaceAboveRing = SSARFibrous | SSARScaly | SSARSilky | SSARSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToSsar = \case
+  'f' -> SSARFibrous
+  'y' -> SSARScaly
+  'k' -> SSARSilky
+  's' -> SSARSmooth
 -- 13. stalk-surface-below-ring: fibrous=f,scaly=y,silky=k,smooth=s
 data StalkSurfaceBelowRing = SSBRFibrous | SSBRScaly | SSBRSilky | SSBRSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToSsbr = \case
+  'f' -> SSBRFibrous
+  'y' -> SSBRScaly
+  'k' -> SSBRSilky
+  's' -> SSBRSmooth
 -- 14. stalk-color-above-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
 data StalkColorAboveRing = SCARBrown | SCARBuff | SCARCinnamon | SCARGray | SCAROrange | SCARPink | SCARRed | SCARWhite | SCARYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToScar = \case
+  'n' -> SCARBrown
+  'b' -> SCARBuff
+  'c' -> SCARCinnamon
+  'g' -> SCARGray
+  'o' -> SCAROrange
+  'p' -> SCARPink
+  'e' -> SCARRed
+  'w' -> SCARWhite
+  'y' -> SCARYellow
 -- 15. stalk-color-below-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
 data StalkColorBelowRing = SCBRBrown | SCBRBuff | SCBRCinnamon | SCBRGray | SCBROrange | SCBRPink | SCBRRed | SCBRWhite | SCBRYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToScbr = \case
+  'n' -> SCBRBrown
+  'b' -> SCBRBuff
+  'c' -> SCBRCinnamon
+  'g' -> SCBRGray
+  'o' -> SCBROrange
+  'p' -> SCBRPink
+  'e' -> SCBRRed
+  'w' -> SCBRWhite
+  'y' -> SCBRYellow  
 -- 16. veil-type: partial=p,universal=u
 data VeilType = Partial | Universal deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToVeilType = \case
+  'p' -> Partial
+  'u' -> Universal
 -- 17. veil-color: brown=n,orange=o,white=w,yellow=y
 data VeilColor = VCBrown | VCOrange | VCWhite | VCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToVeilColor = \case
+  'n' -> VCBrown
+  'o' -> VCOrange
+  'w' -> VCWhite
+  'y' -> VCYellow
 -- 18. ring-number: none=n,one=o,two=t
 data RingNumber = RNNone | RNOne | RNTwo deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToRingNumber = \case
+  'n' -> RNNone
+  'o' -> RNOne
+  't' -> RNTwo
 -- 19. ring-type: cobwebby=c,evanescent=e,flaring=f,large=l, none=n,pendant=p,sheathing=s,zone=z
 data RingType = RTCobwebby | RTEvanescent | RTFlaring | RTLarge | RTNone | RTPendant | RTSheathing | RTZone deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToRingType = \case
+  'c' -> RTCobwebby
+  'e' -> RTEvanescent
+  'f' -> RTFlaring
+  'l' -> RTLarge
+  'n' -> RTNone
+  'p' -> RTPendant
+  's' -> RTSheathing
+  'z' -> RTZone
 -- 20. spore-print-color: black=k,brown=n,buff=b,chocolate=h,green=r, orange=o,purple=u,white=w,yellow=y
 data SporePrintColor = SPCBlack | SPCBrown | SPCBuff | SPCChocolate | SPCGreen | SPCOrange | SPCPurple | SPCWhite | SPCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToSporePrintColor = \case
+  'k' -> SPCBlack
+  'n' -> SPCBrown
+  'b' -> SPCBuff
+  'h' -> SPCChocolate
+  'r' -> SPCGreen
+  'o' -> SPCOrange
+  'u' -> SPCPurple
+  'w' -> SPCWhite
+  'y' -> SPCYellow    
 -- 21. population: abundant=a,clustered=c,numerous=n, scattered=s,several=v,solitary=y
 data Population = Abundant | Clustered | Numerous | Scattered | Several | Solitary deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToPopulation = \case
+  'a' -> Abundant
+  'c' -> Clustered
+  'n' -> Numerous
+  's' -> Scattered
+  'v' -> Several
+  'y' -> Solitary
 -- 22. habitat: grasses=g,leaves=l,meadows=m,paths=p, urban=u,waste=w,woods=d
 data Habitat = Grasses | Leaves | Meadows | Paths | Urban | Waste | Woods deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToHabitat = \case
+  'g' -> Grasses
+  'l' -> Leaves
+  'm' -> Meadows
+  'p' -> Paths
+  'u' -> Urban
+  'w' -> Waste
+  'd' -> Woods
 
 
 mushroomDatabase :: Dataset MushroomEntry
