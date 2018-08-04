@@ -83,6 +83,7 @@ charToClassification = \case
 
 -- 1. cap-shape: bell=b,conical=c,convex=x,flat=f, knobbed=k,sunken=s
 data CapShape = Bell | Conical | Convex | Flat | Knobbed | Sunken deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToCapShape :: Char -> CapShape
 charToCapShape = \case
   'b' -> Bell
   'c' -> Conical
@@ -93,6 +94,7 @@ charToCapShape = \case
   
 -- 2. cap-surface: fibrous=f,grooves=g,scaly=y,smooth=s                        
 data CapSurface = CSFibrous | CSGrooves | CSScaly | CSSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToCapSurface :: Char -> CapSurface
 charToCapSurface = \case
   'f' -> CSFibrous
   'g' -> CSGrooves
