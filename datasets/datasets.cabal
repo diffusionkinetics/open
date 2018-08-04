@@ -69,6 +69,7 @@ Library
                  , Numeric.Datasets.Gapminder
                  , Numeric.Datasets.Iris
                  , Numeric.Datasets.Michelson
+                 , Numeric.Datasets.Mushroom                 
                  , Numeric.Datasets.Nightingale
                  , Numeric.Datasets.Quakes
                  , Numeric.Datasets.States
