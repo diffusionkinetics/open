@@ -16,7 +16,7 @@ import Data.Csv
 import GHC.Generics
 
 data Sex = Female | Male
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Sex where
   parseField = parseReadField

@@ -19,7 +19,7 @@ import Data.Text (Text, strip)
 
 data WorkClass = Private | SelfEmpNotInc | SelfEmpInc | FederalGov
                | LocalGov | StateGov | WithoutPay | NeverWorked
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField WorkClass where
   parseField = parseDashToCamelField
@@ -27,7 +27,7 @@ instance FromField WorkClass where
 
 data MaritalStatus = MarriedCivSpouse | Divorced | NeverMarried
                    | Separated | Widowed | MarriedSpouseAbsent | MarriedAFSpouse
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField MaritalStatus where
 --  parseField "Married-AF-spouse" = pure MarriedAFSpouse
@@ -36,32 +36,32 @@ instance FromField MaritalStatus where
 data Occupation = TechSupport | CraftRepair | OtherService | Sales | ExecManagerial | ProfSpecialty
                 | HandlersCleaners | MachineOpInspct | AdmClerical | FarmingFishing | TransportMoving
                 | PrivHouseServ | ProtectiveServ | ArmedForces
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Occupation where
 --  parseField "ArmedForces" = pure ArmedForces
   parseField s = parseDashToCamelField s
 
 data Relationship = Wife | OwnChild | Husband | NotInFamily | OtherRelative | Unmarried
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Relationship where
   parseField s = parseDashToCamelField s
 
 data Race = White | AsianPacIslander | AmerIndianEskimo | Other | Black
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Race where
   parseField s = parseDashToCamelField s
 
 data Sex = Female | Male
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Sex where
   parseField s = parseDashToCamelField s
 
 data Income = GT50K | LE50K
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Income where
   parseField " >50K" = pure GT50K

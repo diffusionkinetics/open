@@ -17,7 +17,7 @@ import Data.Csv
 import GHC.Generics
 import Control.Applicative
 
-data RelScore = Low | Med | High | VeryHigh deriving (Show, Read, Eq, Generic)
+data RelScore = Low | Med | High | VeryHigh deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField RelScore where
   parseField "vhigh" = pure VeryHigh
@@ -26,7 +26,7 @@ instance FromField RelScore where
   parseField "low" = pure Low
   parseField _ = fail "unknown relative score"
 
-data RelSize = Small | Medium | Big deriving (Show, Read, Eq, Generic)
+data RelSize = Small | Medium | Big deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField RelSize where
   parseField "small" = pure Small
@@ -34,7 +34,7 @@ instance FromField RelSize where
   parseField "big" = pure Big
   parseField _ = fail "unknown relative size"
 
-data Acceptability = Unacceptable | Acceptable | Good | VeryGood deriving (Show, Read, Eq, Generic)
+data Acceptability = Unacceptable | Acceptable | Good | VeryGood deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Acceptability where
   parseField "unacc" = pure Unacceptable
@@ -43,7 +43,7 @@ instance FromField Acceptability where
   parseField "vgood" = pure VeryGood
   parseField _ = fail "unknown acceptability"
 
-data Count = N Int | NOrMore Int | More deriving (Show, Read, Eq, Generic)
+data Count = N Int | NOrMore Int | More deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance FromField Count where
   parseField "more" = pure More
@@ -61,7 +61,7 @@ data Car = Car
   , luggageBoot :: RelSize
   , safety :: RelScore
   , acceptability:: Acceptability
-  } deriving (Show, Read, Generic)
+  } deriving (Show, Read, Generic, Bounded, Enum)
 
 instance FromRecord Car
 

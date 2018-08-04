@@ -17,9 +17,9 @@ import GHC.Generics
 import Control.Applicative
 
 
-data Diagnosis = Malignant | Benign deriving (Show, Read, Eq, Generic)
+data Diagnosis = Malignant | Benign deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
-data Prognosis = Recurrent | Nonrecurrent deriving (Show, Read, Eq, Generic)
+data Prognosis = Recurrent | Nonrecurrent deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 intToDiagnosis :: Int -> Diagnosis
 intToDiagnosis 2 = Benign
