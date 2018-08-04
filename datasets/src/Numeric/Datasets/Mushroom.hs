@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, LambdaCase #-}
 
 {- |
 Mushroom data set
@@ -47,53 +47,142 @@ import Data.Csv
 import GHC.Generics
 import Control.Applicative
 
-data Classification = Poisonous | Edible deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data MushroomEntry = MushroomEntry {
+    capShape :: CapShape
+  , capSurface :: CapSurface
+  , capColor :: CapColor
+  , bruises :: Bool
+  , odor :: Odor
+  , gillAttachment :: GillAttachment
+  , gillSpacing :: GillSpacing
+  , gillSize :: GillSize
+  , gillColor :: GillColor
+  , stalkShape :: StalkShape
+  , stalkRoot :: Maybe StalkRoot
+  , stalkSurfaceAboveRing :: StalkSurfaceAboveRing
+  , stalkSurfaceBelowRing :: StalkSurfaceBelowRing
+  , stalkColorAboveRing :: StalkColorAboveRing
+  , stalkColorBelowRing :: StalkColorBelowRing
+  , veilType :: VeilType
+  , veilColor :: VeilColor
+  , ringNumber :: RingNumber
+  , ringType :: RingType
+  , sporePrintColor :: SporePrintColor
+  , population :: Population
+  , habitat :: Habitat  } deriving (Show, Read, Generic)
 
-data CapShape = Bell | Conical | Convex | Flat | Knobbed | Sunken deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+instance FromRecord MushroomEntry where
+  parseRecord v = undefined -- MushroomEntry <$>
 
-data CapSurface = Fibrous | Grooves | Scaly | Smooth deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data Class = Poisonous | Edible deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+charToClass :: Char -> Class
+charToClass = \case 
+  'p' -> Poisonous
+  _ -> Edible
 
--- cap-color: brown=n,buff=b,cinnamon=c,gray=g,green=r, pink=p,purple=u,red=e,white=w,yellow=y
-data CapColor = Brown | Buff | Cinnamon | Gray | Green | Pink | Purple | Red | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+-- 1. cap-shape: bell=b,conical=c,convex=x,flat=f, knobbed=k,sunken=s
+data CapShape = Bell | Conical | Convex | Flat | Knobbed | Sunken deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToCapShape = \case
+  'b' -> Bell
+  'c' -> Conical
+  'x' -> Convex
+  'f' -> Flat
+  'k' -> Knobbed
+  's' -> Sunken
+  
+-- 2. cap-surface: fibrous=f,grooves=g,scaly=y,smooth=s                        
+data CapSurface = CSFibrous | CSGrooves | CSScaly | CSSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToCapSurface = \case
+  'f' -> CSFibrous
+  'g' -> CSGrooves
+  'y' -> CSScaly
+  's' -> CSSmooth
 
-data Bruises = Bruises | NoBruises deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+-- 3. cap-color: brown=n,buff=b,cinnamon=c,gray=g,green=r, pink=p,purple=u,red=e,white=w,yellow=y
+data CapColor = CCBrown | CCBuff | CCCinnamon | CCGray | CCGreen | CCPink | CCPurple | CCRed | CCWhite | CCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToBruises :: Char -> Bool
+charToBruises c = case c of
+  't' -> True
+  _ -> False
 
--- odor: almond=a,anise=l,creosote=c,fishy=y,foul=f, musty=m,none=n,pungent=p,spicy=s
-data Odor = Almond | Anise | Creosote | Fishy | Foul | Musty | None | Pungent | Spicy deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+-- 5. odor: almond=a,anise=l,creosote=c,fishy=y,foul=f, musty=m,none=n,pungent=p,spicy=s
+data Odor = Almond | Anise | Creosote | Fishy | Foul | Musty | None | Pungent | Spicy deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToOdor :: Char -> Odor
+charToOdor = \case
+  'a' -> Almond
+  'l' -> Anise
+  'c' -> Creosote
+  'y' -> Fishy
+  'f' -> Foul
+  'm' -> Musty
+  'n' -> None
+  'p' -> Pungent
+  's' -> Spicy
 
--- gill-attachment: attached=a,descending=d,free=f,notched=n
-data GillAttachment = Attached | Descending | Free | Notched deriving (Eq, Show, Ord, Enum, Bounded, Generic)
-
+-- 6. gill-attachment: attached=a,descending=d,free=f,notched=n
+data GillAttachment = Attached | Descending | Free | Notched deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToGillAttachment = \case
+  'a' -> Attached
+  'd' -> Descending
+  'f' -> Free
+  'n' -> Notched
 -- 7. gill-spacing: close=c,crowded=w,distant=d
-data GillSpacing = Close | Crowded | Distant deriving (Eq, Show, Ord, Enum, Bounded, Generic)
-
+data GillSpacing = Close | Crowded | Distant deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToGillSpacing = \case
+  'c' -> Close
+  'w' -> Crowded
+  'd' -> Distant
 -- 8. gill-size: broad=b,narrow=n
-data GillSize = Broad | Narrow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data GillSize = Broad | Narrow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToGillSize = \case
+  'b' -> Broad
+  'n' -> Narrow
 -- 9. gill-color: black=k,brown=n,buff=b,chocolate=h,gray=g, green=r,orange=o,pink=p,purple=u,red=e, white=w,yellow=y
-data GillColor = Black | Brown | Buff | Chocolate | Gray | Green | Orange | Pink | Purple | Red | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data GillColor = GCBlack | GCBrown | GCBuff | GCChocolate | GCGray | GCGreen | GCOrange | GCPink | GCPurple | GCRed | GCWhite | GCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToGillColor = \case
+  'k' -> GCBlack
+  'n' -> GCBrown
+  'b' -> GCBuff
 -- 10. stalk-shape: enlarging=e,tapering=t
-data StalkShape = Enlarging | Tapering deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkShape = Enlarging | Tapering deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+
 -- 11. stalk-root: bulbous=b,club=c,cup=u,equal=e, rhizomorphs=z,rooted=r,missing=?
-data StalkRoot = Bulbous | Club | Cup | Equal | Rhizomorphs | Rooted | Missing deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkRoot = Bulbous | Club | Cup | Equal | Rhizomorphs | Rooted deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+
+charToStalkRoot :: Char -> Maybe StalkRoot
+charToStalkRoot c = case c of
+  'b' -> Just Bulbous
+  'c' -> Just Club
+  'u' -> Just Cup
+  'e' -> Just Equal
+  'z' -> Just Rhizomorphs
+  'r' -> Just Rooted
+  _ -> Nothing
+  
 -- 12. stalk-surface-above-ring: fibrous=f,scaly=y,silky=k,smooth=s
-data StalkSurfaceAboveRing = Fibrous | Scaly | Silky | Smooth deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkSurfaceAboveRing = SSARFibrous | SSARScaly | SSARSilky | SSARSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 13. stalk-surface-below-ring: fibrous=f,scaly=y,silky=k,smooth=s
-data StalkSurfaceBelowRing = Fibrous | Scaly | Silky | Smooth deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkSurfaceBelowRing = SSBRFibrous | SSBRScaly | SSBRSilky | SSBRSmooth deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 14. stalk-color-above-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
-data StalkColorAboveRing = Brown | Buff | Cinnamon | Gray | Orange | Pink | Red | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkColorAboveRing = SCARBrown | SCARBuff | SCARCinnamon | SCARGray | SCAROrange | SCARPink | SCARRed | SCARWhite | SCARYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 15. stalk-color-below-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
-data StalkColorBelowRing = Brown | Buff | Cinnamon | Gray | Orange | Pink | Red | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data StalkColorBelowRing = SCBRBrown | SCBRBuff | SCBRCinnamon | SCBRGray | SCBROrange | SCBRPink | SCBRRed | SCBRWhite | SCBRYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 16. veil-type: partial=p,universal=u
-data VeilType = Partial | Universal deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data VeilType = Partial | Universal deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 17. veil-color: brown=n,orange=o,white=w,yellow=y
-data VeilColor = Brown | Orange | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data VeilColor = VCBrown | VCOrange | VCWhite | VCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 18. ring-number: none=n,one=o,two=t
-data RingNumber = None | One | Two deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data RingNumber = RNNone | RNOne | RNTwo deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 19. ring-type: cobwebby=c,evanescent=e,flaring=f,large=l, none=n,pendant=p,sheathing=s,zone=z
-data RingType = Cobwebby | Evanescent | Flaring | Large | None | Pendant | Sheathing | Zone deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data RingType = RTCobwebby | RTEvanescent | RTFlaring | RTLarge | RTNone | RTPendant | RTSheathing | RTZone deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 20. spore-print-color: black=k,brown=n,buff=b,chocolate=h,green=r, orange=o,purple=u,white=w,yellow=y
-data SporePrintColor = Black | Brown | Buff | Chocolate | Green | Orange | Purple | White | Yellow deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data SporePrintColor = SPCBlack | SPCBrown | SPCBuff | SPCChocolate | SPCGreen | SPCOrange | SPCPurple | SPCWhite | SPCYellow deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 21. population: abundant=a,clustered=c,numerous=n, scattered=s,several=v,solitary=y
-data Population = Abundant | Clustered | Numerous | Scattered | Several | Solitary deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data Population = Abundant | Clustered | Numerous | Scattered | Several | Solitary deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
 -- 22. habitat: grasses=g,leaves=l,meadows=m,paths=p, urban=u,waste=w,woods=d
-data Habitat = Grasses | Leaves | Meadows | Paths | Urban | Waste | Woods deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+data Habitat = Grasses | Leaves | Meadows | Paths | Urban | Waste | Woods deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+
+
+mushroomDatabase :: Dataset MushroomEntry
+mushroomDatabase = csvDataset
+   $ URL "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data"
