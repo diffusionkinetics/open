@@ -43,7 +43,7 @@ instance FromField Acceptability where
   parseField "vgood" = pure VeryGood
   parseField _ = fail "unknown acceptability"
 
-data Count = N Int | NOrMore Int | More deriving (Show, Read, Eq, Generic, Bounded, Enum)
+data Count = N Int | NOrMore Int | More deriving (Show, Read, Eq, Generic)
 
 instance FromField Count where
   parseField "more" = pure More
