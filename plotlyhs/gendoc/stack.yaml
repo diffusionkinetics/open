@@ -8,14 +8,14 @@
 # A snapshot resolver dictates the compiler version and the set of packages
 # to be used for project dependencies. For example:
 #
-# resolver: lts-3.5
+# resolver: lts-10.10
 # resolver: nightly-2015-09-21
 # resolver: ghc-7.10.2
 # resolver: ghcjs-0.1.0_ghc-7.10.2
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.5
+resolver: lts-10.10
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
