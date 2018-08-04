@@ -72,7 +72,7 @@ data MushroomEntry = MushroomEntry {
   , habitat :: Habitat  } deriving (Show, Read, Generic)
 
 instance FromRecord MushroomEntry where
-  parseRecord v = undefined -- MushroomEntry <$>
+  parseRecord v = undefined -- MushroomEntry <$>    -- | !!!!!!!!!!!!!!!!!
 
 data Class = Poisonous | Edible deriving (Eq, Show, Ord, Enum, Bounded, Generic)
 charToClass :: Char -> Class
@@ -143,8 +143,20 @@ charToGillColor = \case
   'k' -> GCBlack
   'n' -> GCBrown
   'b' -> GCBuff
+  'h' -> GCChocolate
+  'g' -> GCGray
+  'r' -> GCGreen
+  'o' -> GCOrange
+  'p' -> GCPink
+  'u' -> GCPurple
+  'e' -> GCRed
+  'w' -> GCYellow
+  
 -- 10. stalk-shape: enlarging=e,tapering=t
 data StalkShape = Enlarging | Tapering deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToStalkShape = \case
+  'e' -> Enlarging
+  't' -> Tapering
 
 -- 11. stalk-root: bulbous=b,club=c,cup=u,equal=e, rhizomorphs=z,rooted=r,missing=?
 data StalkRoot = Bulbous | Club | Cup | Equal | Rhizomorphs | Rooted deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
