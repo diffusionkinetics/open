@@ -61,7 +61,7 @@ data Car = Car
   , luggageBoot :: RelSize
   , safety :: RelScore
   , acceptability:: Acceptability
-  } deriving (Show, Read, Generic, Bounded, Enum)
+  } deriving (Show, Read, Generic)
 
 instance FromRecord Car
 
