@@ -1,5 +1,5 @@
 Name:                datasets
-Version:             0.2.5
+Version:             0.2.6
 Synopsis:            Classical data sets for statistics and machine learning
 Description:         Classical machine learning and statistics datasets from
                      the UCI Machine Learning Repository and other sources.
@@ -74,6 +74,7 @@ Library
                  , Numeric.Datasets.Quakes
                  , Numeric.Datasets.States
                  , Numeric.Datasets.Sunspots
+                 , Numeric.Datasets.Titanic                 
                  , Numeric.Datasets.UN
                  , Numeric.Datasets.Vocabulary
                  , Numeric.Datasets.Wine
