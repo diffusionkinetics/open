@@ -10,7 +10,9 @@ This data set includes descriptions of hypothetical samples corresponding to 23 
 
 Attribute Information:
 
-All the attributes are discrete (categorical), and attribute 11 ("stalk-root") lacks some entries.
+All the attributes are discrete (categorical), and attribute 11 ("stalk-root") lacks some entries. The 'classification' attribute has been mapped to a Boolean value (where edible = True).
+
+0. classification: poisonous=p, edible=e
 
 1. cap-shape: bell=b,conical=c,convex=x,flat=f, knobbed=k,sunken=s
 2. cap-surface: fibrous=f,grooves=g,scaly=y,smooth=s
@@ -43,7 +45,7 @@ e,x,s,y,t,a,f,c,b,k,e,c,s,s,w,w,p,w,o,p,n,n,g
 -}
 module Numeric.Datasets.Mushroom (
     MushroomEntry(..)
-  , Classification(..), CapShape(..), CapSurface(..), CapColor(..), Odor(..)
+  , CapShape(..), CapSurface(..), CapColor(..), Odor(..)
   , GillAttachment(..), GillSpacing(..), GillSize(..), GillColor(..), StalkShape(..)
   , StalkRoot(..), StalkSurfaceAboveRing(..), StalkSurfaceBelowRing(..)
   , StalkColorAboveRing(..), StalkColorBelowRing(..), VeilType(..), VeilColor(..)
@@ -57,7 +59,7 @@ import GHC.Generics
 import Control.Applicative
 
 data MushroomEntry = MushroomEntry {
-    classification :: Classification
+    edible :: Bool -- ^ Is the mushroom edible?
   , capShape :: CapShape
   , capSurface :: CapSurface
   , capColor :: CapColor
@@ -108,11 +110,11 @@ instance FromRecord MushroomEntry where
     (charToHabitat <$> v .! 22)     
 
 -- | Whether a mushroom sample is poisonous or edible; the classification tasks involves predicting this label.
-data Classification = Poisonous | Edible deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
-charToClassification :: Char -> Classification
+-- data Classification = Poisonous | Edible deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)
+charToClassification :: Char -> Bool
 charToClassification = \case 
-  'p' -> Poisonous
-  'e' -> Edible
+  'p' -> False
+  'e' -> True
   x -> error $ unwords ["Unexpected feature value :", show x]
 
 data CapShape = Bell | Conical | Convex | Flat | Knobbed | Sunken deriving (Eq, Read, Show, Ord, Enum, Bounded, Generic)

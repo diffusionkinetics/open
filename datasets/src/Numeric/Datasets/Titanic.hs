@@ -28,7 +28,8 @@ data TitanicEntry = TitanicEntry {
     tClass :: Class
   , tAge :: Age
   , tSex :: Sex
-  , tSurvived :: Bool } deriving (Eq, Read, Show, Generic)
+  , tSurvived :: Bool -- ^ Did the passenger survive ?
+  } deriving (Eq, Read, Show, Generic)
 
 
 instance FromNamedRecord TitanicEntry where
