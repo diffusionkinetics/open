@@ -105,7 +105,7 @@ csvDatasetPreprocess preF src = (csvDataset src) { preProcess = Just preF }
 csvDataset :: FromRecord a =>  Source -> Dataset a
 csvDataset src = Dataset src Nothing Nothing $ CSVRecord NoHeader defaultDecodeOptions
 
-csvDatasetSkipHdr :: FromRecord a =>  Source -> Dataset a
+csvDatasetSkipHdr :: FromRecord a => Source -> Dataset a
 csvDatasetSkipHdr src = Dataset src Nothing Nothing $ CSVRecord HasHeader defaultDecodeOptions
 
 
