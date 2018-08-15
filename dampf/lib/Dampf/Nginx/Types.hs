@@ -2,14 +2,15 @@
 module Dampf.Nginx.Types
   ( Server(..)
   , ServerDecl(..)
-  , pShowServer
-  , pShowFakeServer
+  , pShowServers
+  , IsTest
+  , IsSSL
+  , IsHttpsOnly
   ) where
 
 import           Data.Text          (Text)
 import qualified Data.Text as T
 import           Text.PrettyPrint
-
 
 newtype Server = Server [ServerDecl] 
 
@@ -25,19 +26,20 @@ data ServerDecl
     | SSLCertificateKey FilePath
     | SSLTrustedCertificate FilePath
     | Return Int String
+    | Resolver String
 
+type IsTest = Bool
+type IsHttpsOnly = Bool
+type IsSSL = Bool
 
-pShowServer :: Server -> String
-pShowServer = render . pprServer
-
-pShowFakeServer :: Server -> String
-pShowFakeServer = render . addMoreThings 
-  where addMoreThings doc = 
+pShowServers :: IsTest -> [Server] -> String
+pShowServers isTest = render . go . vcat . map pprServer
+  where go doc = 
               text "events" <+> lbrace
           $+$ nest 4 (text "worker_connections 512;") 
           $+$ rbrace
           $+$ text "http" <+> lbrace
-          $+$ nest 4 (pprServer doc)
+          $+$ nest 4 doc
           $+$ rbrace
 
 pprServer :: Server -> Doc
@@ -72,7 +74,9 @@ pprServerDecl (SSLCertificateKey p) = text "ssl_certificate_key"
     <+> text p <> semi
 
 pprServerDecl (Return i url) = text "return" 
-    <+> int i <+> text url
+    <+> int i <+> text url <> semi
+
+pprServerDecl (Resolver ip) = text "resolver" <+> text ip <> semi
 
 ppMap :: (Text, Text) -> Doc
 ppMap (k, v) = text (T.unpack k) <+> text (T.unpack v) <> semi

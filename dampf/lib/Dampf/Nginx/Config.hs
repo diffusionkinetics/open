@@ -1,7 +1,9 @@
+
 {-# LANGUAGE OverloadedStrings  #-}
 
 module Dampf.Nginx.Config where
 
+import           Data.Monoid ((<>))
 import           Control.Lens
 import           Control.Monad.IO.Class         (MonadIO)
 import           Data.Text                      (Text)
@@ -11,42 +13,57 @@ import           System.FilePath
 import           Dampf.Nginx.Types
 import           Dampf.Types
 
+domainConfig :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m Text
+domainConfig isTest name spec = T.pack . pShowServers isTest <$> domainToServer isTest name spec
 
-domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
-domainConfig name spec = T.pack . pShowServer <$> domainToServer name spec
-
-
-domainToServer :: (MonadIO m) => Text -> DomainSpec -> DampfT m Server
-domainToServer name spec
-    | isSSL     = do
-        decls <- (http ++) <$> sslDecls name spec
-        return (Server $ decls ++ redirection)
-
-    | otherwise = return (Server $ http ++ redirection)
-  where
-    isSSL = spec ^. letsEncrypt . non False
-    http  = httpDecls name spec
+domainToServer :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m [Server]
+domainToServer isTest name spec = pure servers
+  where 
     isHttpsOnly = spec ^. httpsOnly . non False
-    redirection = if not isHttpsOnly then [] 
-      else [ Return 301 "https://$server_name$request_uri;" ]
+    isSSL = spec ^. letsEncrypt . non False
+
+    addr 
+      | isTest = "$server_addr" 
+      | otherwise = "$host"
+
+    redr_uri 
+      | isSSL =     "https://" <> addr <>           "$request_uri" 
+      | otherwise = "http://"  <> addr <> ":443" <> "$request_uri"
+
+    redr = Server 
+      [ Return 301 redr_uri
+      , Listen 80 []
+      , ServerName [name, "www." `T.append` name]
+      ]
     
+    decls = servDecls isTest isSSL isHttpsOnly name spec
+
+    servers 
+      | isHttpsOnly = redr : [ Server decls ]
+      | otherwise =     pure $ Server decls
 
 
-domainToLocation :: Text -> DomainSpec -> [(Text, Text)]
-domainToLocation name spec =
+domainToLocation :: IsTest -> Text -> DomainSpec -> [(Text, Text)]
+domainToLocation isTest name spec =
     maybe [] staticAttrs s
     ++ cdnAttrs cdn
-    ++ maybe [] proxyAttrs p
+    ++ maybe [] (proxyAttrs isTest)  p
   where
     s :: Maybe Text
     s = const name <$> spec ^. static
     p = spec ^. proxyContainer
     cdn = spec ^. isCDN
 
+servDecls :: IsTest -> IsSSL -> IsHttpsOnly -> Text -> DomainSpec -> [ServerDecl]
+servDecls isTest isSSL isHttpsOnly name spec 
+  |     isSSL && not isHttpsOnly =  httpDecls isTest name spec ++ sslDecls name spec
+  |     isSSL &&     isHttpsOnly = (Listen 80  [] : httpDecls isTest name spec) ++ sslDecls name spec
+  | not isSSL && not isHttpsOnly =  Listen 80  [] : httpDecls isTest name spec
+  --not isSSL &&     isHttpsOnly 
+  | otherwise                    =  Listen 443 [] : httpDecls isTest name spec
 
-sslDecls :: (MonadIO m) => Text -> DomainSpec -> DampfT m [ServerDecl]
-sslDecls name spec = do
-    return $ f $ "/etc/letsencrypt/live/"++ T.unpack name
+sslDecls :: Text -> DomainSpec -> [ServerDecl]
+sslDecls name spec = f $ "/etc/letsencrypt/live/"++ T.unpack name
   where
     f live =
         [ Listen 443 ["ssl"]
@@ -55,12 +72,12 @@ sslDecls name spec = do
         , SSLTrustedCertificate $ live </> "chain.pem"
         ]
 
-httpDecls :: Text -> DomainSpec -> [ServerDecl]
-httpDecls name spec =
-    [ Listen 80 []
-    , ServerName [name, "www." `T.append` name]
-    , Location "/" $ domainToLocation name spec
-    ]
+httpDecls :: IsTest -> Text -> DomainSpec -> [ServerDecl]
+httpDecls isTest name spec =
+    [ ServerName [name, "www." `T.append` name]
+    , Location "/" $ domainToLocation isTest name spec
+    ] 
+
 
 cdnAttrs :: Maybe Bool -> [(Text, Text)]
 cdnAttrs (Just True) =
@@ -82,14 +99,20 @@ staticAttrs x =
     ]
 
 
-proxyAttrs :: Text -> [(Text, Text)]
-proxyAttrs x =
-    [ ("proxy_pass",       "http://127.0.0.1:" `T.append` p)
-    , ("proxy_set_header", "Host $host")
+proxyAttrs :: IsTest -> Text -> [(Text, Text)]
+proxyAttrs isTest x = pass ++
+    [ ("proxy_set_header", "Host $host")
     , ("proxy_set_header", "X-Real-IP $remote_addr")
     , ("proxy_set_header", "X-Forwarded-For $proxy_add_x_forwarded_for")
     , ("proxy_set_header", "X-Forwarded-Proto $scheme")
     ]
   where
     p = last $ T.splitOn ":" x
+    pass 
+      | isTest = 
+        [ ("resolver", "127.0.0.11")
+        , ("proxy_pass", "http://" <> x)
+        ]
 
+      | otherwise = 
+        [ ("proxy_pass", "http://127.0.0.1:" <> p) ]

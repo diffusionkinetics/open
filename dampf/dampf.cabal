@@ -31,7 +31,6 @@ library
       , Dampf.Nginx
       , Dampf.Nginx.Config
       , Dampf.Nginx.Types
-      , Dampf.Nginx.Test
       , Dampf.Postgres
       , Dampf.Postgres.Migrate
       , Dampf.Postgres.Connect

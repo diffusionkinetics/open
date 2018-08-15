@@ -6,6 +6,7 @@ import           Control.Lens
 import           Control.Monad
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.Text                  (Text)
+import           Data.Monoid ((<>))
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -16,6 +17,7 @@ import           System.Process
 import           System.Exit
 
 import           Dampf.Nginx.Config
+import           Dampf.Nginx.Types (IsTest)
 import           Dampf.Types
 import Shelly hiding ((</>), FilePath)
 
@@ -30,26 +32,49 @@ deployDomains = do
 
         ex <- domainSslExists name
         if ex
-          then writeNginxConfigFile name spec >> reload
+          then writeNginxConfigFile False name spec >> reload
           else do
-              writeNginxConfigFile name spec { _letsEncrypt = Just False}
-              enableNewDomain name spec
+               writeNginxConfigFile False name spec { _letsEncrypt = Just False}
+               enableNewDomain False name spec
 
-              reload
+               reload
+
+pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]
+pretendToDeployDomains = do
+    ds  <- view $ app . domains
+
+    let go = (\n -> (n, "/var/www" <> n))
+        path = "/tmp/dampf/test-nginx"
+    
+    fl <- itraverse (domainConfig True) ds <&> foldOf traverse
+    -- for testing purpouses only 
+    liftIO $ do
+      putStrLn " -- nginx config file -- "
+      T.putStrLn fl 
+      putStrLn " -- end of config -- "
+    --
+
+    liftIO $ do 
+      createDirectoryIfMissing True path
+      T.writeFile (path </> "nginx.conf") fl
+
+    return $ ds ^.. traverse . static . _Just . to go
+      <> [(path, "/etc/nginx")]
+      <> let crt = "/etc/letsencrypt/live/" in [(crt,crt)]
 
 reload :: (MonadIO m) => DampfT m ()
 reload = do _ <- liftIO $ system "service nginx reload"
             return ()
 
-enableNewDomain :: (MonadIO m) => Text -> DomainSpec -> DampfT m ()
-enableNewDomain name spec = when (fromMaybe False $ _letsEncrypt spec) $ do
+enableNewDomain :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m ()
+enableNewDomain isTest name spec = when (fromMaybe False $ _letsEncrypt spec) $ do
     excode <- shelly $ do
                 errExit False $ run_ "certbot-auto"
                      ["certonly","-q","--nginx","--expand","-d",name, "-d","www."`T.append` name]
                 lastExitCode
     if (excode ==0)
-      then writeNginxConfigFile name spec
-      else writeNginxConfigFile name spec { _letsEncrypt = Just False}
+      then writeNginxConfigFile isTest name spec
+      else writeNginxConfigFile isTest name spec { _letsEncrypt = Just False}
 
 domainSslExists :: (MonadIO m) => Text -> DampfT m Bool
 domainSslExists name = do
@@ -60,9 +85,9 @@ domainSslExists name = do
         else do fl <- liftIO $ T.readFile fnm
                 return $ "ssl_certificate" `T.isInfixOf` fl
 
-writeNginxConfigFile :: (MonadIO m) => Text -> DomainSpec -> DampfT m ()
-writeNginxConfigFile name spec = do
-    fl <- domainConfig name spec
+writeNginxConfigFile :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m ()
+writeNginxConfigFile isTest name spec = do
+    fl <- domainConfig isTest name spec
 
     liftIO $ do
         let strName = T.unpack name

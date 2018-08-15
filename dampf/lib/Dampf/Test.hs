@@ -6,7 +6,7 @@ import Dampf.Monitor
 import Dampf.Docker.Free
 import Dampf.Docker.Types
 import Dampf.Docker.Args.Run
-import Dampf.Nginx.Test
+import Dampf.Nginx (pretendToDeployDomains)
 
 import Data.Text (Text)
 
@@ -80,7 +80,7 @@ runNginx netName vs = runDockerT $
 
       xargs = set net netName 
             . set volumes vs 
-            . set publish [Port 433, Port 80] 
+            . set publish [Port 443, Port 80] 
             {-. set detach (Detach False)-}
 
       xSpec = ContainerSpec "nginx" Nothing Nothing Nothing
