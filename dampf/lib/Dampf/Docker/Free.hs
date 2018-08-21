@@ -31,8 +31,8 @@ runDockerT = iterT dockerIter
 dockerIter :: (MonadIO m, MonadThrow m) => DockerF (DampfT m a) -> DampfT m a
 dockerIter = \case
   Build t i next -> interpBuild t i >> next
-  Rm c next      -> interpRm c >>= next
-  RmMany cs next -> interpRmMany cs >>= next
+  Rm c next      -> interpRm c >> next
+  RmMany cs next -> interpRmMany cs >> next
   Run d c s next -> interpRun d c s >>= next
   Exec c s next -> interpExec c s >>= next
   Stop c next    -> interpStop c >> next
@@ -55,13 +55,13 @@ interpBuild t i = do
     liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
     void $ runDockerProcess_ ["build", "-t", T.unpack t, i]
 
-interpRm :: (MonadIO m) => Text -> DampfT m Text
+interpRm :: (MonadIO m) => Text -> DampfT m ()
 interpRm c = interpRmMany [c]
 
-interpRmMany :: (MonadIO m) => [Text] -> DampfT m Text
+interpRmMany :: (MonadIO m) => [Text] -> DampfT m ()
 interpRmMany cs = do
     liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
-    readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
+    void $ runDockerProcess  $ ["rm", "-f"] ++ fmap T.unpack cs
 
 interpRun :: (MonadIO m, MonadThrow m) => Bool -> Text -> ContainerSpec -> DampfT m Text
 interpRun True  = interpRunWith id

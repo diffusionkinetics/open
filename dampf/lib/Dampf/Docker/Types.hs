@@ -27,8 +27,8 @@ type DockerT = FreeT DockerF
 
 data DockerF next
     = Build Text FilePath next
-    | Rm Text (Text -> next)
-    | RmMany [Text] (Text -> next)
+    | Rm Text next
+    | RmMany [Text] next
     | Run Bool Text ContainerSpec (Text -> next)
     | Exec Text Text (Text -> next)
     | RunWith (RunArgs -> RunArgs) Text ContainerSpec (Text -> next)
@@ -54,11 +54,11 @@ build :: (MonadIO m) => Text -> FilePath -> DockerT m ()
 build t i = liftF (Build t i ())
 
 
-rm :: (MonadIO m) => Text -> DockerT m Text
-rm c = liftF (Rm c id)
+rm :: (MonadIO m) => Text -> DockerT m ()
+rm c = liftF (Rm c ())
 
-rmMany :: (MonadIO m) => [Text] -> DockerT m Text
-rmMany cs = liftF (RmMany cs id)
+rmMany :: (MonadIO m) => [Text] -> DockerT m ()
+rmMany cs = liftF (RmMany cs ())
 
 run :: (MonadIO m) => Bool -> Text -> ContainerSpec -> DockerT m Text
 run d c s = liftF (Run d c s id)

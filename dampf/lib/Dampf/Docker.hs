@@ -33,7 +33,7 @@ deployDocker = do
     cs <- view (app . containers)
     runDockerT . iforM_ cs $ \n spec -> do
         stop n
-        void (rm n)
+        rm n
         run True n spec
 
 runDocker :: (MonadIO m, MonadThrow m) => Text -> Maybe Text -> DampfT m ()
