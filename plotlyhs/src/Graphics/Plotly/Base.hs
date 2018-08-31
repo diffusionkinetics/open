@@ -355,6 +355,41 @@ instance ToJSON Font where
 defFont :: Font
 defFont = Font Nothing Nothing Nothing
 
+data Align
+  = AlignLeft | AlignCenter | AlignRight
+  deriving (Generic, Show)
+
+instance ToJSON Align where
+  toJSON = toJSON . map toLower . dropInitial "Align" . show
+
+-- | Options for annotations
+data Annotation = Annotation
+  { _annotationvisible     :: Maybe Bool
+  , _annotationtext        :: Maybe Text
+  , _annotationfont        :: Maybe Font
+  , _annotationwidth       :: Maybe Double
+  , _annotationheight      :: Maybe Double
+  , _annotationopacity     :: Maybe Double
+  , _annotationalign       :: Maybe Align
+  , _annotataonbgcolor     :: Maybe Color
+  , _annotationbordercolor :: Maybe Color
+  , _annotationshowarrow   :: Maybe Bool
+  , _annotationx           :: Maybe Value
+  , _annotationxref        :: Maybe Text -- ^ "paper" or X-axis name
+  , _annotationxshift      :: Maybe Double
+  , _annotationy           :: Maybe Value
+  , _annotationyref        :: Maybe Text -- ^ "paper" or Y-axis name
+  , _annotationyshift      :: Maybe Double
+  } deriving Generic
+
+makeLenses ''Annotation
+
+defAnnotation :: Annotation
+defAnnotation = Annotation Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+
+instance ToJSON Annotation where
+  toJSON = genericToJSON jsonOptions {fieldLabelModifier = dropInitial "annotation" . unLens}
+
 -- |options for the layout of the whole plot
 data Layout = Layout
   { _xaxis  :: Maybe Axis
@@ -374,13 +409,14 @@ data Layout = Layout
   , _barmode :: Maybe Barmode
   , _margin :: Maybe Margin
   , _font :: Maybe Font
+  , _annotations :: Maybe [Annotation]
   } deriving Generic
 
 makeLenses ''Layout
 
 -- |a defaultlayout
 defLayout :: Layout
-defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defLayout = Layout Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance ToJSON Layout where
   toJSON = genericToJSON jsonOptions
