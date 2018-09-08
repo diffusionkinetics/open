@@ -3,6 +3,7 @@ module Dampf where
 import Control.Lens
 import Control.Monad.Catch      (MonadThrow)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
+import GHC.Conc
 
 import Dampf.Docker
 import Dampf.Nginx
@@ -32,4 +33,5 @@ goDeploy = do
     runMigrations Nothing
     deployDocker
     deployDomains
+    liftIO $ threadDelay 1000000
     runMonitor []
