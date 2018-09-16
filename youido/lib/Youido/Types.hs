@@ -10,7 +10,7 @@
 
 module Youido.Types where
 
-import Network.Wai hiding (Response)
+import Network.Wai (Request, pathInfo, requestMethod)
 import qualified Data.Text as T
 import Data.Text (Text, pack, unpack)
 import Data.Text.Read(signed, decimal)
@@ -34,7 +34,7 @@ import Data.Void
 import Lens.Micro.Platform hiding (to)
 import GHC.Generics
 import Lucid.PreEscaped
-import Lucid.Bootstrap
+
 import Control.Applicative((<|>))
 
 import Text.Parsec       (optionMaybe, getState, putState)
@@ -47,13 +47,11 @@ import Text.Digestive.View (View(..))
 import qualified Text.Digestive as D
 import qualified Text.Digestive.Form.List as D
 
-import Control.Monad.Identity (Identity, runIdentity)
-
 import Data.Maybe (maybeToList)
 
 import qualified Text.Digestive.Lucid.Html5 as DL
 
-import Control.Monad.Trans.Class
+
 
 --------------------------------------------------------------------------
 ---                 PATHINFO

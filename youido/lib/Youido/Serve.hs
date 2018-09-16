@@ -3,73 +3,116 @@
 
 module Youido.Serve where
 
-import Youido.Types
-import Youido.Authentication
-import Web.Scotty
-import Web.Scotty.Cookie
-import Network.Wai.Middleware.RequestLogger (logStdout)
+import           Youido.Types
+import           Youido.Authentication
 
-import Lucid
-import Lucid.Bootstrap
-import Lucid.Bootstrap3
+import           Control.Concurrent.STM
+import           Lucid
+import           Lucid.Bootstrap
+import           Lucid.Bootstrap3
 import qualified Lucid.Rdash as RD
-import Control.Concurrent.STM
+
+import           Control.Monad.State.Strict hiding (get)
+
+import           Network.HTTP.Types.URI (Query)
+import           Network.HTTP.Types.Method (parseMethod, StdMethod(..))
+import           Network.HTTP.Types.Status (ok200, found302, methodNotAllowed405)
+import           Network.HTTP.Types.Header (Header, hContentType, hLocation, hCookie)
+import           Network.Wai (queryString, Application, pathInfo, responseLBS, requestHeaders, requestMethod, Request)
+import qualified Network.Wai as Wai (Response)
+import qualified Network.Wai.Handler.Warp as W
+import           Network.Wai.Middleware.RequestLogger (logStdout)
+import           Network.Wai.Parse (parseRequestBody, lbsBackEnd)
+
+import           Data.ByteString.Builder hiding (unpack)
+import qualified Data.ByteString.Lazy as BL
+import           Web.Cookie (parseCookies, renderSetCookie)
+
 import qualified Data.IntMap
-import Data.Text (Text, pack, unpack)
-import Data.Monoid
-import Control.Monad.State.Strict hiding (get)
-import qualified Data.Map.Strict as Map
-
-import Control.Monad.Reader
-
+import           Data.Text (Text)
+import           Data.Text.Encoding (decodeUtf8With, encodeUtf8)
+import           Data.Text.Encoding.Error (lenientDecode)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TLE
+import           Data.CaseInsensitive (mk)
+import           Data.Either (either)
 
 serveY :: Monad m => (forall a. auth -> m a -> IO a)  -> YouidoT auth m () -> IO ()
 serveY runM (YouidoT sm) = do
   let youidoDef = Youido [] "Not found!" (const id) (const $ const $const $return Nothing) 3000
   y  <- execStateT sm youidoDef
-  serve runM y
+  sessions <- newTVarIO Data.IntMap.empty
+  let application =  logStdout $ app sessions runM y
+  W.run (_port y) application
 
 loginPage :: Maybe (Html ()) -> Html ()
 loginPage mwarn = stdHtmlPage (return ()) $ container_ $
    row_ $ div_ [class_ "col-sm-12 col-md-4 col-md-offset-4"] $ loginForm "/login" mwarn
 
-serve :: Monad m => (forall a. auth -> m a -> IO a) -> Youido auth m -> IO ()
-serve runM y@(Youido _ _ _ looku port') = do
-  sessions <- newTVarIO (Data.IntMap.empty)
-  scotty port' $ do
-    middleware $ logStdout
-    get "/login" $ do
-      html $ renderText $ loginPage Nothing
-    get "/logout" $ do
-      msess <- lookupSession sessions
-      case msess of
-        Nothing -> return ()
-        Just (i,_) -> deleteSession sessions i
-      html $ renderText $ loginPage $ Just $ div_ [class_ "alert alert-info"] "Goodbye!"
-    post "/login" $ do
-      femail <- param "inputEmail"
-      fpasswd <- param "inputPassword"
-      rq <- request
-      let incorrect = renderText $ loginPage $ Just $
-                div_ [class_ "alert alert-danger"] "Incorrect user or password"
-      mu <- liftIO $  looku rq femail fpasswd
-      case mu of
-        Nothing -> html incorrect
-        Just u -> newSession sessions u >> redirect "/"
+htmlContentType :: Header
+htmlContentType = (hContentType, "text/html; charset=utf-8")
 
-    matchAny (regex "/*") $ do
-      let go u = do
-            rq <- request
-            pars <- params
-            --liftIO $ print ("got request", rq)
-            Response stat hdrs conts <- liftIO $ runM u $ run y u (rq, pars)
-            status stat
-            mapM_ (uncurry setHeader) hdrs
-            raw conts
-      msess <- lookupSession sessions
-      case msess of
-        Nothing -> redirect "/login"
-        Just (i,u) -> go u
+mkParams :: Query -> [(TL.Text, TL.Text)]
+mkParams = foldr go []
+  where
+    go (_, Nothing) x = x
+    go (k, Just v) x = (TL.fromStrict $ decodeUtf8With lenientDecode k,
+                        TL.fromStrict $ decodeUtf8With lenientDecode v) : x
+
+toWaiResponse :: Response -> Wai.Response
+toWaiResponse (Response s hs c) = responseLBS s (f <$> hs) c
+  where
+    f :: (TL.Text, TL.Text) -> Header
+    f (k, v) = (mk (BL.toStrict $ TLE.encodeUtf8 k), BL.toStrict $ TLE.encodeUtf8 v)
+
+getParams :: Request -> IO [(TL.Text, TL.Text)]
+getParams req = do
+  (params, _) <- parseRequestBody lbsBackEnd req
+  return ((go <$> params) ++ queryParams)
+  where
+    go (k, v) = (TL.fromStrict $ decodeUtf8With lenientDecode k,
+                  TL.fromStrict $ decodeUtf8With lenientDecode v)
+    queryParams = mkParams (queryString req)
+
+app :: Monad m => TVar (Data.IntMap.IntMap auth) -> (forall a. auth -> m a -> IO a) -> Youido auth m -> Application
+app sessions runM y@(Youido _ _ _ looku _) req sendResp = do
+  let path = pathInfo req
+      method = either (const Nothing) Just $ parseMethod $ requestMethod req
+      query = queryString req
+      headers = requestHeaders req
+      cookies = maybe [] id $ (parseCookies <$> lookup hCookie headers)
+
+  params <- getParams req
+
+  case (method, path) of
+    (Nothing, _) -> sendResp (responseLBS methodNotAllowed405 [] "")
+
+    (Just GET, ["login"]) -> sendResp $ (responseLBS ok200 []) $ renderBS $ loginPage Nothing
+
+    (Just GET, ["logout"]) -> do
+      deleteSession sessions cookies
+      sendResp $ (responseLBS ok200 [htmlContentType]) $ renderBS $ loginPage $ Just $ div_ [class_ "alert alert-info"] "Goodbye!"
+
+    (Just POST, ["login"]) -> do
+      let femail = maybe "" id (lookup "inputEmail" params)
+          fpasswd = maybe "" id (lookup "inputPassword" params)
+          incorrect = renderBS $ loginPage $ Just $
+                      div_ [class_ "alert alert-danger"] "Incorrect user or password"
+
+      mu <- looku req  (TL.toStrict femail) (encodeUtf8 $ TL.toStrict fpasswd)
+      case mu of
+        Nothing -> sendResp $ responseLBS ok200 [] incorrect
+        Just u -> do
+          setCookie <- BL.toStrict . toLazyByteString . renderSetCookie <$> newSession sessions u
+          sendResp (responseLBS found302 [(hLocation, "/"), ("Set-Cookie", setCookie)] "")
+
+    _ -> do
+      s <- lookupSession sessions cookies
+      case s of
+        Nothing -> sendResp (responseLBS found302 [(hLocation, "/login")] "")
+        Just u -> do
+          resp <- runM u $ run y u (req, params)
+          sendResp (toWaiResponse resp)
 
 
 dashdoCustomJS :: Html ()
