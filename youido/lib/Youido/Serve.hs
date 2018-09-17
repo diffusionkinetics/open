@@ -67,6 +67,7 @@ toWaiResponse (Response s hs c) = responseLBS s (f <$> hs) c
 
 getParams :: Request -> IO [(TL.Text, TL.Text)]
 getParams req = do
+  -- TODO: Use parseRequestBodyEx to restrict resource usage
   (params, _) <- parseRequestBody lbsBackEnd req
   return ((go <$> params) ++ queryParams)
   where

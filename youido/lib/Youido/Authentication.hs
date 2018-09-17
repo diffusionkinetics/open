@@ -23,7 +23,6 @@ newSession tv x = do
   n <- randomRIO (0,99999999999)
   atomically $ modifyTVar' tv (Data.IntMap.insert n x)
   return $ def {setCookieName = "youisess", setCookieValue = (pack $ show n)}
-  -- setSimpleCookie "youisess" (pack $ show n)
 
 getSessionCookie :: Cookies -> Maybe Int
 getSessionCookie cookies = (readMaybe . unpack) =<< lookup "youisess" cookies
