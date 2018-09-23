@@ -27,6 +27,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as BL
 
 import Network.Wreq 
+import qualified Network.Wreq.Session as Sess
 
 type IP = Text 
 type Tests = [Text]
@@ -41,11 +42,15 @@ runTests hosts argsTweak ls = tests_to_run ls >>= fmap (catMaybes . foldOf trave
   where 
     go :: (MonadIO m, MonadThrow m) => Text -> TestSpec -> DampfT m [Maybe Text]
     go n (TestSpec us _) = do
-      report ("running test: " <> T.unpack n) 
-      traverse (runUnit hosts argsTweak) us
+      dapp    <- view app
+      dconfig <- view config
 
-runUnit :: (MonadIO m, MonadThrow m) => Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
-runUnit hosts argsTweak = \case
+      liftIO . Sess.withSession $ \session -> runDampfT dapp dconfig $ do
+        report ("running test: " <> T.unpack n) 
+        traverse (runUnit session hosts argsTweak) us
+
+runUnit :: (MonadIO m, MonadThrow m) => Sess.Session -> Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
+runUnit session hosts argsTweak = \case
   TestRun iname icmd -> do
     cs <- view (app . containers)
     find (has $ image . only iname) cs & maybe 
@@ -54,7 +59,7 @@ runUnit hosts argsTweak = \case
     pure $ Just iname
 
   TestGet (lookupHost hosts . T.unpack -> uri) mb_pattern -> do
-    res <- (liftIO . get) uri <&> (^. responseBody . unpackedChars)
+    res <- (liftIO . Sess.get session) uri <&> (^. responseBody . unpackedChars)
     case mb_pattern of
       Nothing -> report res
       Just p 
