@@ -21,6 +21,7 @@ module Dampf.Types
   , module ConfigFile
   , loadConfigFile
   , safeHead
+  , warning
   ) where
 
 import Control.Lens
@@ -32,6 +33,7 @@ import Data.Maybe                                       (fromMaybe)
 import Data.Text                                        (Text)
 import Data.Typeable
 import Data.Yaml
+import Data.Monoid (Monoid (..))
 import System.Directory
 import System.FilePath
 
@@ -96,6 +98,8 @@ runDampfT a c = flip runReaderT context . unDampfT
   where
     context = DampfContext a c
 
+warning :: String -> DampfT m ()
+warning = liftIO . putStrLn . (mappend "WARNING: ") 
 
 safeHead :: [a] -> Maybe a
 safeHead (x:_) = Just x

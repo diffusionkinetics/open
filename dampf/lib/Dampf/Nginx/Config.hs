@@ -17,7 +17,7 @@ domainConfig :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m Text
 domainConfig isTest name spec = T.pack . pShowServers isTest <$> domainToServer isTest name spec
 
 domainToServer :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m [Server]
-domainToServer isTest name spec = pure servers
+domainToServer isTest name spec = servers
   where 
     isHttpsOnly = spec ^. httpsOnly . non False
     isSSL = spec ^. letsEncrypt . non False
@@ -26,9 +26,7 @@ domainToServer isTest name spec = pure servers
       | isTest = "$server_addr" 
       | otherwise = "$host"
 
-    redr_uri 
-      | isSSL =     "https://" <> addr <>           "$request_uri" 
-      | otherwise = "http://"  <> addr <> ":443" <> "$request_uri"
+    redr_uri = "https://" <> addr <> "$request_uri" 
 
     redr = Server 
       [ Return 301 redr_uri
@@ -39,8 +37,15 @@ domainToServer isTest name spec = pure servers
     decls = servDecls isTest isSSL isHttpsOnly name spec
 
     servers 
-      | isHttpsOnly = redr : [ Server decls ]
-      | otherwise =     pure $ Server decls
+      | isHttpsOnly && isSSL = 
+          pure $ redr : [ Server decls ]
+
+      | isHttpsOnly && not isSSl = 
+          warning "httpsOnly: encryption disabled" 
+          *> pure $ Server decls
+
+      | otherwise = 
+          pure $ Server decls
 
 
 domainToLocation :: IsTest -> Text -> DomainSpec -> [(Text, Text)]
