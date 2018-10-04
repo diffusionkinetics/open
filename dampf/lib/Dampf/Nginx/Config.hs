@@ -1,11 +1,13 @@
 
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 
 module Dampf.Nginx.Config where
 
 import           Data.Monoid ((<>))
 import           Control.Lens
 import           Control.Monad.IO.Class         (MonadIO)
+import           Control.Applicative            (pure)
 import           Data.Text                      (Text)
 import qualified Data.Text as T
 import           System.FilePath
@@ -16,7 +18,7 @@ import           Dampf.Types
 domainConfig :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m Text
 domainConfig isTest name spec = T.pack . pShowServers isTest <$> domainToServer isTest name spec
 
-domainToServer :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m [Server]
+domainToServer :: forall m. (Applicative m, MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m [Server]
 domainToServer isTest name spec = servers
   where 
     isHttpsOnly = spec ^. httpsOnly . non False
@@ -36,16 +38,17 @@ domainToServer isTest name spec = servers
     
     decls = servDecls isTest isSSL isHttpsOnly name spec
 
+    servers :: DampfT m [Server]
     servers 
       | isHttpsOnly && isSSL = 
-          pure $ redr : [ Server decls ]
+          pure $ redr : [Server decls]
 
-      | isHttpsOnly && not isSSl = 
+      | isHttpsOnly && not isSSL = 
           warning "httpsOnly: encryption disabled" 
-          *> pure $ Server decls
+          *> pure [Server decls]
 
       | otherwise = 
-          pure $ Server decls
+          pure [Server decls]
 
 
 domainToLocation :: IsTest -> Text -> DomainSpec -> [(Text, Text)]
@@ -61,11 +64,9 @@ domainToLocation isTest name spec =
 
 servDecls :: IsTest -> IsSSL -> IsHttpsOnly -> Text -> DomainSpec -> [ServerDecl]
 servDecls isTest isSSL isHttpsOnly name spec 
-  |     isSSL && not isHttpsOnly =  httpDecls isTest name spec ++ sslDecls name spec
-  |     isSSL &&     isHttpsOnly = (Listen 80  [] : httpDecls isTest name spec) ++ sslDecls name spec
-  | not isSSL && not isHttpsOnly =  Listen 80  [] : httpDecls isTest name spec
-  --not isSSL &&     isHttpsOnly 
-  | otherwise                    =  Listen 443 [] : httpDecls isTest name spec
+  | isSSL && not isHttpsOnly =  httpDecls isTest name spec ++ sslDecls name spec
+  | isSSL &&     isHttpsOnly = (Listen 80 [] : httpDecls isTest name spec) ++ sslDecls name spec
+  | otherwise                =  Listen 80 [] : httpDecls isTest name spec
 
 sslDecls :: Text -> DomainSpec -> [ServerDecl]
 sslDecls name spec = f $ "/etc/letsencrypt/live/"++ T.unpack name

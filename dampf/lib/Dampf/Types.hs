@@ -98,7 +98,7 @@ runDampfT a c = flip runReaderT context . unDampfT
   where
     context = DampfContext a c
 
-warning :: String -> DampfT m ()
+warning :: MonadIO m => String -> DampfT m ()
 warning = liftIO . putStrLn . (mappend "WARNING: ") 
 
 safeHead :: [a] -> Maybe a

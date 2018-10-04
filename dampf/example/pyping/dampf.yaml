@@ -7,7 +7,7 @@ container pyping:
 
 domain foo.com:
   proxyContainer: pyping:8080
-  letsEncrypt: true
+  httpsOnly: true
 
 test ping:
   when: [AtDeploy]
