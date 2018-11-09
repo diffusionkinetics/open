@@ -38,6 +38,8 @@ instance AxisValue String
 instance AxisValue Int
 instance AxisValue Day
 
+instance AxisValue a => AxisValue [a]
+
 data RGB a = RGB a a a
 data RGBA a = RGBA a a a a
 
