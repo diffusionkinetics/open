@@ -14,7 +14,7 @@ module Graphics.Plotly (
 ) where
 
 import Graphics.Plotly.Base as Base 
-  hiding (x,y, _x, _y, _size, _line, size, line)
+  hiding (x,y, z, _x, _y, _z, _size, _line, size, line)
 import Graphics.Plotly.Simple as Simple
 import Graphics.Plotly.GoG as GoG
 
