@@ -65,63 +65,74 @@ instance IsColor (RGBA Double)
 
 type family XVal a
 type family YVal a
+type family ZVal a
 type family CVal a
 type family SVal a
 
-type instance XVal (x,y,c,s) = x
-type instance YVal (x,y,c,s) = y
-type instance CVal (x,y,c,s) = c
-type instance SVal (x,y,c,s) = s
+type instance XVal (x,y,z,c,s) = x
+type instance YVal (x,y,z,c,s) = y
+type instance ZVal (x,y,z,c,s) = z
+type instance CVal (x,y,z,c,s) = c
+type instance SVal (x,y,z,c,s) = s
 
 data Aes t a = Aes
     { _x     :: a -> XVal t
     , _y     :: a -> YVal t
+    , _z     :: a -> ZVal t
     , _color :: Maybe (a -> CVal t)
     , _size  :: Maybe (a -> SVal t)
     }
 
 
-aes :: Aes ((), (), (), ()) a
-aes = Aes (const ()) (const ()) Nothing Nothing
+aes :: Aes ((), (), (), (), ()) a
+aes = Aes (const ()) (const ()) (const ()) Nothing Nothing
 
 
 setx :: (AxisValue v)
-    => Aes (vx,vy,vc,vs) a -> (a -> v) -> Aes (v, vy, vc, vs) a
-setx (Aes _ fy fc fs) f = Aes f fy fc fs
+    => Aes (vx,vy,vz,vc,vs) a -> (a -> v) -> Aes (v, vy, vz, vc, vs) a
+setx (Aes _ fy fz fc fs) f = Aes f fy fz fc fs
 
 
 x :: (AxisValue v)
-    => Lens (Aes (vx,vy, vc, vs) a) (Aes (v,vy, vc, vs) a) (a -> vx) (a -> v)
+    => Lens (Aes (vx,vy, vz, vc, vs) a) (Aes (v,vy, vz, vc, vs) a) (a -> vx) (a -> v)
 x = lens _x setx
 
 
 sety :: (AxisValue v)
-    => Aes (vx,vy, vc, vs) a -> (a -> v) -> Aes (vx, v, vc, vs) a
-sety (Aes fx _ fc fs) f = Aes fx f fc fs
+    => Aes (vx,vy, vz, vc, vs) a -> (a -> v) -> Aes (vx, v, vz, vc, vs) a
+sety (Aes fx _ fz fc fs) f = Aes fx f fz fc fs
 
 
 y :: (AxisValue v)
-    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,v, vc, vs) a) (a -> vy) (a -> v)
+    => Lens (Aes (vx,vy, vz, vc, vs) a) (Aes (vx,v, vz, vc, vs) a) (a -> vy) (a -> v)
 y = lens _y sety
 
+setz :: (AxisValue v)
+    => Aes (vx,vy, vz, vc, vs) a -> (a -> v) -> Aes (vx, vy, v, vc, vs) a
+setz (Aes fx fy _ fc fs) f = Aes fx fy f fc fs
+
+
+z :: (AxisValue v)
+    => Lens (Aes (vx,vy, vz, vc, vs) a) (Aes (vx,vy, v, vc, vs) a) (a -> vz) (a -> v)
+z = lens _z setz
 
 setcol :: (IsColor v)
-    => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, v, vs) a
-setcol (Aes fx fy _ fs) f = Aes fx fy f fs
+    => Aes (vx,vy, vz, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vz, v, vs) a
+setcol (Aes fx fy fz _ fs) f = Aes fx fy fz f fs
 
 
 color :: (IsColor v)
-    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,v,vs) a) (Maybe (a -> vc)) (Maybe (a -> v))
+    => Lens (Aes (vx,vy, vz, vc, vs) a) (Aes (vx,vy,vz, v,vs) a) (Maybe (a -> vc)) (Maybe (a -> v))
 color = lens _color setcol
 
 
 setsize :: (AxisValue v, Num v)
-    => Aes (vx,vy, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vc, v) a
-setsize (Aes fx fy fc _) = Aes fx fy fc
+    => Aes (vx,vy, vz, vc, vs) a -> Maybe (a -> v) -> Aes (vx, vy, vz, vc, v) a
+setsize (Aes fx fy fz fc _) = Aes fx fy fz fc
 
 
 size :: (AxisValue v, Num v)
-    => Lens (Aes (vx,vy, vc, vs) a) (Aes (vx,vy,vc,v) a) (Maybe (a -> vs)) (Maybe (a -> v))
+    => Lens (Aes (vx,vy, vz, vc, vs) a) (Aes (vx,vy,vz, vc,v) a) (Maybe (a -> vs)) (Maybe (a -> v))
 size = lens _size setsize
 
 
@@ -150,3 +161,10 @@ hbars a xs = Plot.bars & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.orientation ?~ Plot.Horizontal
 
+hcontour :: (AxisValue (XVal t), AxisValue (YVal t), AxisValue (ZVal t))
+         => Aes t a -> [a] -> Plot.Trace
+hcontour a xs = Plot.contour
+                & Plot.x ?~ map (toJSON . _x a) xs
+                & Plot.y ?~ map (toJSON . _y a) xs
+                & Plot.z ?~ map (toJSON . _z a) xs
+                & Plot.orientation ?~ Plot.Horizontal
