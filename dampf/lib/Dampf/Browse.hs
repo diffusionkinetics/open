@@ -15,7 +15,7 @@ import Control.Lens
 
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Catch (MonadThrow)
+import Control.Monad.Catch (MonadCatch)
 
 type ContainerName = Text
 type Args = RunArgs -> RunArgs
@@ -43,7 +43,7 @@ chrome_x11 = Browser "dampf-chrome-x11" spec args where
 
 data Backend = VNC | X11 deriving (Show, Read, Eq, Generic)
 
-browse :: (MonadIO m, MonadThrow m) => Backend -> DampfT m ()
+browse :: (MonadIO m, MonadCatch m) => Backend -> DampfT m ()
 browse b =
   let go (Browser name' spec args) = do
         (hosts, argsTweak, container_names, netName) <- fakeHostsArgs

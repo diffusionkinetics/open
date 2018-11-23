@@ -8,7 +8,7 @@ import Dampf.Docker.Args.Run
 
 import Control.Lens
 import Control.Monad            (void)
-import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.Catch      (MonadCatch)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import System.Exit (exitFailure)
@@ -34,13 +34,13 @@ type Tests = [Text]
 type Names = [Text]
 type Hosts = Map Text IP
 
-runMonitor :: (MonadIO m, MonadThrow m) => Tests -> DampfT m ()
+runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
 runMonitor = void . runTests mempty id
 
-runTests :: (MonadIO m, MonadThrow m) => Hosts -> (RunArgs -> RunArgs) -> Tests -> DampfT m Names
+runTests :: (MonadIO m, MonadCatch m) => Hosts -> (RunArgs -> RunArgs) -> Tests -> DampfT m Names
 runTests hosts argsTweak ls = tests_to_run ls >>= fmap (catMaybes . foldOf traverse) . imapM go
   where 
-    go :: (MonadIO m, MonadThrow m) => Text -> TestSpec -> DampfT m [Maybe Text]
+    go :: (MonadIO m, MonadCatch m) => Text -> TestSpec -> DampfT m [Maybe Text]
     go n (TestSpec us _) = do
       dapp    <- view app
       dconfig <- view config
@@ -49,7 +49,7 @@ runTests hosts argsTweak ls = tests_to_run ls >>= fmap (catMaybes . foldOf trave
         report ("running test: " <> T.unpack n) 
         traverse (runUnit session hosts argsTweak) us
 
-runUnit :: (MonadIO m, MonadThrow m) => Sess.Session -> Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
+runUnit :: (MonadIO m, MonadCatch m) => Sess.Session -> Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
 runUnit session hosts argsTweak = \case
   TestRun iname icmd -> do
     cs <- view (app . containers)

@@ -1,7 +1,7 @@
 module Dampf where
 
 import Control.Lens
-import Control.Monad.Catch      (MonadThrow)
+import Control.Monad.Catch      (MonadCatch)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import Dampf.Docker
@@ -20,13 +20,13 @@ dump = do
         putStrLn $ pShowDampfConfig c
 
 
-goBuild :: (MonadIO m, MonadThrow m) => DampfT m ()
+goBuild :: (MonadIO m, MonadCatch m) => DampfT m ()
 goBuild = do
     setupDB
     buildDocker
 
 
-goDeploy :: (MonadIO m, MonadThrow m) => DampfT m ()
+goDeploy :: (MonadIO m, MonadCatch m) => DampfT m ()
 goDeploy = do
     goBuild
     runMigrations Nothing
