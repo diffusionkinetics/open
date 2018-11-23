@@ -155,3 +155,6 @@ defaultRunArgs n spec = RunArgs
     , _volumes  = []
     , _dns      = Nothing
     }
+
+emptyArgs :: RunArgs
+emptyArgs = defaultRunArgs mempty (ContainerSpec mempty Nothing Nothing Nothing)

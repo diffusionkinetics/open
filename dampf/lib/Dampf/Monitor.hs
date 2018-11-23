@@ -1,10 +1,10 @@
-{-# language ViewPatterns, LambdaCase, OverloadedStrings, TupleSections #-}
+{-# language ViewPatterns, ScopedTypeVariables, LambdaCase, OverloadedStrings #-}
 module Dampf.Monitor where
 
 import Dampf.Docker.Free (runDockerT)
 import Dampf.Docker.Types
-import Dampf.Types
 import Dampf.Docker.Args.Run
+import Dampf.Types
 
 import Control.Lens
 import Control.Monad            (void)
@@ -12,10 +12,9 @@ import Control.Monad.Catch      (MonadCatch)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import System.Exit (exitFailure)
-import Data.Function (on)
 import Data.Text (Text)
 import Data.Maybe (catMaybes)
-import Data.Foldable (find)
+import Data.Foldable (traverse_, find)
 import Data.Monoid ((<>))
 import Data.Map.Strict (Map)
 import Data.ByteString.Lazy.Lens (unpackedChars)
@@ -24,52 +23,64 @@ import Text.Regex.Posix
 import Text.Regex
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
-import qualified Data.ByteString.Lazy.Char8 as BL
 
 import Network.Wreq 
 import qualified Network.Wreq.Session as Sess
 
 type IP = Text 
 type Tests = [Text]
-type Names = [Text]
-type Hosts = Map Text IP
 
 runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
-runMonitor = void . runTests mempty id
+runMonitor tests' = do
+  app' <- view app
+  runDockerT . runTests app' id =<< tests_to_run tests'
 
-runTests :: (MonadIO m, MonadCatch m) => Hosts -> (RunArgs -> RunArgs) -> Tests -> DampfT m Names
-runTests hosts argsTweak ls = tests_to_run ls >>= fmap (catMaybes . foldOf traverse) . imapM go
+
+runTests 
+  :: (MonadIO m, MonadCatch m) 
+  => DampfApp
+  -> (RunArgs -> RunArgs) 
+  -> Map Text TestSpec 
+  -> DockerT m ()
+
+runTests app' argsTweak = imapM_ go
   where 
-    go :: (MonadIO m, MonadCatch m) => Text -> TestSpec -> DampfT m [Maybe Text]
+    go :: (MonadIO m, MonadCatch m) => Text -> TestSpec -> DockerT m ()
     go n (TestSpec us _) = do
-      dapp    <- view app
-      dconfig <- view config
+      sess <- liftIO Sess.newSession
+      report ("running test: " <> T.unpack n) 
+      traverse_ (runUnit app' sess argsTweak) us
 
-      liftIO . Sess.withSession $ \session -> runDampfT dapp dconfig $ do
-        report ("running test: " <> T.unpack n) 
-        traverse (runUnit session hosts argsTweak) us
 
-runUnit :: (MonadIO m, MonadCatch m) => Sess.Session -> Hosts -> (RunArgs -> RunArgs) -> TestUnit -> DampfT m (Maybe Text)
-runUnit session hosts argsTweak = \case
-  TestRun iname icmd -> do
-    cs <- view (app . containers)
-    find (has $ image . only iname) cs & maybe 
+runUnit 
+  :: (MonadIO m, MonadCatch m) 
+  => DampfApp
+  -> Sess.Session 
+  -> (RunArgs -> RunArgs) 
+  -> TestUnit 
+  -> DockerT m ()
+
+runUnit (view containers -> cs) session argsTweak = \case
+  TestRun name' cmd' ->
+    find (has $ image . only name') cs & maybe 
       (liftIO exitFailure)
-      (runDockerT . runWith (set cmd icmd . argsTweak) iname)
-    pure $ Just iname
+      (void . runWith (set cmd cmd' . argsTweak) name')
 
-  TestGet (lookupHost hosts . T.unpack -> uri) mb_pattern -> do
+  TestGet host mb_pattern -> do
+    let hosts' = view hosts (argsTweak emptyArgs)
+        uri = (lookupHost hosts' . T.unpack) host
+
     res <- (liftIO . Sess.get session) uri <&> (^. responseBody . unpackedChars)
     case mb_pattern of
       Nothing -> report res
       Just p 
-        | res =~ T.unpack p -> report $ uri <> " [OK]"
+        | res =~ T.unpack p -> report (uri <> " [OK]")
         | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match\n") 
                     *> report uri
-    pure Nothing
 
 type URL = String
-lookupHost :: Hosts -> URL -> URL
+
+lookupHost :: Map Text IP -> URL -> URL
 lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
   where pick (Just url':_) = url'
         pick _ = url
@@ -83,10 +94,10 @@ tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
 tests_to_run [] = all_tests 
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
 
-report :: (MonadIO m) => String -> DampfT m ()
+report :: (MonadIO m) => String -> m ()
 report = liftIO . putStrLn
 
-reportLn :: (MonadIO m) => String -> DampfT m ()
+reportLn :: (MonadIO m) => String -> m ()
 reportLn = liftIO . putStrLn
 
 all_tests :: Monad m => DampfT m (Map Text TestSpec)
