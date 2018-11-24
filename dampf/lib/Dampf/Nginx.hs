@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings  #-}
+{-# language FlexibleContexts #-}
 
 module Dampf.Nginx where
 
 import           Control.Lens
 import           Control.Monad
+import           Control.Monad.Reader.Class (MonadReader)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Data.Text                  (Text)
 import           Data.Monoid ((<>))
@@ -23,7 +25,8 @@ import Shelly hiding ((</>), FilePath)
 
 
 
-deployDomains :: (MonadIO m) => DampfT m ()
+deployDomains   
+  :: (MonadReader DampfContext m, MonadIO m) => m ()
 deployDomains = do
     ds <- view (app . domains)
 
@@ -39,7 +42,11 @@ deployDomains = do
 
                reload
 
-pretendToDeployDomains :: (MonadIO m) => DampfT m [(FilePath, FilePath)]
+
+pretendToDeployDomains 
+  :: (MonadReader DampfContext m, MonadIO m) 
+  => m [(FilePath, FilePath)]
+
 pretendToDeployDomains = do
     ds  <- view $ app . domains
 
@@ -62,11 +69,15 @@ pretendToDeployDomains = do
       <> [(path, "/etc/nginx")]
       <> let crt = "/etc/letsencrypt/live/" in [(crt,crt)]
 
-reload :: (MonadIO m) => DampfT m ()
+reload :: (MonadReader DampfContext m, MonadIO m) => m ()
 reload = do _ <- liftIO $ system "service nginx reload"
             return ()
 
-enableNewDomain :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m ()
+
+enableNewDomain 
+  :: (MonadReader DampfContext m, MonadIO m) 
+  => IsTest -> Text -> DomainSpec -> m ()
+
 enableNewDomain isTest name spec = when (fromMaybe False $ _letsEncrypt spec) $ do
     excode <- shelly $ do
                 errExit False $ run_ "certbot-auto"
@@ -76,7 +87,7 @@ enableNewDomain isTest name spec = when (fromMaybe False $ _letsEncrypt spec) $ 
       then writeNginxConfigFile isTest name spec
       else writeNginxConfigFile isTest name spec { _letsEncrypt = Just False}
 
-domainSslExists :: (MonadIO m) => Text -> DampfT m Bool
+domainSslExists :: (MonadReader DampfContext m, MonadIO m) => Text -> m Bool
 domainSslExists name = do
     let fnm = ("/etc/nginx/sites-available" </> T.unpack name)
     ex <- liftIO $ doesFileExist fnm
@@ -85,7 +96,7 @@ domainSslExists name = do
         else do fl <- liftIO $ T.readFile fnm
                 return $ "ssl_certificate" `T.isInfixOf` fl
 
-writeNginxConfigFile :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m ()
+writeNginxConfigFile :: (MonadReader DampfContext m, MonadIO m) => IsTest -> Text -> DomainSpec -> m ()
 writeNginxConfigFile isTest name spec = do
     fl <- domainConfig isTest name spec
 
@@ -98,7 +109,7 @@ writeNginxConfigFile isTest name spec = do
             ("/etc/nginx/sites-enabled" </> strName)
 
 
-moveStaticItems :: (MonadIO m) => Text -> Maybe FilePath -> DampfT m ()
+moveStaticItems :: (MonadReader DampfContext m, MonadIO m) => Text -> Maybe FilePath -> m ()
 moveStaticItems s (Just src) = liftIO $ do
     exists <- doesDirectoryExist dest
     when exists $ removeDirectoryRecursive dest

@@ -1,4 +1,9 @@
-{-# language ViewPatterns, ScopedTypeVariables, LambdaCase, OverloadedStrings #-}
+{-# language FlexibleContexts #-}
+{-# language ViewPatterns #-}
+{-# language ScopedTypeVariables  #-}
+{-# language LambdaCase  #-}
+{-# language OverloadedStrings #-}
+
 module Dampf.Monitor where
 
 import Dampf.Docker.Free (runDockerT)
@@ -8,6 +13,7 @@ import Dampf.Types
 
 import Control.Lens
 import Control.Monad            (void)
+import Control.Monad.Reader.Class (MonadReader)
 import Control.Monad.Catch      (MonadCatch)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 
@@ -30,38 +36,34 @@ import qualified Network.Wreq.Session as Sess
 type IP = Text 
 type Tests = [Text]
 
-runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
-runMonitor tests' = do
-  app' <- view app
-  runDockerT . runTests app' id =<< tests_to_run tests'
+runMonitor :: (MonadReader DampfContext m, MonadIO m, MonadCatch m) => Tests -> DampfT m ()
+runMonitor tests' = runDockerT . runTests id =<< tests_to_run tests'
 
 
 runTests 
-  :: (MonadIO m, MonadCatch m) 
-  => DampfApp
-  -> (RunArgs -> RunArgs) 
+  :: (Monad m, MonadReader DampfContext m, MonadIO m, MonadCatch m) 
+  => (RunArgs -> RunArgs) 
   -> Map Text TestSpec 
   -> DockerT m ()
 
-runTests app' argsTweak = imapM_ go
+runTests argsTweak = imapM_ go
   where 
-    go :: (MonadIO m, MonadCatch m) => Text -> TestSpec -> DockerT m ()
     go n (TestSpec us _) = do
       sess <- liftIO Sess.newSession
       report ("running test: " <> T.unpack n) 
-      traverse_ (runUnit app' sess argsTweak) us
+      traverse_ (runUnit sess argsTweak) us
 
 
 runUnit 
-  :: (MonadIO m, MonadCatch m) 
-  => DampfApp
-  -> Sess.Session 
+  :: (MonadReader DampfContext m, MonadIO m, MonadCatch m) 
+  => Sess.Session 
   -> (RunArgs -> RunArgs) 
   -> TestUnit 
   -> DockerT m ()
 
-runUnit (view containers -> cs) session argsTweak = \case
-  TestRun name' cmd' ->
+runUnit session argsTweak = \case
+  TestRun name' cmd' -> do
+    cs <- view (app . containers)
     find (has $ image . only name') cs & maybe 
       (liftIO exitFailure)
       (void . runWith (set cmd cmd' . argsTweak) name')
@@ -90,7 +92,11 @@ lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
           | T.isInfixOf host url = Just . T.unpack $ T.replace host ip url
           | otherwise = Nothing
 
-tests_to_run :: Monad m => Tests -> DampfT m (Map Text TestSpec)
+tests_to_run 
+  :: MonadReader DampfContext m 
+  => Monad m 
+  => Tests 
+  -> m (Map Text TestSpec)
 tests_to_run [] = all_tests 
 tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
 
@@ -100,7 +106,10 @@ report = liftIO . putStrLn
 reportLn :: (MonadIO m) => String -> m ()
 reportLn = liftIO . putStrLn
 
-all_tests :: Monad m => DampfT m (Map Text TestSpec)
+all_tests 
+  :: MonadReader DampfContext m 
+  => Monad m 
+  => m (Map Text TestSpec)
 all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 
 isOnlyAtBuild :: TestSpec -> Bool

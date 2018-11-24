@@ -1,4 +1,4 @@
-
+{-# language FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 
@@ -6,6 +6,7 @@ module Dampf.Nginx.Config where
 
 import           Data.Monoid ((<>))
 import           Control.Lens
+import           Control.Monad.Reader.Class     (MonadReader)
 import           Control.Monad.IO.Class         (MonadIO)
 import           Control.Applicative            (pure)
 import           Data.Text                      (Text)
@@ -15,10 +16,14 @@ import           System.FilePath
 import           Dampf.Nginx.Types
 import           Dampf.Types
 
-domainConfig :: (MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m Text
+domainConfig 
+  :: (MonadReader DampfContext m, MonadIO m) 
+  => IsTest -> Text -> DomainSpec -> m Text
 domainConfig isTest name spec = T.pack . pShowServers isTest <$> domainToServer isTest name spec
 
-domainToServer :: forall m. (Applicative m, MonadIO m) => IsTest -> Text -> DomainSpec -> DampfT m [Server]
+domainToServer 
+  :: forall m. (MonadReader DampfContext m, Applicative m, MonadIO m) 
+  => IsTest -> Text -> DomainSpec -> m [Server]
 domainToServer isTest name spec = servers
   where 
     isHttpsOnly = spec ^. httpsOnly . non False
@@ -38,7 +43,7 @@ domainToServer isTest name spec = servers
     
     decls = servDecls isTest isSSL isHttpsOnly name spec
 
-    servers :: DampfT m [Server]
+    servers :: m [Server]
     servers 
       | isHttpsOnly && isSSL = 
           pure $ redr : [Server decls]
