@@ -36,7 +36,7 @@ import qualified Network.Wreq.Session as Sess
 type IP = Text 
 type Tests = [Text]
 
-runMonitor :: (MonadReader DampfContext m, MonadIO m, MonadCatch m) => Tests -> DampfT m ()
+runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
 runMonitor tests' = runDockerT . runTests id =<< tests_to_run tests'
 
 
