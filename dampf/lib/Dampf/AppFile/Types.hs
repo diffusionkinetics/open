@@ -23,6 +23,7 @@ module Dampf.AppFile.Types
   , TestUnit(..)
   , HasTestSpec(..)
   , Port (..)
+  , traverseTestRunImageName
   ) where
 
 import           Control.Lens
@@ -85,6 +86,10 @@ data TestWhen = AtBuild | AtDeploy | Hourly | Daily | Frequently
 data TestUnit = TestRun ImageName Command
               | TestGet URL (Maybe Text) -- match regex
     deriving (Eq, Show, Generic)
+
+traverseTestRunImageName :: Applicative f => (Text -> f Text) -> TestUnit -> f TestUnit
+traverseTestRunImageName inj (TestRun imgName cmd') = TestRun <$> inj imgName <*> pure cmd'
+traverseTestRunImageName _   t = pure t
 
 instance FromJSON TestWhen
 
