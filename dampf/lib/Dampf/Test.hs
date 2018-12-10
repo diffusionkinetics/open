@@ -1,4 +1,10 @@
-{-# language TupleSections, BangPatterns, LambdaCase, OverloadedStrings, ViewPatterns #-}
+{-# language TupleSections #-}
+{-# language BangPatterns #-}
+{-# language LambdaCase #-}
+{-# language OverloadedStrings #-}
+{-# language ViewPatterns #-}
+{-# language FlexibleContexts #-}
+
 module Dampf.Test where
 
 import Dampf.Types
@@ -24,56 +30,42 @@ import qualified Data.Text as T
 type Network = Text
 type Volumes = [(FilePath, FilePath)]
 type ContainerNames = [Text]
+type Names = [Text]
 
--- add database related opearitons to `test`
--- finalize on exceptions
-
-fakeHostsArgs :: (MonadIO m, MonadCatch m) =>
-  DampfT m (Hosts, RunArgs -> RunArgs, ContainerNames, Network)
-
-fakeHostsArgs = do
-  netName <- randomName
-  runDockerT $ netCreate netName
-
-  proxie_names <- runProxies netName
-
-  nginx_ip <- pretendToDeployDomains >>= runNginx netName
-  liftIO $ print nginx_ip
-
-  fakeHosts <- set mapped nginx_ip <$> view (app . domains)
-
-  let argsTweak = set net netName 
-                . set detach (Detach False)
-                . set hosts fakeHosts
-
-  pure (fakeHosts, argsTweak, nginx_container_name : proxie_names, netName)
-
-test :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
+test :: (MonadMask m, MonadIO m) => Tests -> DampfT m ()
 test ls = do
-  (hosts', argsTweak, container_names, netName) <- fakeHostsArgs
+  netName <- randomName
+  proxies <- ask <&> toListOf (app . domains . traversed . proxyContainer . _Just . to (head . T.splitOn ":"))
+  
+  test_containers <- tests_to_run ls 
 
-  test_container_names <- runTests hosts' argsTweak ls
-  cleanUp netName (container_names ++ test_container_names)
+  let testContainerNames = toListOf (traversed . tsUnits . traversed . traverseTestRunImageName) test_containers
+      containerMess = nginx_container_name : proxies ++ testContainerNames
+      onlyProxyContainers = app . containers . to (Map.filter (^. image . to (flip elem proxies)))
+
+  void . runDockerT $ do
+      netCreate netName
+
+      view onlyProxyContainers >>= imapM_ (runWith (set net netName))
+
+      nginx_ip <- pretendToDeployDomains >>= runNginx netName
+
+      fakeHosts <- set mapped nginx_ip <$> view (app . domains)
+      let runArgsTweak =  set net netName 
+                        . set detach (Detach False)
+                        . set hosts fakeHosts
+
+      runTests runArgsTweak test_containers
+
+      stopMany containerMess
+      void (rmMany containerMess)
+      netRM [netName]
 
 nginx_container_name :: Text
 nginx_container_name = "dampf-nginx"
 
-runProxies :: (MonadIO m, MonadCatch m) => Network -> DampfT m ContainerNames
-runProxies netName = do
-  let pxs = app . domains . traversed . proxyContainer . _Just . to (head . T.splitOn ":")
-
-  proxies <- ask <&> toListOf pxs
-
-  let cts = app . containers . to (Map.filter
-        (^. image . to (flip elem proxies)))
-
-  names <- view cts >>= imapM (\n -> 
-    runDockerT . fmap (const n) . runWith (set net netName) n)
-
-  return (toListOf traverse names)
-
-runNginx :: (MonadIO m, MonadCatch m) => Network -> Volumes -> DampfT m IP
-runNginx netName vs = runDockerT $ 
+runNginx :: (MonadIO m, MonadCatch m) => Network -> Volumes -> DockerT m IP
+runNginx netName vs =
   runWith xargs nginx_container_name xSpec >>= getIp . T.take 12 
     where 
       getIp (head . T.lines -> !id') = head . T.lines <$> inspect 
@@ -86,11 +78,5 @@ runNginx netName vs = runDockerT $
 
       xSpec = ContainerSpec "nginx" Nothing Nothing Nothing
 
-cleanUp :: (MonadIO m, MonadCatch m) => Network -> Names -> DampfT m ()
-cleanUp netName names = void . runDockerT $ do
-  stopMany names
-  void (rmMany names)
-  netRM [netName]
-
-randomName :: (MonadIO m, MonadCatch m) => DampfT m Network
+randomName :: MonadIO m => m Network
 randomName = fmap T.pack . replicateM 16 . liftIO . randomRIO $ ('a','z')

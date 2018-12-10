@@ -88,14 +88,8 @@ interpRunWith f n spec = do
     args <- mkRunArgs n spec <&> f
     liftIO . putStrLn $ "Docker: Running "
         ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
-    if args ^. interactive
-      then do
-        runDockerProcess . toArgs $ args
-        return ""
-      else do
-        res <- readDockerProcess . toArgs $ args
-        liftIO . T.putStrLn $ res
-        return res
+
+    readDockerProcess . toArgs $ args
 
 interpExec :: (MonadIO m, MonadCatch m) => Text -> Text -> DampfT m Text
 interpExec conNm cmds = do

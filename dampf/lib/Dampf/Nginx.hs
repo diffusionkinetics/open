@@ -54,12 +54,13 @@ pretendToDeployDomains = do
         path = "/tmp/dampf/test-nginx"
     
     fl <- itraverse (domainConfig True) ds <&> foldOf traverse
+      
     -- for testing purpouses only 
-    liftIO $ do
-      putStrLn " -- nginx config file -- "
-      T.putStrLn fl 
-      putStrLn " -- end of config -- "
-    --
+    -- liftIO $ do
+    --   putStrLn " -- nginx config file -- "
+    --   T.putStrLn fl 
+    --   putStrLn " -- end of config -- "
+      
 
     liftIO $ do 
       createDirectoryIfMissing True path
