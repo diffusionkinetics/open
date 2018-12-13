@@ -6,14 +6,17 @@ import Dampf.Types
 import Dampf.Docker.Free
 import Dampf.Docker.Types
 import Dampf.Docker.Args.Run
+import Dampf.Nginx (pretendToDeployDomains)
   
 import Data.Text (Text)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 
-import GHC.Generics
+import GHC.Generics (Generic)
 import Control.Lens
 
 import Control.Monad (void)
+import Control.Monad.Reader (ask)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Catch (MonadCatch)
 
@@ -43,12 +46,31 @@ chrome_x11 = Browser "dampf-chrome-x11" spec args where
 
 data Backend = VNC | X11 deriving (Show, Read, Eq, Generic)
 
-browse :: (MonadIO m, MonadCatch m) => Backend -> DampfT m ()
-browse b =
-  let go (Browser name' spec args) = do
-        (hosts, argsTweak, container_names, netName) <- fakeHostsArgs
-        void . runDockerT $ runWith (args . argsTweak) name' spec
-        cleanUp netName (name' : container_names)
-     in case b of
-          VNC -> go chrome_vnc
-          X11 -> go chrome_x11
+browse :: (MonadCatch m, MonadIO m) => Backend -> DampfT m ()
+browse b = do
+  netName <- randomName
+  proxies <- ask <&> toListOf (app . domains . traversed . proxyContainer . _Just . to (head . T.splitOn ":"))
+  
+  let containerMess = nginx_container_name : browserName : proxies
+      onlyProxyContainers = app . containers . to (Map.filter (^. image . to (flip elem proxies)))
+      (Browser browserName browserSpec browserArgs) = case b of
+        VNC -> chrome_vnc
+        X11 -> chrome_x11
+
+  void . runDockerT $ do
+      netCreate netName
+
+      view onlyProxyContainers >>= imapM_ (runWith (set net netName))
+
+      nginx_ip <- pretendToDeployDomains >>= runNginx netName
+
+      fakeHosts <- set mapped nginx_ip <$> view (app . domains)
+      let runArgsTweak =  set net netName 
+                        . set detach (Detach False)
+                        . set hosts fakeHosts
+
+      _ <- runWith (browserArgs . runArgsTweak) browserName browserSpec
+
+      stopMany containerMess
+      void (rmMany containerMess)
+      netRM [netName]
