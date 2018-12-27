@@ -108,8 +108,9 @@ data Method = Post | Get
   deriving (Eq, Show)
 instance FromJSON Method where
   parseJSON = withText "method" go
-    where go "get" = pure Get
-          go "put" = pure Post
+    where go "get"  = pure Get
+          go "post" = pure Post
+          go _ = mzero
 
 type Action = String 
 data FormData = FormData 
