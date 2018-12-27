@@ -27,8 +27,10 @@ import Data.ByteString.Lazy.Lens (unpackedChars)
 
 import Text.Regex.Posix
 import Text.Regex
+
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BS
 
 import Network.Wreq 
 import qualified Network.Wreq.Session as Sess
@@ -39,6 +41,18 @@ type Tests = [Text]
 runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
 runMonitor tests' = runDockerT . runTests id =<< tests_to_run tests'
 
+sendFormData :: MonadIO m => (RunArgs -> RunArgs) -> FormData -> m ()
+sendFormData argsTweak form =
+  let opts      = defaults & params .~ contents
+      contents  = form ^. formContents . to Map.toList
+      hs        = argsTweak emptyArgs ^. hosts
+      action'   = form ^. formAction . to (lookupHost hs)
+  in  void $ case (form ^. formMethod) of
+        Get  -> (liftIO . getWith opts) action'
+        Post -> (liftIO . post action' . map process) contents
+          where
+            process (a,b) = (go a, go b) 
+            go = BS.pack . T.unpack
 
 runTests 
   :: (Monad m, MonadReader DampfContext m, MonadIO m, MonadCatch m) 
@@ -48,8 +62,11 @@ runTests
 
 runTests argsTweak = imapM_ go
   where 
-    go n (TestSpec us _) = do
+    go n (TestSpec us _ mbForm) = do
       sess <- liftIO Sess.newSession
+
+      maybe (return ()) (sendFormData argsTweak) mbForm
+
       report ("running test: " <> T.unpack n) 
       traverse_ (runUnit sess argsTweak) us
 
@@ -69,8 +86,8 @@ runUnit session argsTweak = \case
       (void . runWith (set cmd cmd' . argsTweak) name')
 
   TestGet host mb_pattern -> do
-    let hosts' = view hosts (argsTweak emptyArgs)
-        uri = (lookupHost hosts' . T.unpack) host
+    let hs  = argsTweak emptyArgs ^. hosts
+        uri = (lookupHost hs . T.unpack) host
 
     res <- (liftIO . Sess.get session) uri <&> (^. responseBody . unpackedChars)
     case mb_pattern of
@@ -113,4 +130,4 @@ all_tests
 all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
 
 isOnlyAtBuild :: TestSpec -> Bool
-isOnlyAtBuild (TestSpec _ whens) = [AtBuild] == whens
+isOnlyAtBuild (TestSpec _ whens _) = [AtBuild] == whens

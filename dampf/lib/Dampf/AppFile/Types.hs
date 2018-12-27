@@ -18,6 +18,11 @@ module Dampf.AppFile.Types
   , HasDatabaseSpec(..)
   , DomainSpec(..)
   , HasDomainSpec(..)
+  , FormData(..)
+  , formAction
+  , formContents
+  , formMethod
+  , Method(..)
   , TestSpec(..)
   , TestWhen(..)
   , TestUnit(..)
@@ -96,7 +101,30 @@ instance FromJSON TestWhen
 data TestSpec = TestSpec
     { _tsUnits        :: [TestUnit]
     , _tsWhen         :: [TestWhen]
+    , _tsForm         :: Maybe FormData
     } deriving (Eq, Show, Generic)
+
+data Method = Post | Get
+  deriving (Eq, Show)
+instance FromJSON Method where
+  parseJSON = withText "method" go
+    where go "get" = pure Get
+          go "put" = pure Post
+
+type Action = String 
+data FormData = FormData 
+  { _formMethod :: Method
+  , _formAction :: Action 
+  , _formContents :: Map Text Text
+  } deriving (Eq, Show)
+
+makeClassy ''FormData
+
+instance FromJSON FormData where
+  parseJSON = withObject "form data" $ \o -> FormData 
+    <$> o .: "method"
+    <*> o .: "action"
+    <*> o .: "content"
 
 makeClassy ''TestSpec
 
