@@ -1,0 +1,14 @@
+name: formdata
+
+dependencies:
+  - servant-server
+  - wai-cli
+  - bytestring
+  - text
+  - base
+  - transformers
+
+executables:
+  formdata:
+    main: Main.hs
+    sources-dir: lib

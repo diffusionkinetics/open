@@ -1,0 +1,29 @@
+container formdata:
+  image: formdata
+  expose: [3000]
+
+domain formdata.com:
+  proxyContainer: formdata:3000
+
+
+test postEg:
+  when: [AtDeploy]
+  form:
+    method: post
+    action: http://formdata.com/post-data
+    content:
+      message: postEg
+
+  units:
+    - get http://formdata.com/test =~ postEg
+
+test getEg:
+  when: [AtDeploy]
+  form:
+    method: get
+    action: http://formdata.com/get-data
+    content:
+      message: getEg
+
+  units: 
+    - get http://formdata.com/test =~ getEg
