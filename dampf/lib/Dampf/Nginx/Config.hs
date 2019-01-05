@@ -1,6 +1,6 @@
 {-# language FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Dampf.Nginx.Config where
 
@@ -16,20 +16,28 @@ import           System.FilePath
 import           Dampf.Nginx.Types
 import           Dampf.Types
 
+
 domainConfig 
   :: (MonadReader DampfContext m, MonadIO m) 
   => IsTest -> Text -> DomainSpec -> m Text
-domainConfig isTest name spec = T.pack . pShowServers isTest <$> domainToServer isTest name spec
+
+domainConfig isTest name spec = 
+  T.pack . go <$> domainToServer isTest name spec
+    where 
+      go  | isTest = pShowTestServers 
+          | otherwise = pShowServers 
+
 
 domainToServer 
   :: forall m. (MonadReader DampfContext m, Applicative m, MonadIO m) 
   => IsTest -> Text -> DomainSpec -> m [Server]
+
 domainToServer isTest name spec = servers
   where 
     isHttpsOnly = spec ^. httpsOnly . non False
     isSSL = spec ^. letsEncrypt . non False
 
-    addr 
+    addr
       | isTest = "$server_addr" 
       | otherwise = "$host"
 
@@ -67,14 +75,28 @@ domainToLocation isTest name spec =
     p = spec ^. proxyContainer
     cdn = spec ^. isCDN
 
-servDecls :: IsTest -> IsSSL -> IsHttpsOnly -> Text -> DomainSpec -> [ServerDecl]
+
+servDecls 
+  :: IsTest 
+  -> IsSSL 
+  -> IsHttpsOnly 
+  -> Text 
+  -> DomainSpec 
+  -> [ServerDecl]
+
 servDecls isTest isSSL isHttpsOnly name spec 
-  | isSSL && not isHttpsOnly =  httpDecls isTest name spec ++ sslDecls name spec
-  | isSSL &&     isHttpsOnly = (Listen 80 [] : httpDecls isTest name spec) ++ sslDecls name spec
-  | otherwise                =  Listen 80 [] : httpDecls isTest name spec
+  | isSSL && not isHttpsOnly = 
+      httpDecls isTest name spec ++ sslDecls name spec
+
+  | isSSL && isHttpsOnly = 
+     (Listen 80 [] : httpDecls isTest name spec) ++ sslDecls name spec
+
+  | otherwise =  
+      Listen 80 [] : httpDecls isTest name spec
+
 
 sslDecls :: Text -> DomainSpec -> [ServerDecl]
-sslDecls name spec = f $ "/etc/letsencrypt/live/"++ T.unpack name
+sslDecls name spec = f $ "/etc/letsencrypt/live/" ++ T.unpack name
   where
     f live =
         [ Listen 443 ["ssl"]
