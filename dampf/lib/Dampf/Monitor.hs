@@ -3,6 +3,7 @@
 {-# language ScopedTypeVariables  #-}
 {-# language LambdaCase  #-}
 {-# language OverloadedStrings #-}
+{-# language BangPatterns #-}
 
 module Dampf.Monitor where
 
@@ -19,14 +20,12 @@ import Control.Monad.IO.Class   (MonadIO, liftIO)
 
 import System.Exit (exitFailure)
 import Data.Text (Text)
-import Data.Maybe (catMaybes)
 import Data.Foldable (traverse_, find)
 import Data.Monoid ((<>))
 import Data.Map.Strict (Map)
 import Data.ByteString.Lazy.Lens (unpackedChars)
 
 import Text.Regex.Posix
-import Text.Regex
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
@@ -41,18 +40,18 @@ type Tests = [Text]
 runMonitor :: (MonadIO m, MonadCatch m) => Tests -> DampfT m ()
 runMonitor tests' = runDockerT . runTests id =<< tests_to_run tests'
 
-sendFormData :: MonadIO m => (RunArgs -> RunArgs) -> FormData -> m ()
-sendFormData argsTweak form =
-  let opts      = defaults & params .~ contents
+sendFormData :: MonadIO m => FormData -> m ()
+sendFormData form =
+  let 
       contents  = form ^. formContents . to Map.toList
-      hs        = argsTweak emptyArgs ^. hosts
-      action'   = form ^. formAction . to (lookupHost hs)
+      action    = form ^. formAction
+      opts      = defaults & params .~ contents
+      go        = BS.pack . T.unpack
+      process (a,b) = (go a, go b) 
+
   in  void $ case (form ^. formMethod) of
-        Get  -> (liftIO . getWith opts) action'
-        Post -> (liftIO . post action' . map process) contents
-          where
-            process (a,b) = (go a, go b) 
-            go = BS.pack . T.unpack
+        Get  -> (liftIO . getWith opts) action
+        Post -> (liftIO . postWith opts action . map process) contents
 
 runTests 
   :: (Monad m, MonadReader DampfContext m, MonadIO m, MonadCatch m) 
@@ -65,7 +64,7 @@ runTests argsTweak = imapM_ go
     go n (TestSpec us _ mbForm) = do
       sess <- liftIO Sess.newSession
 
-      maybe (return ()) (sendFormData argsTweak) mbForm
+      maybe (return ()) sendFormData mbForm
 
       report ("running test: " <> T.unpack n) 
       traverse_ (runUnit sess argsTweak) us
@@ -85,49 +84,45 @@ runUnit session argsTweak = \case
       (liftIO exitFailure)
       (void . runWith (set cmd cmd' . argsTweak) name')
 
-  TestGet host mb_pattern -> do
-    let hs  = argsTweak emptyArgs ^. hosts
-        uri = (lookupHost hs . T.unpack) host
+  TestGet action mb_pattern -> do
+    res <- (liftIO . Sess.get session) (T.unpack action)
+      <&> (^. responseBody . unpackedChars)
 
-    res <- (liftIO . Sess.get session) uri <&> (^. responseBody . unpackedChars)
     case mb_pattern of
       Nothing -> report res
       Just p 
-        | res =~ T.unpack p -> report (uri <> " [OK]")
-        | otherwise -> report ("[FAIL] pattern " <> show p <> " didn't match\n") 
-                    *> report uri
+        | res =~ T.unpack p -> report (T.unpack action <> " [OK]")
+        | otherwise -> do
+            report ("[FAIL] pattern " <> show p <> " didn't match\n") 
+            (report . T.unpack) action
+
 
 type URL = String
 
-lookupHost :: Map Text IP -> URL -> URL
-lookupHost hosts url = pick . toListOf traverse $ imap (go url) hosts
-  where pick (Just url':_) = url'
-        pick _ = url
-
-        go :: URL -> Text -> IP -> Maybe URL
-        go (T.pack -> url) host ip
-          | T.isInfixOf host url = Just . T.unpack $ T.replace host ip url
-          | otherwise = Nothing
 
 tests_to_run 
   :: MonadReader DampfContext m 
   => Monad m 
   => Tests 
   -> m (Map Text TestSpec)
+
 tests_to_run [] = all_tests 
-tests_to_run xs = all_tests <&> Map.filterWithKey (const . flip elem xs)
+tests_to_run xs = all_tests 
+  <&> Map.filterWithKey (const . flip elem xs)
 
-report :: (MonadIO m) => String -> m ()
-report = liftIO . putStrLn
 
-reportLn :: (MonadIO m) => String -> m ()
-reportLn = liftIO . putStrLn
+report :: MonadIO m => String -> m ()
+report = liftIO . putStrLn 
+
 
 all_tests 
   :: MonadReader DampfContext m 
   => Monad m 
   => m (Map Text TestSpec)
-all_tests = view $ app . tests . to (Map.filter $ not . isOnlyAtBuild)
+all_tests = view l 
+  where 
+    l = app . tests . to (Map.filter $ not . isOnlyAtBuild)
+
 
 isOnlyAtBuild :: TestSpec -> Bool
 isOnlyAtBuild (TestSpec _ whens _) = [AtBuild] == whens

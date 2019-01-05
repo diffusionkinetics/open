@@ -20,7 +20,7 @@ import           System.Process.Typed
 
 import           Dampf.Docker.Types
 import           Dampf.Docker.Args.Network (createNet)
-import           Dampf.Docker.Args
+import           Dampf.Docker.Args 
 import           Dampf.Types
 
 -- Interpreter
@@ -28,7 +28,12 @@ import           Dampf.Types
 runDockerT :: (MonadIO m, MonadCatch m) => DockerT (DampfT m) a -> DampfT m a
 runDockerT = iterT dockerIter
 
-dockerIter :: (MonadIO m, MonadCatch m) => DockerF (DampfT m a) -> DampfT m a
+
+dockerIter 
+  :: (MonadIO m, MonadCatch m) 
+  => DockerF (DampfT m a) 
+  -> DampfT m a
+
 dockerIter = \case
   Build t i next -> interpBuild t i >> next
   Rm c next      -> interpRm c >>= next

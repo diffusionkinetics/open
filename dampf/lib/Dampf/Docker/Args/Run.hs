@@ -56,7 +56,7 @@ data RunArgs = RunArgs
     , _envs     :: Map Text Text
     , _img      :: Text
     , _cmd      :: Text
-    , _volumes  :: [(FilePath, FilePath)]
+    , _volumes  :: Map FilePath FilePath
     , _dns      :: Maybe Text
     } deriving (Eq, Show)
 
@@ -73,7 +73,7 @@ instance ToArgs RunArgs where
         <> namedTextArg "net" (r ^. net)
         <> foldMapOf (hosts .> itraversed . withIndex) hostArgs r
         <> maybe [] (\ip -> ["--dns", T.unpack ip]) (r^.dns)
-        <> foldMapOf (volumes . traversed) volArgs r
+        <> (concatMap volArgs . Map.toList) (r ^. volumes)
         <> foldr portArg [] (r ^. publish)
         <> Map.foldrWithKey envArg [] (r ^. envs)
         <> [r ^. img . to T.unpack]
@@ -152,7 +152,7 @@ defaultRunArgs n spec = RunArgs
     , _img      = spec ^. image
     , _cmd      = spec ^. command . non ""
     , _hosts    = Map.empty
-    , _volumes  = []
+    , _volumes  = Map.empty
     , _dns      = Nothing
     }
 
