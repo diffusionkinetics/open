@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Dampf.Browse where
 
 import Dampf.Test
@@ -40,19 +42,24 @@ chrome_x11 = Browser "dampf-chrome-x11" spec args where
     Nothing
     Nothing
     Nothing
-  args = set privileged True
-       . set envs (Map.fromList [("DISPLAY","unix:0")])
-       . set volumes [("/tmp/.X11-unix/","/tmp/.X11-unix")]
+  args = 
+    set privileged True
+    . set envs [("DISPLAY","unix:0")]
+    . set volumes [("/tmp/.X11-unix/","/tmp/.X11-unix")]
 
 data Backend = VNC | X11 deriving (Show, Read, Eq, Generic)
 
 browse :: (MonadCatch m, MonadIO m) => Backend -> DampfT m ()
 browse b = do
   netName <- randomName
-  proxies <- ask <&> toListOf (app . domains . traversed . proxyContainer . _Just . to (head . T.splitOn ":"))
+  proxies <- ask <&> toListOf 
+    (app.domains.traversed.proxyContainer._Just.to 
+      (head . T.splitOn ":"))
   
   let containerMess = nginx_container_name : browserName : proxies
-      onlyProxyContainers = app . containers . to (Map.filter (^. image . to (flip elem proxies)))
+      onlyProxyContainers = 
+        app.containers.to (Map.filter 
+          (^. image . to (flip elem proxies)))
       (Browser browserName browserSpec browserArgs) = case b of
         VNC -> chrome_vnc
         X11 -> chrome_x11
