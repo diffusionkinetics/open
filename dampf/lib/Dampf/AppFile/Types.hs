@@ -112,10 +112,9 @@ instance FromJSON Method where
           go "post" = pure Post
           go _ = mzero
 
-type Action = String 
 data FormData = FormData 
   { _formMethod :: Method
-  , _formAction :: Action 
+  , _formAction :: URL
   , _formContents :: Map Text Text
   } deriving (Eq, Show)
 

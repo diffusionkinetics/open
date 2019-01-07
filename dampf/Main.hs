@@ -19,6 +19,7 @@ import           Dampf.Postgres
 import           Dampf.Types
 import           Dampf.Monitor (runMonitor)
 import           Dampf.Test (test)
+import           Dampf.Test.Curl (testWithCurl)
 import           Dampf.Browse (browse, Backend(..))
 import           Dampf.Docker
 import           Dampf.Provision
@@ -56,6 +57,7 @@ run (Options af cf p cmd) = do
         SetupDatabase       -> setupDB
         Monitor tests       -> runMonitor tests
         Test tests          -> test tests
+        TestCurl tests      -> testWithCurl tests
         Provision pt        -> goProvision pt
         Env cmds            -> envCmd cmds
         Browse b            -> browse b
@@ -85,6 +87,7 @@ data Command
     | SetupDatabase
     | Monitor [Text]
     | Test [Text]
+    | TestCurl [Text]
     | Provision ProvisionType
     | Browse Backend
     deriving (Show)
@@ -184,7 +187,12 @@ parseCommand = O.subparser $
     <> O.command "test"
             (O.info
                 (O.helper <*> parseTest)
-                (O.progDesc "Run specified test (if not specified, all tests)"))
+                (O.progDesc "Run specified test (if not specified, all tests), writes to /etc/hosts"))
+
+    <> O.command "test-curl"
+            (O.info
+                (O.helper <*> parseTestCurl)
+                (O.progDesc "Run specified test (if not specified, all tests), no root required"))
 
 instance ParseField ProvisionType
 instance ParseField Backend
@@ -222,6 +230,10 @@ parseRunMigrations :: Parser Command
 parseRunMigrations = RunMigrations
     <$> optional (O.argument readerText (O.metavar "DATABASE"))
 
+
+parseTestCurl :: Parser Command
+parseTestCurl = TestCurl
+    <$> many (O.argument readerText (O.metavar "TESTS"))
 
 parseTest :: Parser Command
 parseTest = Test

@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Dampf.Docker.Free
   where
@@ -14,18 +17,24 @@ import           Data.Text.Lens
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
-import qualified Data.Text.IO as T
+import qualified Data.ByteString.Lazy.Char8 as BL
 import           Data.Monoid ((<>))
 import           System.Process.Typed
+import           System.Exit (ExitCode(..))
 
 import           Dampf.Docker.Types
 import           Dampf.Docker.Args.Network (createNet)
-import           Dampf.Docker.Args 
+import           Dampf.Docker.Args hiding (net)
 import           Dampf.Types
 
 -- Interpreter
 
-runDockerT :: (MonadIO m, MonadCatch m) => DockerT (DampfT m) a -> DampfT m a
+runDockerT 
+  :: MonadIO m
+  => MonadCatch m 
+  => DockerT (DampfT m) a 
+  -> DampfT m a
+
 runDockerT = iterT dockerIter
 
 
@@ -71,88 +80,198 @@ dockerIter = \case
   Inspect format id' next           -> interpInspect format id' >>= next
   ContainerLS next                  -> interpContainerLS >>= next
 
-interpBuild :: (MonadIO m) => Text -> FilePath -> DampfT m ()
-interpBuild t i = do
-    liftIO . putStrLn $ "Docker: Building " ++ i ++ ":" ++ show t
-    void $ runDockerProcess ["build", "-t", T.unpack t, i]
+interpBuild :: MonadIO m => Text -> FilePath -> m ()
+interpBuild t i = liftIO $ do
+    putStrLn $ 
+      "Docker: Building " ++ i ++ ":" ++ show t
 
-interpRm :: (MonadIO m) => Text -> DampfT m Text
+    void . readDockerProcess $ 
+      ["build", "-t", T.unpack t, i]
+
+
+interpRm :: MonadIO m => Text -> DampfT m Text
 interpRm c = interpRmMany [c]
 
-interpRmMany :: (MonadIO m) => [Text] -> DampfT m Text
-interpRmMany cs = do
-    liftIO . putStrLn $ "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
-    readDockerProcess $ ["rm", "-f"] ++ fmap T.unpack cs
 
-interpRun :: (MonadIO m, MonadCatch m) => Bool -> Text -> ContainerSpec -> DampfT m Text
+interpRmMany :: MonadIO m => [Text] -> m Text
+interpRmMany cs = liftIO $ do
+    putStrLn $
+      "Docker: Removing " ++ T.unpack (T.intercalate ", " cs)
+
+    readDockerProcess $ 
+      ["rm", "-f"] ++ fmap T.unpack cs
+
+
+interpRun 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Bool 
+  -> Text 
+  -> ContainerSpec 
+  -> DampfT m Text
+
 interpRun True  = interpRunWith id
 interpRun False = interpRunWith unDaemonize
 
-interpRunWith :: (MonadIO m, MonadCatch m) => (RunArgs -> RunArgs) -> Text -> ContainerSpec -> DampfT m Text
-interpRunWith f n spec = do
-    args <- mkRunArgs n spec <&> f
-    liftIO . putStrLn $ "Docker: Running "
-        ++ args ^. name . to T.unpack ++ " '" ++ args ^. cmd . to T.unpack ++ "'"
+
+interpRunWith 
+  :: MonadIO m => MonadCatch m 
+  => (RunArgs -> RunArgs) 
+  -> Text 
+  -> ContainerSpec 
+  -> DampfT m Text
+
+interpRunWith argsTweak n spec = do
+    args <- mkRunArgs n spec <&> argsTweak
+    liftIO . putStrLn $ "Docker: Running " 
+      <> show (args ^. name <> args ^. cmd)
 
     readDockerProcess . toArgs $ args
 
-interpExec :: (MonadIO m, MonadCatch m) => Text -> Text -> DampfT m Text
+
+interpExec 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Text 
+  -> Text 
+  -> m Text
 interpExec conNm cmds = do
-  readDockerProcess $ "exec":words (unpack cmds)
+  readDockerProcess $ "exec" : words (unpack cmds)
 
 
-interpStop :: (MonadIO m) => Text -> DampfT m ()
+interpStop :: MonadIO m => Text -> DampfT m ()
 interpStop c = interpStopMany [c]
 
-interpStopMany :: (MonadIO m) => [Text] -> DampfT m ()
-interpStopMany cs = do
-    liftIO . putStrLn $ "Docker: Stopping " ++ T.unpack (T.intercalate ", " cs)
-    runDockerProcess $ ["stop"] ++ fmap T.unpack cs ++ ["-t", "1"]
 
-readDockerProcess :: MonadIO m => [String] -> DampfT m Text
-readDockerProcess = (go' <=< readProcess_) . proc "docker"
-  where de  = TL.toStrict . TL.decodeUtf8
-        out o = liftIO (T.putStrLn $ "stdout: " <> de o) *> return (de o)
-        err e = liftIO (T.putStrLn $ "stderr: " <> de e) *> return (de e)
-        go  (o, e) = out o <* err e
-        go' (o, _) = return . de $ o
+interpStopMany :: MonadIO m => [Text] -> m ()
+interpStopMany cs = liftIO $ do
+    putStrLn $ 
+      "Docker: Stopping " ++ T.unpack (T.intercalate ", " cs)
 
-runDockerProcess :: MonadIO m => [String] -> DampfT m ()
-runDockerProcess = runProcess_ . proc "docker"
+    void . readDockerProcess $
+      ["stop"] ++ fmap T.unpack cs ++ ["-t", "1"]
 
-interp :: (MonadIO m, MonadCatch m, ToArgs arg) => arg -> DampfT m ()
-interp = runDockerProcess . toArgs
 
-interpPull :: (MonadIO m, MonadCatch m) => Text -> DampfT m ()
-interpPull image_name = do
-  liftIO . putStrLn $ "Docker: Pulling " ++ T.unpack image_name
-  runDockerProcess ["pull", T.unpack image_name]
+readDockerProcess 
+  :: forall m. MonadIO m 
+  => [String] 
+  -> m Text
 
-interpNetworkDisconnect :: (MonadIO m, MonadCatch m) =>
-     Text
+readDockerProcess args = (go <=< readProcess) . proc "docker" $ args `seq` args
+  where 
+    dec = TL.toStrict . TL.decodeUtf8
+    spread = (<> " ")
+
+    go :: (ExitCode, BL.ByteString, BL.ByteString) -> m Text
+    go (ExitSuccess, out, _) = liftIO $ do 
+      -- BL.putStrLn ("stdout: " <> out)
+      (return . dec) out
+
+    go (ExitFailure code, out, err) = liftIO $ do
+      BL.putStr $ 
+           "\n[FAIL]: docker " 
+        <> (BL.pack . foldMap spread) args
+        <> "\n error code: " <> (BL.pack . show) code
+        <> "\n stderr: " <> err
+      (return . dec) out
+
+
+interp 
+  :: MonadIO m 
+  => MonadCatch m 
+  => ToArgs arg 
+  => arg 
+  -> m ()
+interp = void . readDockerProcess . toArgs
+
+
+interpPull 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Text 
+  -> m ()
+
+interpPull imageName = liftIO $ do
+  putStrLn $ 
+    "Docker: Pulling " ++ T.unpack imageName
+
+  (void . readDockerProcess) [ "pull", T.unpack imageName ]
+
+
+interpNetworkDisconnect 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Text
   -> ContainerSpec
-  -> DampfT m ()
-interpNetworkDisconnect netName spec = do
-  liftIO . putStrLn $ "Docker: Diconnecting " ++ spec ^. image . _Text
-  runDockerProcess ["network", "disconnect", T.unpack netName, spec ^. image . to T.unpack]
+  -> m ()
 
-interpNetworkLS :: (MonadIO m, MonadCatch m) => DampfT m Text
+interpNetworkDisconnect netName spec = liftIO $ do
+  putStrLn $ 
+    "Docker: Diconnecting " ++ spec ^. image . _Text
+
+  (void . readDockerProcess) 
+    [ "network"
+    , "disconnect"
+    , T.unpack netName
+    , spec ^. image . to T.unpack
+    ]
+
+
+interpNetworkLS 
+  :: MonadIO m
+  => MonadCatch m 
+  => m Text
+
 interpNetworkLS = readDockerProcess ["network", "ls"]
 
-interpNetworkRM :: (MonadIO m, MonadCatch m) => [Text] -> DampfT m Text
-interpNetworkRM nets = do
-  liftIO . putStrLn $ "Docker: Removing network " ++ T.unpack (T.intercalate ", " nets)
+
+interpNetworkRM 
+  :: MonadIO m 
+  => MonadCatch m 
+  => [Text] 
+  -> m Text
+
+interpNetworkRM nets = liftIO $ do
+  liftIO . putStrLn $ 
+    "Docker: Removing network " ++ T.unpack (T.intercalate ", " nets)
+
   readDockerProcess $ ["network", "rm"] ++ fmap T.unpack nets
 
-interpNetworkInspect :: (MonadIO m, MonadCatch m) => Text -> [Text] -> DampfT m Text
-interpNetworkInspect format nets = do
-  liftIO . putStrLn $ "Docker: Inspecting network " ++ T.unpack (T.intercalate ", " nets)
-  readDockerProcess $ ["network", "inspect", "-f", T.unpack format] ++ fmap T.unpack nets
 
-interpContainerLS :: (MonadIO m, MonadCatch m) => DampfT m Text
+interpNetworkInspect 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Text 
+  -> [Text] 
+  -> m Text
+
+interpNetworkInspect format nets = liftIO $ do
+  putStrLn $ 
+    "Docker: Inspecting network " ++ T.unpack (T.intercalate ", " nets)
+
+  readDockerProcess $ 
+    ["network", "inspect", "-f", T.unpack format] 
+    ++ fmap T.unpack nets
+
+
+interpContainerLS 
+  :: MonadIO m
+  => MonadCatch m 
+  => DampfT m Text
+
 interpContainerLS = readDockerProcess $ ["container", "list"]
 
-interpInspect :: (MonadIO m, MonadCatch m) => Text -> Text -> DampfT m Text
-interpInspect format id' = do
-  liftIO . putStrLn $ "Docker: Inspecting " ++ T.unpack id'
-  readDockerProcess $ ["inspect", "-f", T.unpack format, take 12 $ T.unpack id']
+
+interpInspect 
+  :: MonadIO m 
+  => MonadCatch m 
+  => Text 
+  -> Text 
+  -> m Text
+
+interpInspect format id' = liftIO $ do
+  putStrLn $ 
+    "Docker: Inspecting " ++ T.unpack id'
+
+  readDockerProcess $ 
+    ["inspect", "-f", T.unpack format, take 12 $ T.unpack id']

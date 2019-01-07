@@ -44,7 +44,7 @@ sendFormData :: MonadIO m => FormData -> m ()
 sendFormData form =
   let 
       contents  = form ^. formContents . to Map.toList
-      action    = form ^. formAction
+      action    = form ^. formAction . to T.unpack
       opts      = defaults & params .~ contents
       go        = BS.pack . T.unpack
       process (a,b) = (go a, go b) 
