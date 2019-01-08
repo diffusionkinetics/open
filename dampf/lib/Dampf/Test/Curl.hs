@@ -55,7 +55,6 @@ testWithCurl ls = do
 
     containerNames = 
       nginx_container_name 
-      : curlName
       : proxiedNames ++ testContainerNames
 
     onlyProxyContainers = app.containers.to 
@@ -93,6 +92,7 @@ sendFormData' argsTweak form = do
     (form ^. formMethod)
     (form ^. formContents)
     (form ^. formAction)
+
 
 runTests'
   :: (Monad m, MonadReader DampfContext m, MonadIO m, MonadCatch m) 
@@ -156,34 +156,40 @@ runCurl argsTweak method contents action = go
           . set interactive True
           . set privileged True
 
-    curlSpec isThereJar = 
+    curlSpec = 
       ContainerSpec 
         "docker.io/appropriate/curl"
         (Just [Port 80, Port 443])
         (Just 
           ( 
-              if isThereJar 
-                then " --cookie " <> T.pack (path </> "cookie.dump")
-                else mempty
-
-          <>  " --cookie-jar "    <> T.pack (path </> "cookie.dump")
+              " --cookie "     <> T.pack (path </> "cookie.dump ")
+          <>  " --cookie-jar " <> T.pack (path </> "cookie.dump ")
           <>  case method of
-                Get -> "\"" <> action <> urlEncode contents
+                Get -> action <> urlEncode contents
                 Post -> Map.foldMapWithKey
-                  (\k v -> " -d " <> k <> "=" <> v)
+                  (\k v -> "-d " <> k <> "=" <> v)
                   contents
-                <> " " <> action
+                  <> " " <> action
           )
         )
         Nothing
     
     path = "/tmp/dampf/curl"
 
-    urlEncode = ("?" <>) . Map.foldMapWithKey (\k v -> k <> "=" <> v)
+    urlEncode = question . Map.foldMapWithKey (\k v -> k <> "=" <> v)
+      where 
+        question "" = ""
+        question str = "?" <> str <> " "
         
     go = do
-      isThereJar <- (liftIO . doesFileExist) (path </> "cookie.dump")
-      res <- runWith args curlName (curlSpec isThereJar) 
+      shouldntTouch <- (liftIO . doesFileExist) 
+        (path </> "cookie.dump")
+
+      unless shouldntTouch . liftIO $ do
+        createDirectoryIfMissing True path
+        writeFile (path </> "cookie.dump") mempty
+
+      res <- runWith args curlName curlSpec
 
       _ <- rm curlName
       return res
