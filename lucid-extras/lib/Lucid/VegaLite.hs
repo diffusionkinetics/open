@@ -15,8 +15,8 @@ import qualified Data.ByteString.Lazy as LBS
 import Data.Monoid
 
 vegaCDN, vegaLiteCDN, vegaEmbedCDN :: Monad m => HtmlT m ()
-vegaCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega@4"
-vegaLiteCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-lite@2.0.0"
+vegaCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega@3"
+vegaLiteCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-lite@2.5.0"
 vegaEmbedCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-embed@3"
 
 -- | Construct a HTML page that can render a vega-lite plot. The plot will be rendered by the vega-embed library.
