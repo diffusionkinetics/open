@@ -1,6 +1,5 @@
 resolver: lts-9.21
 packages:
-  - ./datasets
   - ./plotlyhs
   - ./lucid-extras
   - ./parfoldl
