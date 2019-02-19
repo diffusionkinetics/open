@@ -1,5 +1,9 @@
 {-# language OverloadedStrings, ExtendedDefaultRules #-}
-module Lucid.VegaLite (vegaEmbedHead, vegaEmbedBodyScript, mkVegaHtml) where
+module Lucid.VegaLite (
+  -- * Standalone
+  mkVegaHtml
+  -- * Utilities
+  , vegaEmbedHead, vegaEmbedBodyScript) where
 
 import Lucid
 import Lucid.PreEscaped (scriptSrc)
@@ -18,7 +22,7 @@ vegaCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega@3"
 vegaLiteCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-lite@2.5.0"
 vegaEmbedCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-embed@3"
 
--- | Construct a HTML page that can render a vega-lite plot. The plot will be rendered by the vega-embed library.
+-- | Construct a standalone HTML page that can render a vega-lite plot. The plot will be rendered by the vega-embed library.
 --
 -- NB: the 'A.Value' parameter must contain a vega-lite JSON payload
 mkVegaHtml :: A.Value -> Html ()

@@ -1,6 +1,12 @@
-{-# LANGUAGE OverloadedStrings, StandaloneDeriving,  DeriveGeneric #-}
-
-module Lucid.Leaflet where
+{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+module Lucid.Leaflet (
+  -- * CDN declarations
+  leafletCDN, leafletCssCDN,
+  -- * Utilities
+  leafletMap, osmTileLayer,
+  -- * Types
+  LMap(..), LMapElement(..), TileLayerProperties(..)
+  ) where
 
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BSL
@@ -15,13 +21,13 @@ leafletCDN :: Monad m => HtmlT m ()
 leafletCDN 
   =  scriptSrc "https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
 
-data LMap = LMap T.Text | SetView (Double, Double) Double LMap
+data LMap = LMap T.Text | SetView (Double, Double) Double LMap deriving (Eq, Show)
 
 data LMapElement = TileLayer T.Text TileLayerProperties
                  | Marker (Double, Double)
-                 | BindPopup T.Text LMapElement 
+                 | BindPopup T.Text LMapElement deriving (Eq, Show)
 
-data TileLayerProperties = TileLayerProperties { attribution :: T.Text } deriving (Generic)
+newtype TileLayerProperties = TileLayerProperties { attribution :: T.Text } deriving (Eq, Show, Generic)
 instance Aeson.ToJSON TileLayerProperties 
 
 mapElementToJS :: LMapElement -> T.Text
@@ -33,7 +39,7 @@ mapElementToJS e' = "\n" <> f e' <> ".addTo(lmap);" where
  g = T.decodeUtf8 . BSL.toStrict . Aeson.encode
 
 
-
+-- | OpenStreetMap tile layer
 osmTileLayer :: LMapElement 
 osmTileLayer 
    = TileLayer "http://{s}.tile.osm.org/{z}/{x}/{y}.png" 
@@ -44,6 +50,7 @@ leafletCssCDN =
   link_ [rel_ "stylesheet",
          href_ "https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"]
 
+-- | @\<SCRIPT\>@ section that declares a LeafletJS map
 leafletMap ::  Monad m => LMap -> [LMapElement] -> HtmlT m ()
 leafletMap mp elms = script_ $ writeMap mp <> writeElems elms where
   writeMap m = "\nvar lmap = " <> writeMap' m <> ";"

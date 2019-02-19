@@ -1,7 +1,7 @@
 Name:                lucid-extras
-Version:             0.2.1
-Synopsis:            Generate more HTML with Lucid
-Description:         Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Email.
+Version:             0.2.2
+Synopsis:            Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Leaflet JS, Email.
+Description:         Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Leaflet JS, Email.
 License:             MIT
 License-file:        LICENSE
 Author:              Tom Nielsen <tanielsen@gmail.com>
@@ -10,7 +10,7 @@ build-type:          Simple
 Cabal-Version: 	     >= 1.10
 homepage:            https://github.com/diffusionkinetics/open/lucid-extras
 bug-reports:         https://github.com/diffusionkinetics/open/issues
-category:            Web
+category:            Web, Graphics
 Tested-With:         GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1, GHC == 8.0.2
 extra-source-files:
                    changelog.md
