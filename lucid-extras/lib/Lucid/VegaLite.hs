@@ -1,15 +1,31 @@
 {-# language OverloadedStrings, ExtendedDefaultRules #-}
-module Lucid.VegaLite (vegaEmbedHead, vegaEmbedBodyScript, mkVegaHtml) where
+{-|
+Module      : Lucid.VegaLite
+Description : Vega-lite bindings
+Copyright   : (c) Tom Nielsen, Marco Zocca, 2019
+License     : GPL-3
+Maintainer  : ocramz fripost org
+Stability   : experimental
+Portability : POSIX
+
+Bindings to the vega-lite visualization and infographics API.
+
+See https://vega.github.io/ for usage details
+-}
+module Lucid.VegaLite (
+  -- * Standalone
+  mkVegaHtml
+  -- * Utilities
+  , vegaEmbedHead, vegaEmbedBodyScript) where
 
 import Lucid
 import Lucid.PreEscaped (scriptSrc)
 
 import qualified Data.Aeson as A
 
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 import qualified Data.Text.Encoding as T (decodeUtf8)
 
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
 import Data.Monoid
@@ -19,7 +35,7 @@ vegaCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega@3"
 vegaLiteCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-lite@2.5.0"
 vegaEmbedCDN = scriptSrc "https://cdn.jsdelivr.net/npm/vega-embed@3"
 
--- | Construct a HTML page that can render a vega-lite plot. The plot will be rendered by the vega-embed library.
+-- | Construct a standalone HTML page that can render a vega-lite plot. The plot will be rendered by the vega-embed library.
 --
 -- NB: the 'A.Value' parameter must contain a vega-lite JSON payload
 mkVegaHtml :: A.Value -> Html ()
