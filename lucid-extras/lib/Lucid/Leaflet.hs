@@ -1,4 +1,17 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-|
+Module      : Lucid.Leaflet
+Description : LeafletJS bindings
+Copyright   : (c) Tom Nielsen, Marco Zocca, 2019
+License     : GPL-3
+Maintainer  : ocramz fripost org
+Stability   : experimental
+Portability : POSIX
+
+Bindings to the LeafletJS map API.
+
+See https://leafletjs.com/ for usage details
+-}
 module Lucid.Leaflet (
   -- * CDN declarations
   leafletCDN, leafletCssCDN,
@@ -17,6 +30,9 @@ import Lucid.PreEscaped
 import Data.Monoid
 import GHC.Generics
 
+
+
+-- | Statement for embedding the LeafletJS javascript blob.
 leafletCDN :: Monad m => HtmlT m ()
 leafletCDN 
   =  scriptSrc "https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
@@ -45,6 +61,7 @@ osmTileLayer
    = TileLayer "http://{s}.tile.osm.org/{z}/{x}/{y}.png" 
      $ TileLayerProperties "&copy; <a href=\"http://osm.org/copyright\">OpenStreetMap</a> contributors"
 
+-- | Statement for embedding the LeafletJS CSS stylesheet.
 leafletCssCDN :: Monad m => HtmlT m ()
 leafletCssCDN =
   link_ [rel_ "stylesheet",

@@ -1,4 +1,17 @@
 {-# language OverloadedStrings, ExtendedDefaultRules #-}
+{-|
+Module      : Lucid.VegaLite
+Description : Vega-lite bindings
+Copyright   : (c) Tom Nielsen, Marco Zocca, 2019
+License     : GPL-3
+Maintainer  : ocramz fripost org
+Stability   : experimental
+Portability : POSIX
+
+Bindings to the vega-lite visualization and infographics API.
+
+See https://vega.github.io/ for usage details
+-}
 module Lucid.VegaLite (
   -- * Standalone
   mkVegaHtml
