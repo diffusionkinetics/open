@@ -6,10 +6,9 @@ import Lucid.PreEscaped (scriptSrc)
 
 import qualified Data.Aeson as A
 
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 import qualified Data.Text.Encoding as T (decodeUtf8)
 
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
 import Data.Monoid
