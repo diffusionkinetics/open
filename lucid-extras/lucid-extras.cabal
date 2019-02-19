@@ -1,7 +1,7 @@
 Name:                lucid-extras
 Version:             0.2.2
 Synopsis:            Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Leaflet JS, Email.
-Description:         Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Leaflet JS, Email.
+Description:         Generate more HTML with Lucid - Bootstrap, Rdash, Vega-Lite, Leaflet JS, Email. Provides functions to generate rich web page elements for infographics, geographical maps, and more.
 License:             MIT
 License-file:        LICENSE
 Author:              Tom Nielsen <tanielsen@gmail.com>
