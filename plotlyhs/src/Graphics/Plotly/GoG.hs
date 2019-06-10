@@ -157,6 +157,28 @@ line a xs = Plot.scatter & Plot.x ?~ map (toJSON . _x a) xs
                  & Plot.y ?~ map (toJSON . _y a) xs
                  & Plot.mode ?~ [Plot.Lines]
 
+-- | Render an Aes (styling header) <a> and data <xs> into a `Plot.Trace box`
+-- e.g. `hbox myAes [1,1,4,5,6,9,9]`
+--
+hbox  :: (AxisValue (XVal t), Num (XVal t))
+      => Aes t a
+      -> [a]
+      -> Plot.Trace
+hbox a xs = Plot.box
+          & Plot.x    ?~ map (toJSON . _x a) xs
+          & Plot.mode ?~ [Plot.Lines]
+
+-- | Render an Aes (styling header) <a> and data <ys> into a `Plot.Trace box`
+-- e.g. `vbox myAes [1,1,4,5,6,9,9]`
+--
+vbox  :: (AxisValue (YVal t), Num (YVal t))
+      => Aes t a
+      -> [a]
+      -> Plot.Trace
+vbox a ys = Plot.box
+          & Plot.y    ?~ map (toJSON . _y a) ys
+          & Plot.mode ?~ [Plot.Lines]
+
 hbars :: (AxisValue (XVal t), AxisValue (YVal t))
        => Aes t a -> [a] -> Plot.Trace
 hbars a xs = Plot.bars & Plot.x ?~ map (toJSON . _x a) xs
