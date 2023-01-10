@@ -128,11 +128,13 @@ pprDomainSpec spec = vcat
     [ text "static:"         <+> text s
     , text "proxyContainer:" <+> text pc
     , text "letsEncrypt:"    <+> text le
+    , text "nowww:"          <+> text nw
     ]
   where
     s  = spec ^. static . non ""
     pc = spec ^. proxyContainer . non "" . to T.unpack
     le = spec ^. letsEncrypt . non False . to show
+    nw = spec ^. nowww . non False . to show
 
 
 pprSpecs :: (a -> Doc) -> (Text, a) -> Doc

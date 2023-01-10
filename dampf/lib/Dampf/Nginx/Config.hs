@@ -10,6 +10,7 @@ import           System.FilePath
 
 import           Dampf.Nginx.Types
 import           Dampf.Types
+import           Data.Maybe (fromMaybe)
 
 
 domainConfig :: (MonadIO m) => Text -> DomainSpec -> DampfT m Text
@@ -54,7 +55,9 @@ sslDecls name spec = do
 httpDecls :: Text -> DomainSpec -> [ServerDecl]
 httpDecls name spec =
     [ Listen 80 []
-    , ServerName [name, "www." `T.append` name]
+    , if (fromMaybe False $ _nowww spec) 
+         then ServerName [name]
+         else ServerName [name, "www." `T.append` name]
     , Location "/" $ domainToLocation name spec
     ]
 

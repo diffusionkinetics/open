@@ -43,9 +43,12 @@ reload = do _ <- liftIO $ system "service nginx reload"
 
 enableNewDomain :: (MonadIO m) => Text -> DomainSpec -> DampfT m ()
 enableNewDomain name spec = when (fromMaybe False $ _letsEncrypt spec) $ do
+    let wwwArg = if fromMaybe False $ _nowww spec 
+                    then [] 
+                    else ["-d","www."`T.append` name]
     excode <- shelly $ do
-                errExit False $ run_ "certbot-auto"
-                     ["certonly","-q","--nginx","--expand","-d",name, "-d","www."`T.append` name]
+                errExit False $ run_ "certbot"
+                     (["certonly","-q","--nginx","--expand","-d",name]++wwwArg)
                 lastExitCode
     if (excode ==0)
       then writeNginxConfigFile name spec

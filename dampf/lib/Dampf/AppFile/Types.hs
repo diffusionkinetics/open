@@ -123,6 +123,7 @@ data DomainSpec = DomainSpec
     { _static           :: Maybe FilePath
     , _proxyContainer   :: Maybe Text
     , _letsEncrypt      :: Maybe Bool
+    , _nowww            :: Maybe Bool
     , _isCDN            :: Maybe Bool
     } deriving (Eq, Show, Generic)
 
